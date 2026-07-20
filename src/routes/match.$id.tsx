@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useParams } from "@tanstack/react-router";
 import { ArrowLeft, MapPin, Shirt, Sparkles, User } from "lucide-react";
+import { AppShell } from "@/components/AppShell";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { matchById } from "@/data/matches";
 import { team } from "@/data/teams";
@@ -48,7 +49,8 @@ function MatchPage() {
   const analysis = analysisFor(match.id);
 
   return (
-    <div className="mx-auto min-h-screen max-w-[440px] bg-background pb-20">
+    <AppShell hideHeader>
+    <div className="mx-auto min-h-screen w-full max-w-[440px] bg-background pb-20 lg:max-w-none lg:pb-0">
       {/* Hero */}
       <div className="relative overflow-hidden bg-foreground text-background">
         <div className="pointer-events-none absolute -top-24 right-0 size-64 rounded-full bg-brand/25 blur-3xl" />
@@ -244,6 +246,7 @@ function MatchPage() {
         </TabsContent>
       </Tabs>
     </div>
+    </AppShell>
   );
 }
 
