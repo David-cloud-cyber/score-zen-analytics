@@ -48,7 +48,7 @@ export function SearchProvider({ children }: { children: ReactNode }) {
   return (
     <SearchCtx.Provider value={{ open, setOpen }}>
       {children}
-      <CommandDialog open={open} onOpenChange={setOpen} title="Recherche" description="Trouvez matchs, équipes et compétitions">
+      <CommandDialog open={open} onOpenChange={setOpen}>
         <CommandInput placeholder="Rechercher un match, une équipe, une compétition…" />
         <CommandList aria-label="Résultats de recherche">
           <CommandEmpty>Aucun résultat trouvé.</CommandEmpty>
