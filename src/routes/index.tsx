@@ -40,7 +40,7 @@ function HomePage() {
       />
 
       {/* Filter pills */}
-      <div className="no-scrollbar flex gap-2 overflow-x-auto px-4 pb-4">
+      <div className="no-scrollbar flex gap-2 overflow-x-auto px-4 pb-4 lg:px-0">
         {FILTERS.map((f) => {
           const count = MATCHES.filter((m) =>
             f.id === "live" ? m.status === "live" || m.status === "ht" : m.status === f.id,
@@ -64,41 +64,61 @@ function HomePage() {
         })}
       </div>
 
-      {/* Featured AI banner */}
-      <div className="px-4">
+      {/* Featured AI banner + comparator (side-by-side on desktop) */}
+      <div className="grid gap-4 px-4 lg:grid-cols-3 lg:gap-5 lg:px-0">
         <Link
           to="/match/$id"
           params={{ id: "rma-fcb" }}
-          className="relative block overflow-hidden rounded-3xl bg-foreground p-5 text-background shadow-lg"
+          className="group relative block overflow-hidden rounded-3xl bg-foreground p-5 text-background shadow-lg transition-transform hover:-translate-y-0.5 hover:shadow-xl lg:col-span-2 lg:p-7"
         >
-          <div className="pointer-events-none absolute -right-16 -top-16 size-48 rounded-full bg-data/40 blur-3xl" />
-          <div className="pointer-events-none absolute -bottom-20 -left-10 size-40 rounded-full bg-brand/30 blur-3xl" />
+          <div className="pointer-events-none absolute -right-16 -top-16 size-48 rounded-full bg-data/40 blur-3xl transition-transform group-hover:scale-110" />
+          <div className="pointer-events-none absolute -bottom-20 -left-10 size-40 rounded-full bg-brand/30 blur-3xl transition-transform group-hover:scale-110" />
           <div className="relative">
             <div className="mb-3 inline-flex items-center gap-1.5 rounded-full bg-brand/20 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-brand ring-1 ring-brand/30">
               <Sparkles className="size-3" /> Analyse IA · Match du jour
             </div>
-            <h2 className="text-[22px] font-black leading-tight tracking-tight">
+            <h2 className="text-[22px] font-black leading-tight tracking-tight lg:text-3xl">
               Real Madrid <span className="text-muted-foreground">vs</span> FC Barcelone
             </h2>
-            <p className="mt-2 text-xs leading-relaxed text-white/70">
+            <p className="mt-2 text-xs leading-relaxed text-white/70 lg:text-sm">
               El Clásico — Bernabéu · 21:00. Modèle prédictif : victoire à domicile probable
               (64% de confiance).
             </p>
-            <div className="mt-4 grid grid-cols-3 gap-2 text-center">
+            <div className="mt-4 grid grid-cols-3 gap-2 text-center lg:max-w-md">
               <MiniProb label="RMA" value={48} tone="brand" />
               <MiniProb label="Nul" value={22} tone="muted" />
               <MiniProb label="FCB" value={30} tone="data" />
             </div>
             <div className="mt-4 flex items-center justify-between text-xs font-bold">
               <span>Voir l'analyse complète</span>
-              <ChevronRight className="size-4" />
+              <ChevronRight className="size-4 transition-transform group-hover:translate-x-1" />
             </div>
+          </div>
+        </Link>
+
+        <Link
+          to="/analyse"
+          className="hidden overflow-hidden rounded-3xl bg-brand/10 p-6 ring-1 ring-brand/20 transition-all hover:bg-brand/15 lg:flex lg:flex-col lg:justify-between"
+        >
+          <div>
+            <div className="mb-3 inline-flex items-center gap-1.5 rounded-full bg-brand/20 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-brand">
+              <Sparkles className="size-3" /> Comparateur
+            </div>
+            <h3 className="text-xl font-black leading-tight tracking-tight">
+              Analysez deux équipes de votre choix
+            </h3>
+            <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+              Probabilités 1X2, marchés recommandés et facteurs clés — instantanément.
+            </p>
+          </div>
+          <div className="mt-4 inline-flex items-center gap-2 text-xs font-black text-brand">
+            Lancer une analyse <ChevronRight className="size-4" />
           </div>
         </Link>
       </div>
 
       {/* Grouped matches */}
-      <div className="mt-8 space-y-6 px-4">
+      <div className="mt-8 space-y-6 px-4 lg:px-0">
         {grouped.length === 0 && (
           <div className="rounded-2xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
             Aucun match dans cette catégorie.
@@ -113,7 +133,7 @@ function HomePage() {
               </div>
               <span className="text-[10px] font-semibold text-muted-foreground">{comp.country}</span>
             </div>
-            <div className="space-y-3">
+            <div className="space-y-3 lg:grid lg:grid-cols-2 lg:gap-3 lg:space-y-0 xl:grid-cols-3">
               {matches.map((m) => (
                 <MatchCard key={m.id} match={m} />
               ))}
@@ -122,11 +142,11 @@ function HomePage() {
         ))}
       </div>
 
-      {/* CTA */}
-      <div className="mt-8 px-4">
+      {/* CTA (mobile only — desktop shows it inline above) */}
+      <div className="mt-8 px-4 lg:hidden">
         <Link
           to="/analyse"
-          className="flex items-center justify-between rounded-2xl bg-brand/10 p-4 ring-1 ring-brand/20"
+          className="flex items-center justify-between rounded-2xl bg-brand/10 p-4 ring-1 ring-brand/20 transition-transform active:scale-[0.99]"
         >
           <div>
             <div className="text-[10px] font-black uppercase tracking-widest text-brand">Comparateur</div>
