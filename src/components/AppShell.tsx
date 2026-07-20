@@ -1,11 +1,13 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Radio, Sparkles, Star, User, Bell, Coins, Search } from "lucide-react";
+import { Radio, Sparkles, Star, User, Bell, Coins, Search, Users } from "lucide-react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { SearchProvider, SmartSearchTrigger, useSearchDialog } from "@/components/SmartSearch";
 
 const NAV = [
   { to: "/", label: "Matchs", icon: Radio, match: (p: string) => p === "/" || p.startsWith("/match") },
   { to: "/analyse", label: "Analyse", icon: Sparkles, match: (p: string) => p.startsWith("/analyse") },
+  { to: "/communaute", label: "Commu.", icon: Users, match: (p: string) => p.startsWith("/communaute") },
   { to: "/favoris", label: "Favoris", icon: Star, match: (p: string) => p.startsWith("/favoris") },
   { to: "/profil", label: "Profil", icon: User, match: (p: string) => p.startsWith("/profil") },
 ] as const;
@@ -13,6 +15,7 @@ const NAV = [
 export function AppShell({ children, hideHeader = false }: { children: ReactNode; hideHeader?: boolean }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   return (
+    <SearchProvider>
     <div className="min-h-screen bg-background text-foreground">
       <a
         href="#main-content"
@@ -36,6 +39,7 @@ export function AppShell({ children, hideHeader = false }: { children: ReactNode
         </div>
       </div>
     </div>
+    </SearchProvider>
   );
 }
 
