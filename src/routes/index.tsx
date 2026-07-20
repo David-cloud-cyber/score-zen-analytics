@@ -40,7 +40,7 @@ function HomePage() {
       />
 
       {/* Filter pills */}
-      <div className="no-scrollbar flex gap-2 overflow-x-auto px-4 pb-4">
+      <div className="no-scrollbar flex gap-2 overflow-x-auto px-4 pb-4 lg:px-0">
         {FILTERS.map((f) => {
           const count = MATCHES.filter((m) =>
             f.id === "live" ? m.status === "live" || m.status === "ht" : m.status === f.id,
