@@ -1,11 +1,13 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Radio, Sparkles, Star, User, Bell, Coins, Search } from "lucide-react";
+import { Radio, Sparkles, Star, User, Bell, Coins, Search, Users } from "lucide-react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { SearchProvider, SmartSearchTrigger, useSearchDialog } from "@/components/SmartSearch";
 
 const NAV = [
   { to: "/", label: "Matchs", icon: Radio, match: (p: string) => p === "/" || p.startsWith("/match") },
   { to: "/analyse", label: "Analyse", icon: Sparkles, match: (p: string) => p.startsWith("/analyse") },
+  { to: "/communaute", label: "Commu.", icon: Users, match: (p: string) => p.startsWith("/communaute") },
   { to: "/favoris", label: "Favoris", icon: Star, match: (p: string) => p.startsWith("/favoris") },
   { to: "/profil", label: "Profil", icon: User, match: (p: string) => p.startsWith("/profil") },
 ] as const;
@@ -13,6 +15,7 @@ const NAV = [
 export function AppShell({ children, hideHeader = false }: { children: ReactNode; hideHeader?: boolean }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   return (
+    <SearchProvider>
     <div className="min-h-screen bg-background text-foreground">
       <a
         href="#main-content"
@@ -36,6 +39,7 @@ export function AppShell({ children, hideHeader = false }: { children: ReactNode
         </div>
       </div>
     </div>
+    </SearchProvider>
   );
 }
 
@@ -133,7 +137,7 @@ function MobileBottomNav({ pathname }: { pathname: string }) {
       className="fixed bottom-0 left-1/2 z-40 w-full max-w-[440px] -translate-x-1/2 border-t border-border/60 bg-background/90 pb-6 pt-2 backdrop-blur-xl lg:hidden"
       aria-label="Navigation principale"
     >
-      <ul className="grid grid-cols-4">
+      <ul className="grid grid-cols-5">
         {NAV.map((item) => {
           const active = item.match(pathname);
           const Icon = item.icon;
@@ -166,8 +170,9 @@ function MobileBottomNav({ pathname }: { pathname: string }) {
 }
 
 export function TopBar() {
+  const { setOpen } = useSearchDialog();
   return (
-    <header className="sticky top-0 z-30 flex items-center justify-between border-b border-border/60 bg-background/85 px-4 py-3 backdrop-blur-xl lg:px-8 lg:py-4">
+    <header className="sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-border/60 bg-background/85 px-4 py-3 backdrop-blur-xl lg:px-8 lg:py-4">
       <Link to="/" className="flex items-center gap-2 lg:hidden">
         <div className="grid size-8 place-items-center rounded-lg bg-foreground text-background">
           <span className="text-[11px] font-black italic tracking-tighter">LF</span>
@@ -183,18 +188,17 @@ export function TopBar() {
       </Link>
 
       <div className="hidden lg:flex lg:flex-1 lg:items-center lg:gap-3">
-        <label className="relative flex w-full max-w-md items-center">
-          <Search className="pointer-events-none absolute left-3 size-4 text-muted-foreground" aria-hidden />
-          <input
-            type="search"
-            placeholder="Rechercher une équipe, un joueur, un match…"
-            aria-label="Rechercher"
-            className="w-full rounded-full bg-surface py-2.5 pl-10 pr-4 text-sm outline-none ring-1 ring-black/5 transition-all placeholder:text-muted-foreground focus:ring-2 focus:ring-brand"
-          />
-        </label>
+        <SmartSearchTrigger />
       </div>
 
       <div className="flex items-center gap-2">
+        <button
+          onClick={() => setOpen(true)}
+          className="grid size-9 place-items-center rounded-full bg-surface ring-1 ring-black/5 transition-transform hover:scale-105 active:scale-95 lg:hidden"
+          aria-label="Ouvrir la recherche"
+        >
+          <Search className="size-4" aria-hidden />
+        </button>
         <div className="flex items-center gap-1.5 rounded-full bg-surface px-2.5 py-1 ring-1 ring-black/5 lg:hidden">
           <Coins className="size-3.5 text-warn" aria-hidden />
           <span className="text-xs font-bold tabular-nums">140</span>

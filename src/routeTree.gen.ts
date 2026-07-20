@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ProfilRouteImport } from './routes/profil'
 import { Route as FavorisRouteImport } from './routes/favoris'
+import { Route as CommunauteRouteImport } from './routes/communaute'
 import { Route as AnalyseRouteImport } from './routes/analyse'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as MatchIdRouteImport } from './routes/match.$id'
@@ -23,6 +24,11 @@ const ProfilRoute = ProfilRouteImport.update({
 const FavorisRoute = FavorisRouteImport.update({
   id: '/favoris',
   path: '/favoris',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CommunauteRoute = CommunauteRouteImport.update({
+  id: '/communaute',
+  path: '/communaute',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AnalyseRoute = AnalyseRouteImport.update({
@@ -44,6 +50,7 @@ const MatchIdRoute = MatchIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/analyse': typeof AnalyseRoute
+  '/communaute': typeof CommunauteRoute
   '/favoris': typeof FavorisRoute
   '/profil': typeof ProfilRoute
   '/match/$id': typeof MatchIdRoute
@@ -51,6 +58,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/analyse': typeof AnalyseRoute
+  '/communaute': typeof CommunauteRoute
   '/favoris': typeof FavorisRoute
   '/profil': typeof ProfilRoute
   '/match/$id': typeof MatchIdRoute
@@ -59,21 +67,36 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/analyse': typeof AnalyseRoute
+  '/communaute': typeof CommunauteRoute
   '/favoris': typeof FavorisRoute
   '/profil': typeof ProfilRoute
   '/match/$id': typeof MatchIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/analyse' | '/favoris' | '/profil' | '/match/$id'
+  fullPaths:
+    | '/'
+    | '/analyse'
+    | '/communaute'
+    | '/favoris'
+    | '/profil'
+    | '/match/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/analyse' | '/favoris' | '/profil' | '/match/$id'
-  id: '__root__' | '/' | '/analyse' | '/favoris' | '/profil' | '/match/$id'
+  to: '/' | '/analyse' | '/communaute' | '/favoris' | '/profil' | '/match/$id'
+  id:
+    | '__root__'
+    | '/'
+    | '/analyse'
+    | '/communaute'
+    | '/favoris'
+    | '/profil'
+    | '/match/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AnalyseRoute: typeof AnalyseRoute
+  CommunauteRoute: typeof CommunauteRoute
   FavorisRoute: typeof FavorisRoute
   ProfilRoute: typeof ProfilRoute
   MatchIdRoute: typeof MatchIdRoute
@@ -93,6 +116,13 @@ declare module '@tanstack/react-router' {
       path: '/favoris'
       fullPath: '/favoris'
       preLoaderRoute: typeof FavorisRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/communaute': {
+      id: '/communaute'
+      path: '/communaute'
+      fullPath: '/communaute'
+      preLoaderRoute: typeof CommunauteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/analyse': {
@@ -122,6 +152,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AnalyseRoute: AnalyseRoute,
+  CommunauteRoute: CommunauteRoute,
   FavorisRoute: FavorisRoute,
   ProfilRoute: ProfilRoute,
   MatchIdRoute: MatchIdRoute,
