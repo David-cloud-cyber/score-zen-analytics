@@ -1,6 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { Send, Sparkles, ArrowLeftRight, X } from "lucide-react";
+import { Send, Sparkles, ArrowLeftRight, X, Loader2, Lock } from "lucide-react";
 import { AppShell, PageTitle } from "@/components/AppShell";
 import { TEAMS } from "@/data/teams";
 import { Disclaimer } from "@/components/Disclaimer";
@@ -8,6 +8,10 @@ import { WinProbabilityDonut, WinProbabilityLegend } from "@/components/WinProba
 import { MarketCard } from "@/components/MarketCard";
 import { customAnalysis } from "@/data/analyses";
 import { cn } from "@/lib/utils";
+import { useServerFn } from "@tanstack/react-start";
+import { runAnalysis, type AnalysisResult } from "@/lib/analyses.functions";
+import { useSession } from "@/hooks/use-session";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/analyse")({
   head: () => ({
@@ -24,9 +28,32 @@ export const Route = createFileRoute("/analyse")({
 function AnalysePage() {
   const [home, setHome] = useState("Real Madrid");
   const [away, setAway] = useState("FC Barcelone");
-  const [submitted, setSubmitted] = useState(true);
+  const [live, setLive] = useState<AnalysisResult | null>(null);
+  const [loading, setLoading] = useState(false);
+  const submitted = true;
+  const runFn = useServerFn(runAnalysis);
+  const { user } = useSession();
+  const navigate = useNavigate();
 
-  const analysis = customAnalysis(home, away);
+  // Show a mock analysis until the user runs a real one
+  const analysis = live ?? customAnalysis(home, away);
+
+  async function onSubmit() {
+    if (!user) {
+      navigate({ to: "/auth", search: { redirect: "/analyse" } });
+      return;
+    }
+    setLoading(true);
+    try {
+      const result = await runFn({ data: { home, away } });
+      setLive(result);
+      toast.success("Analyse IA générée — 2 crédits débités.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "L'analyse a échoué.");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <AppShell>
@@ -45,10 +72,12 @@ function AnalysePage() {
         </div>
         <TeamInput label="Équipe extérieure" value={away} onChange={setAway} />
         <button
-          onClick={() => setSubmitted(true)}
-          className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-foreground py-3 text-sm font-bold text-background transition-transform active:scale-[0.98]"
+          onClick={onSubmit}
+          disabled={loading}
+          className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-foreground py-3 text-sm font-bold text-background transition-transform active:scale-[0.98] disabled:opacity-60"
         >
-          <Sparkles className="size-4" /> Lancer l'analyse
+          {loading ? <Loader2 className="size-4 animate-spin" /> : !user ? <Lock className="size-4" /> : <Sparkles className="size-4" />}
+          {loading ? "Analyse en cours…" : !user ? "Se connecter pour analyser" : "Lancer l'analyse IA (2 crédits)"}
         </button>
       </div>
 
