@@ -109,7 +109,7 @@ function AnalysePage() {
             <h3 className="mb-3 text-[11px] font-black uppercase tracking-widest text-muted-foreground">Marchés recommandés</h3>
             <div className="grid grid-cols-2 gap-3">
               {analysis.markets.slice(0, 6).map((m, i) => (
-                <MarketCard key={i} market={m} />
+                <MarketCard key={i} market={{ odd: "—", ...(m as object) } as never} />
               ))}
             </div>
           </div>
