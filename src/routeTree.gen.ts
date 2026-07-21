@@ -9,23 +9,13 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as ProfilRouteImport } from './routes/profil'
-import { Route as FavorisRouteImport } from './routes/favoris'
 import { Route as CommunauteRouteImport } from './routes/communaute'
 import { Route as AnalyseRouteImport } from './routes/analyse'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as MatchIdRouteImport } from './routes/match.$id'
+import { Route as AuthenticatedProfilRouteImport } from './routes/_authenticated/profil'
+import { Route as AuthenticatedFavorisRouteImport } from './routes/_authenticated/favoris'
 
-const ProfilRoute = ProfilRouteImport.update({
-  id: '/profil',
-  path: '/profil',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const FavorisRoute = FavorisRouteImport.update({
-  id: '/favoris',
-  path: '/favoris',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const CommunauteRoute = CommunauteRouteImport.update({
   id: '/communaute',
   path: '/communaute',
@@ -46,21 +36,31 @@ const MatchIdRoute = MatchIdRouteImport.update({
   path: '/match/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedProfilRoute = AuthenticatedProfilRouteImport.update({
+  id: '/_authenticated/profil',
+  path: '/profil',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedFavorisRoute = AuthenticatedFavorisRouteImport.update({
+  id: '/_authenticated/favoris',
+  path: '/favoris',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/analyse': typeof AnalyseRoute
   '/communaute': typeof CommunauteRoute
-  '/favoris': typeof FavorisRoute
-  '/profil': typeof ProfilRoute
+  '/favoris': typeof AuthenticatedFavorisRoute
+  '/profil': typeof AuthenticatedProfilRoute
   '/match/$id': typeof MatchIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/analyse': typeof AnalyseRoute
   '/communaute': typeof CommunauteRoute
-  '/favoris': typeof FavorisRoute
-  '/profil': typeof ProfilRoute
+  '/favoris': typeof AuthenticatedFavorisRoute
+  '/profil': typeof AuthenticatedProfilRoute
   '/match/$id': typeof MatchIdRoute
 }
 export interface FileRoutesById {
@@ -68,8 +68,8 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/analyse': typeof AnalyseRoute
   '/communaute': typeof CommunauteRoute
-  '/favoris': typeof FavorisRoute
-  '/profil': typeof ProfilRoute
+  '/_authenticated/favoris': typeof AuthenticatedFavorisRoute
+  '/_authenticated/profil': typeof AuthenticatedProfilRoute
   '/match/$id': typeof MatchIdRoute
 }
 export interface FileRouteTypes {
@@ -88,8 +88,8 @@ export interface FileRouteTypes {
     | '/'
     | '/analyse'
     | '/communaute'
-    | '/favoris'
-    | '/profil'
+    | '/_authenticated/favoris'
+    | '/_authenticated/profil'
     | '/match/$id'
   fileRoutesById: FileRoutesById
 }
@@ -97,27 +97,13 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AnalyseRoute: typeof AnalyseRoute
   CommunauteRoute: typeof CommunauteRoute
-  FavorisRoute: typeof FavorisRoute
-  ProfilRoute: typeof ProfilRoute
+  AuthenticatedFavorisRoute: typeof AuthenticatedFavorisRoute
+  AuthenticatedProfilRoute: typeof AuthenticatedProfilRoute
   MatchIdRoute: typeof MatchIdRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/profil': {
-      id: '/profil'
-      path: '/profil'
-      fullPath: '/profil'
-      preLoaderRoute: typeof ProfilRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/favoris': {
-      id: '/favoris'
-      path: '/favoris'
-      fullPath: '/favoris'
-      preLoaderRoute: typeof FavorisRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/communaute': {
       id: '/communaute'
       path: '/communaute'
@@ -146,6 +132,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MatchIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/profil': {
+      id: '/_authenticated/profil'
+      path: '/profil'
+      fullPath: '/profil'
+      preLoaderRoute: typeof AuthenticatedProfilRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/favoris': {
+      id: '/_authenticated/favoris'
+      path: '/favoris'
+      fullPath: '/favoris'
+      preLoaderRoute: typeof AuthenticatedFavorisRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -153,8 +153,8 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AnalyseRoute: AnalyseRoute,
   CommunauteRoute: CommunauteRoute,
-  FavorisRoute: FavorisRoute,
-  ProfilRoute: ProfilRoute,
+  AuthenticatedFavorisRoute: AuthenticatedFavorisRoute,
+  AuthenticatedProfilRoute: AuthenticatedProfilRoute,
   MatchIdRoute: MatchIdRoute,
 }
 export const routeTree = rootRouteImport
