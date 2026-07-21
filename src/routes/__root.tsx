@@ -87,13 +87,17 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         content:
           "Suivez les scores en direct de toutes les compétitions et obtenez des analyses statistiques et IA détaillées sur chaque match : probabilités, marchés, compositions et prédictions.",
       },
-      { property: "og:title", content: "LiveFoot AI — Livescore & analyse football" },
+      { property: "og:title", content: "LiveFoot AI — Livescore & analyse football en temps réel" },
       {
         property: "og:description",
-        content: "Scores en direct, statistiques avancées et analyses IA sur chaque match de football.",
+        content: "Suivez les scores en direct de toutes les compétitions et obtenez des analyses statistiques et IA détaillées sur chaque match : probabilités, marchés, compositions et prédictions.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "LiveFoot AI — Livescore & analyse football en temps réel" },
+      { name: "twitter:description", content: "Suivez les scores en direct de toutes les compétitions et obtenez des analyses statistiques et IA détaillées sur chaque match : probabilités, marchés, compositions et prédictions." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/700bdb46-e5c0-47fa-9a00-320403a0a269/id-preview-384ccbc3--b27d65be-7bed-4a23-a154-3e43a57b66b2.lovable.app-1784620450678.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/700bdb46-e5c0-47fa-9a00-320403a0a269/id-preview-384ccbc3--b27d65be-7bed-4a23-a154-3e43a57b66b2.lovable.app-1784620450678.png" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
