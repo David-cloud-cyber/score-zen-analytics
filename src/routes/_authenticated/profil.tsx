@@ -5,7 +5,7 @@ import { AppShell, PageTitle } from "@/components/AppShell";
 import { CREDIT_HISTORY, CREDIT_PACKS, CREDIT_RULES } from "@/data/community";
 import { cn } from "@/lib/utils";
 
-export const Route = createFileRoute("/profil")({
+export const Route = createFileRoute("/_authenticated/profil")({
   head: () => ({
     meta: [
       { title: "Profil — LiveFoot AI" },

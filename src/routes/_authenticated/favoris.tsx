@@ -7,7 +7,7 @@ import { TEAMS } from "@/data/teams";
 import { COMPETITIONS } from "@/data/competitions";
 import { cn } from "@/lib/utils";
 
-export const Route = createFileRoute("/favoris")({
+export const Route = createFileRoute("/_authenticated/favoris")({
   head: () => ({
     meta: [
       { title: "Favoris — LiveFoot AI" },
