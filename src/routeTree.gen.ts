@@ -9,21 +9,38 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as MentionsLegalesRouteImport } from './routes/mentions-legales'
 import { Route as CommunauteRouteImport } from './routes/communaute'
+import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AnalyseRouteImport } from './routes/analyse'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as MatchIdRouteImport } from './routes/match.$id'
 import { Route as AuthenticatedProfilRouteImport } from './routes/_authenticated/profil'
 import { Route as AuthenticatedFavorisRouteImport } from './routes/_authenticated/favoris'
 
+const MentionsLegalesRoute = MentionsLegalesRouteImport.update({
+  id: '/mentions-legales',
+  path: '/mentions-legales',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CommunauteRoute = CommunauteRouteImport.update({
   id: '/communaute',
   path: '/communaute',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AnalyseRoute = AnalyseRouteImport.update({
   id: '/analyse',
   path: '/analyse',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -37,20 +54,22 @@ const MatchIdRoute = MatchIdRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedProfilRoute = AuthenticatedProfilRouteImport.update({
-  id: '/_authenticated/profil',
+  id: '/profil',
   path: '/profil',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedFavorisRoute = AuthenticatedFavorisRouteImport.update({
-  id: '/_authenticated/favoris',
+  id: '/favoris',
   path: '/favoris',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/analyse': typeof AnalyseRoute
+  '/auth': typeof AuthRoute
   '/communaute': typeof CommunauteRoute
+  '/mentions-legales': typeof MentionsLegalesRoute
   '/favoris': typeof AuthenticatedFavorisRoute
   '/profil': typeof AuthenticatedProfilRoute
   '/match/$id': typeof MatchIdRoute
@@ -58,7 +77,9 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/analyse': typeof AnalyseRoute
+  '/auth': typeof AuthRoute
   '/communaute': typeof CommunauteRoute
+  '/mentions-legales': typeof MentionsLegalesRoute
   '/favoris': typeof AuthenticatedFavorisRoute
   '/profil': typeof AuthenticatedProfilRoute
   '/match/$id': typeof MatchIdRoute
@@ -66,8 +87,11 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/analyse': typeof AnalyseRoute
+  '/auth': typeof AuthRoute
   '/communaute': typeof CommunauteRoute
+  '/mentions-legales': typeof MentionsLegalesRoute
   '/_authenticated/favoris': typeof AuthenticatedFavorisRoute
   '/_authenticated/profil': typeof AuthenticatedProfilRoute
   '/match/$id': typeof MatchIdRoute
@@ -77,17 +101,30 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/analyse'
+    | '/auth'
     | '/communaute'
+    | '/mentions-legales'
     | '/favoris'
     | '/profil'
     | '/match/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/analyse' | '/communaute' | '/favoris' | '/profil' | '/match/$id'
+  to:
+    | '/'
+    | '/analyse'
+    | '/auth'
+    | '/communaute'
+    | '/mentions-legales'
+    | '/favoris'
+    | '/profil'
+    | '/match/$id'
   id:
     | '__root__'
     | '/'
+    | '/_authenticated'
     | '/analyse'
+    | '/auth'
     | '/communaute'
+    | '/mentions-legales'
     | '/_authenticated/favoris'
     | '/_authenticated/profil'
     | '/match/$id'
@@ -95,15 +132,23 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AnalyseRoute: typeof AnalyseRoute
+  AuthRoute: typeof AuthRoute
   CommunauteRoute: typeof CommunauteRoute
-  AuthenticatedFavorisRoute: typeof AuthenticatedFavorisRoute
-  AuthenticatedProfilRoute: typeof AuthenticatedProfilRoute
+  MentionsLegalesRoute: typeof MentionsLegalesRoute
   MatchIdRoute: typeof MatchIdRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/mentions-legales': {
+      id: '/mentions-legales'
+      path: '/mentions-legales'
+      fullPath: '/mentions-legales'
+      preLoaderRoute: typeof MentionsLegalesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/communaute': {
       id: '/communaute'
       path: '/communaute'
@@ -111,11 +156,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CommunauteRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/analyse': {
       id: '/analyse'
       path: '/analyse'
       fullPath: '/analyse'
       preLoaderRoute: typeof AnalyseRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -137,24 +196,38 @@ declare module '@tanstack/react-router' {
       path: '/profil'
       fullPath: '/profil'
       preLoaderRoute: typeof AuthenticatedProfilRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/favoris': {
       id: '/_authenticated/favoris'
       path: '/favoris'
       fullPath: '/favoris'
       preLoaderRoute: typeof AuthenticatedFavorisRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
   }
 }
 
-const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
-  AnalyseRoute: AnalyseRoute,
-  CommunauteRoute: CommunauteRoute,
+interface AuthenticatedRouteRouteChildren {
+  AuthenticatedFavorisRoute: typeof AuthenticatedFavorisRoute
+  AuthenticatedProfilRoute: typeof AuthenticatedProfilRoute
+}
+
+const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedFavorisRoute: AuthenticatedFavorisRoute,
   AuthenticatedProfilRoute: AuthenticatedProfilRoute,
+}
+
+const AuthenticatedRouteRouteWithChildren =
+  AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
+
+const rootRouteChildren: RootRouteChildren = {
+  IndexRoute: IndexRoute,
+  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  AnalyseRoute: AnalyseRoute,
+  AuthRoute: AuthRoute,
+  CommunauteRoute: CommunauteRoute,
+  MentionsLegalesRoute: MentionsLegalesRoute,
   MatchIdRoute: MatchIdRoute,
 }
 export const routeTree = rootRouteImport
