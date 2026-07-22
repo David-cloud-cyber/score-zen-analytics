@@ -46,13 +46,41 @@ export const runAnalysis = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: profile, error: profErr } = await supabaseAdmin
       .from("profiles")
-      .select("credits")
+      .select("credits, plan")
       .eq("id", context.userId)
       .maybeSingle();
     if (profErr) throw new Error("Impossible de lire votre profil.");
     if (!profile) throw new Error("Profil introuvable.");
     if (profile.credits < ANALYSIS_COST) {
       throw new Error(`Crédits insuffisants (${ANALYSIS_COST} requis, ${profile.credits} disponibles).`);
+    }
+
+    // 1b. Rate limiting selon le plan (anti-abus).
+    const isPremium = profile.plan === "premium" || profile.plan === "pro";
+    const limits = isPremium ? { hour: 30, day: 100 } : { hour: 5, day: 15 };
+    const hourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+
+    const { count: hourCount } = await supabaseAdmin
+      .from("ai_analyses")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", context.userId)
+      .gte("created_at", hourAgo);
+    if ((hourCount ?? 0) >= limits.hour) {
+      throw new Error(
+        `Limite atteinte : ${limits.hour} analyses/heure (plan ${isPremium ? "premium" : "gratuit"}). Réessayez plus tard.`,
+      );
+    }
+
+    const { count: dayCount } = await supabaseAdmin
+      .from("ai_analyses")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", context.userId)
+      .gte("created_at", dayAgo);
+    if ((dayCount ?? 0) >= limits.day) {
+      throw new Error(
+        `Limite quotidienne atteinte : ${limits.day} analyses/24h (plan ${isPremium ? "premium" : "gratuit"}). Réessayez demain.`,
+      );
     }
 
     // 2. Call the AI
