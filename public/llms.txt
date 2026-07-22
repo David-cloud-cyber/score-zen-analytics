@@ -1,0 +1,16 @@
+# LiveFoot AI
+
+> Livescore et analyses IA football en temps réel : scores en direct, compositions, statistiques et prédictions par intelligence artificielle sur toutes les compétitions majeures.
+
+LiveFoot AI est une application web française qui combine un livescore complet (Ligue 1, Liga, Premier League, Serie A, Bundesliga, Ligue des champions) avec un moteur d'analyse propulsé par IA : probabilités 1X2, scores probables, marchés recommandés avec niveau de confiance et facteurs clés. Les analyses sont fournies à titre informatif ; le service ne propose ni pari, ni jeu d'argent.
+
+## Pages
+
+- [Matchs du jour](/): scores en direct et matchs à venir, filtrables par statut et par compétition.
+- [Comparateur d'équipes](/analyse): analyse IA sur mesure — entrez deux équipes, obtenez probabilités, score probable et marchés recommandés.
+- [Communauté](/communaute): discussions par match et par compétition, pronostics et débats tactiques.
+- [Mentions légales & CGU](/mentions-legales): éditeur, RGPD, avertissement ANJ sur les paris sportifs.
+
+## Optional
+
+- [Match — exemple](/match/rma-fcb): fiche match détaillée avec stats, timeline, compositions, H2H et analyse IA.

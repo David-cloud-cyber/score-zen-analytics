@@ -19,14 +19,49 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/match/$id")({
   head: ({ params }) => {
     const m = matchById(params.id);
-    if (!m) return { meta: [{ title: "Match — LiveFoot AI" }] };
+    if (!m) {
+      return {
+        meta: [
+          { title: "Match introuvable — LiveFoot AI" },
+          { name: "robots", content: "noindex" },
+        ],
+      };
+    }
     const h = team(m.homeId).short, a = team(m.awayId).short;
+    const comp = competition(m.competitionId);
+    const url = `https://ball-predict-ace.lovable.app/match/${params.id}`;
+    const title = `${h} vs ${a} — Score, stats & analyse IA — LiveFoot AI`;
+    const description = `Suivez ${h} contre ${a} (${comp.name}) : score en direct, statistiques détaillées, compositions et analyse IA.`;
     return {
       meta: [
-        { title: `${h} vs ${a} — LiveFoot AI` },
-        { name: "description", content: `Score, statistiques et analyse IA de ${h} contre ${a}.` },
-        { property: "og:title", content: `${h} vs ${a}` },
-        { property: "og:description", content: `Suivez le match ${h} vs ${a} en direct avec statistiques et analyse IA.` },
+        { title },
+        { name: "description", content: description },
+        { property: "og:title", content: `${h} vs ${a} — LiveFoot AI` },
+        { property: "og:description", content: description },
+        { property: "og:type", content: "article" },
+        { property: "og:url", content: url },
+        { name: "twitter:title", content: `${h} vs ${a} — LiveFoot AI` },
+        { name: "twitter:description", content: description },
+      ],
+      links: [{ rel: "canonical", href: url }],
+      scripts: [
+        {
+          type: "application/ld+json",
+          children: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "SportsEvent",
+            name: `${team(m.homeId).name} vs ${team(m.awayId).name}`,
+            sport: "Football",
+            startDate: m.date,
+            location: { "@type": "Place", name: m.venue },
+            competitor: [
+              { "@type": "SportsTeam", name: team(m.homeId).name },
+              { "@type": "SportsTeam", name: team(m.awayId).name },
+            ],
+            superEvent: { "@type": "SportsEvent", name: comp.name },
+            url,
+          }),
+        },
       ],
     };
   },

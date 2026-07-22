@@ -5,8 +5,12 @@ export const Route = createFileRoute("/mentions-legales")({
   head: () => ({
     meta: [
       { title: "Mentions légales & CGU — LiveFoot AI" },
-      { name: "description", content: "Mentions légales, conditions générales d'utilisation et politique de confidentialité de LiveFoot AI." },
+      { name: "description", content: "Mentions légales, CGU, politique de confidentialité et avertissement paris sportifs de LiveFoot AI." },
+      { property: "og:title", content: "Mentions légales & CGU — LiveFoot AI" },
+      { property: "og:description", content: "Éditeur, hébergement, RGPD et avertissement ANJ sur les paris sportifs." },
+      { property: "og:url", content: "https://ball-predict-ace.lovable.app/mentions-legales" },
     ],
+    links: [{ rel: "canonical", href: "https://ball-predict-ace.lovable.app/mentions-legales" }],
   }),
   component: LegalPage,
 });

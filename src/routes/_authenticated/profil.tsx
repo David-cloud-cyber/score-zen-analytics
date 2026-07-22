@@ -8,9 +8,14 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/_authenticated/profil")({
   head: () => ({
     meta: [
-      { title: "Profil — LiveFoot AI" },
-      { name: "description", content: "Votre tableau de bord LiveFoot AI : crédits, historique d'analyses et abonnement Premium." },
+      { title: "Mon profil & crédits — LiveFoot AI" },
+      { name: "description", content: "Votre tableau de bord LiveFoot AI : solde de crédits, historique d'analyses, packs de recharge et abonnement Premium." },
+      { property: "og:title", content: "Mon profil & crédits — LiveFoot AI" },
+      { property: "og:description", content: "Gérez vos crédits d'analyse IA, votre historique et votre abonnement Premium." },
+      { property: "og:url", content: "https://ball-predict-ace.lovable.app/profil" },
+      { name: "robots", content: "noindex" },
     ],
+    links: [{ rel: "canonical", href: "https://ball-predict-ace.lovable.app/profil" }],
   }),
   component: ProfilPage,
 });

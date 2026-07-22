@@ -10,9 +10,14 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/_authenticated/favoris")({
   head: () => ({
     meta: [
-      { title: "Favoris — LiveFoot AI" },
-      { name: "description", content: "Retrouvez toutes vos équipes, joueurs et compétitions favoris." },
+      { title: "Mes favoris & alertes — LiveFoot AI" },
+      { name: "description", content: "Retrouvez toutes vos équipes, joueurs et compétitions favoris, et gérez vos alertes en temps réel." },
+      { property: "og:title", content: "Mes favoris & alertes — LiveFoot AI" },
+      { property: "og:description", content: "Équipes, joueurs, compétitions favorites et alertes de buts personnalisées." },
+      { property: "og:url", content: "https://ball-predict-ace.lovable.app/favoris" },
+      { name: "robots", content: "noindex" },
     ],
+    links: [{ rel: "canonical", href: "https://ball-predict-ace.lovable.app/favoris" }],
   }),
   component: FavorisPage,
 });

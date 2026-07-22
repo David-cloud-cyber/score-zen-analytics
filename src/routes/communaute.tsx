@@ -12,7 +12,11 @@ export const Route = createFileRoute("/communaute")({
       { name: "description", content: "Discutez des matchs, partagez vos pronostics et rejoignez la communauté LiveFoot AI par compétition ou par rencontre." },
       { property: "og:title", content: "Communauté LiveFoot AI" },
       { property: "og:description", content: "Discussions live, pronostics et débats tactiques par compétition et par match." },
+      { property: "og:url", content: "https://ball-predict-ace.lovable.app/communaute" },
+      { name: "twitter:title", content: "Communauté LiveFoot AI" },
+      { name: "twitter:description", content: "Discussions live, pronostics et débats tactiques entre passionnés." },
     ],
+    links: [{ rel: "canonical", href: "https://ball-predict-ace.lovable.app/communaute" }],
   }),
   component: CommunautePage,
 });

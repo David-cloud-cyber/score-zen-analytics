@@ -17,10 +17,14 @@ export const Route = createFileRoute("/analyse")({
   head: () => ({
     meta: [
       { title: "Comparateur d'équipes — LiveFoot AI" },
-      { name: "description", content: "Analysez n'importe quelle rencontre : entrez deux équipes et obtenez une prédiction IA complète." },
+      { name: "description", content: "Analysez n'importe quelle rencontre : entrez deux équipes et obtenez une prédiction IA complète (probabilités, marchés, score)." },
       { property: "og:title", content: "Comparateur d'équipes — LiveFoot AI" },
-      { property: "og:description", content: "Prédictions IA sur mesure pour n'importe quel match." },
+      { property: "og:description", content: "Prédictions IA sur mesure pour n'importe quel match : entrez deux équipes, obtenez l'analyse." },
+      { property: "og:url", content: "https://ball-predict-ace.lovable.app/analyse" },
+      { name: "twitter:title", content: "Comparateur d'équipes — LiveFoot AI" },
+      { name: "twitter:description", content: "Prédictions IA sur mesure pour n'importe quel match de football." },
     ],
+    links: [{ rel: "canonical", href: "https://ball-predict-ace.lovable.app/analyse" }],
   }),
   component: AnalysePage,
 });
