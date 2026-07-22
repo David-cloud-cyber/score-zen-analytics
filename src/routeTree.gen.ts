@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as MentionsLegalesRouteImport } from './routes/mentions-legales'
 import { Route as CommunauteRouteImport } from './routes/communaute'
 import { Route as AuthRouteImport } from './routes/auth'
@@ -19,6 +20,11 @@ import { Route as MatchIdRouteImport } from './routes/match.$id'
 import { Route as AuthenticatedProfilRouteImport } from './routes/_authenticated/profil'
 import { Route as AuthenticatedFavorisRouteImport } from './routes/_authenticated/favoris'
 
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MentionsLegalesRoute = MentionsLegalesRouteImport.update({
   id: '/mentions-legales',
   path: '/mentions-legales',
@@ -70,6 +76,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/communaute': typeof CommunauteRoute
   '/mentions-legales': typeof MentionsLegalesRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/favoris': typeof AuthenticatedFavorisRoute
   '/profil': typeof AuthenticatedProfilRoute
   '/match/$id': typeof MatchIdRoute
@@ -80,6 +87,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/communaute': typeof CommunauteRoute
   '/mentions-legales': typeof MentionsLegalesRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/favoris': typeof AuthenticatedFavorisRoute
   '/profil': typeof AuthenticatedProfilRoute
   '/match/$id': typeof MatchIdRoute
@@ -92,6 +100,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/communaute': typeof CommunauteRoute
   '/mentions-legales': typeof MentionsLegalesRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/_authenticated/favoris': typeof AuthenticatedFavorisRoute
   '/_authenticated/profil': typeof AuthenticatedProfilRoute
   '/match/$id': typeof MatchIdRoute
@@ -104,6 +113,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/communaute'
     | '/mentions-legales'
+    | '/sitemap.xml'
     | '/favoris'
     | '/profil'
     | '/match/$id'
@@ -114,6 +124,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/communaute'
     | '/mentions-legales'
+    | '/sitemap.xml'
     | '/favoris'
     | '/profil'
     | '/match/$id'
@@ -125,6 +136,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/communaute'
     | '/mentions-legales'
+    | '/sitemap.xml'
     | '/_authenticated/favoris'
     | '/_authenticated/profil'
     | '/match/$id'
@@ -137,11 +149,19 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   CommunauteRoute: typeof CommunauteRoute
   MentionsLegalesRoute: typeof MentionsLegalesRoute
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   MatchIdRoute: typeof MatchIdRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/mentions-legales': {
       id: '/mentions-legales'
       path: '/mentions-legales'
@@ -228,18 +248,9 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   CommunauteRoute: CommunauteRoute,
   MentionsLegalesRoute: MentionsLegalesRoute,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
   MatchIdRoute: MatchIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
