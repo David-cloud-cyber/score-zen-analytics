@@ -12,9 +12,16 @@ export const Route = createFileRoute("/auth")({
   validateSearch: (s) => searchSchema.parse(s),
   head: () => ({
     meta: [
-      { title: "Connexion — LiveFoot AI" },
-      { name: "description", content: "Connectez-vous ou créez votre compte LiveFoot AI pour accéder à vos analyses et favoris." },
+      { title: "Connexion & inscription — LiveFoot AI" },
+      { name: "description", content: "Connectez-vous ou créez votre compte LiveFoot AI. 10 crédits d'analyse IA offerts à l'inscription." },
+      { property: "og:title", content: "Connexion & inscription — LiveFoot AI" },
+      { property: "og:description", content: "Rejoignez LiveFoot AI : 10 crédits d'analyse IA offerts, favoris et historique personnalisés." },
+      { property: "og:url", content: "https://ball-predict-ace.lovable.app/auth" },
+      { name: "twitter:title", content: "Connexion & inscription — LiveFoot AI" },
+      { name: "twitter:description", content: "Rejoignez LiveFoot AI : analyses IA, favoris et alertes personnalisées." },
+      { name: "robots", content: "noindex" },
     ],
+    links: [{ rel: "canonical", href: "https://ball-predict-ace.lovable.app/auth" }],
   }),
   component: AuthPage,
 });

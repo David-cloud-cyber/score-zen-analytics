@@ -85,19 +85,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       {
         name: "description",
         content:
-          "Suivez les scores en direct de toutes les compétitions et obtenez des analyses statistiques et IA détaillées sur chaque match : probabilités, marchés, compositions et prédictions.",
+          "Scores en direct et analyses IA détaillées sur chaque match : probabilités, marchés, compositions et prédictions.",
       },
-      { property: "og:title", content: "LiveFoot AI — Livescore & analyse football en temps réel" },
-      {
-        property: "og:description",
-        content: "Suivez les scores en direct de toutes les compétitions et obtenez des analyses statistiques et IA détaillées sur chaque match : probabilités, marchés, compositions et prédictions.",
-      },
+      { property: "og:site_name", content: "LiveFoot AI" },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:title", content: "LiveFoot AI — Livescore & analyse football en temps réel" },
-      { name: "twitter:description", content: "Suivez les scores en direct de toutes les compétitions et obtenez des analyses statistiques et IA détaillées sur chaque match : probabilités, marchés, compositions et prédictions." },
-      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/700bdb46-e5c0-47fa-9a00-320403a0a269/id-preview-384ccbc3--b27d65be-7bed-4a23-a154-3e43a57b66b2.lovable.app-1784620450678.png" },
-      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/700bdb46-e5c0-47fa-9a00-320403a0a269/id-preview-384ccbc3--b27d65be-7bed-4a23-a154-3e43a57b66b2.lovable.app-1784620450678.png" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
@@ -107,6 +99,28 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       {
         rel: "stylesheet",
         href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap",
+      },
+    ],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "Organization",
+          name: "LiveFoot AI",
+          url: "https://ball-predict-ace.lovable.app",
+          logo: "https://ball-predict-ace.lovable.app/favicon.ico",
+          description: "Livescore et analyses IA football en temps réel.",
+        }),
+      },
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "WebSite",
+          name: "LiveFoot AI",
+          url: "https://ball-predict-ace.lovable.app",
+        }),
       },
     ],
   }),

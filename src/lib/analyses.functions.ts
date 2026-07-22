@@ -56,7 +56,7 @@ export const runAnalysis = createServerFn({ method: "POST" })
     }
 
     // 1b. Rate limiting selon le plan (anti-abus).
-    const isPremium = profile.plan === "premium" || profile.plan === "pro";
+    const isPremium = profile.plan !== "free";
     const limits = isPremium ? { hour: 30, day: 100 } : { hour: 5, day: 15 };
     const hourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
     const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();

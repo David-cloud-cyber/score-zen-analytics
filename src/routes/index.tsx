@@ -8,6 +8,18 @@ import { COMPETITIONS, competition } from "@/data/competitions";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/")({
+  head: () => ({
+    meta: [
+      { title: "LiveFoot AI — Matchs du jour & scores en direct" },
+      { name: "description", content: "Suivez tous les matchs du jour en direct : Ligue 1, Liga, Premier League, Ligue des champions. Scores, compos et analyses IA." },
+      { property: "og:title", content: "LiveFoot AI — Matchs du jour & scores en direct" },
+      { property: "og:description", content: "Tous les matchs du jour, scores en direct et analyses IA sur chaque rencontre." },
+      { property: "og:url", content: "https://ball-predict-ace.lovable.app/" },
+      { name: "twitter:title", content: "LiveFoot AI — Matchs du jour & scores en direct" },
+      { name: "twitter:description", content: "Scores en direct et analyses IA sur toutes les compétitions majeures." },
+    ],
+    links: [{ rel: "canonical", href: "https://ball-predict-ace.lovable.app/" }],
+  }),
   component: HomePage,
 });
 
