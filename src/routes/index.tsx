@@ -1,11 +1,19 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { Sparkles, Search, ChevronRight } from "lucide-react";
+import { useSuspenseQuery, queryOptions } from "@tanstack/react-query";
+import { Sparkles, ChevronRight, Loader2 } from "lucide-react";
 import { AppShell, PageTitle } from "@/components/AppShell";
-import { MatchCard } from "@/components/MatchCard";
-import { MATCHES } from "@/data/matches";
-import { COMPETITIONS, competition } from "@/data/competitions";
+import { RemoteMatchCard } from "@/components/RemoteMatchCard";
+import { getFixtures } from "@/lib/football.functions";
 import { cn } from "@/lib/utils";
+
+const fixturesQuery = (mode: "today" | "live") =>
+  queryOptions({
+    queryKey: ["fixtures", mode],
+    queryFn: () => getFixtures({ data: mode === "live" ? { live: true } : {} }),
+    staleTime: mode === "live" ? 30_000 : 5 * 60_000,
+    refetchInterval: mode === "live" ? 30_000 : false,
+  });
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -20,6 +28,9 @@ export const Route = createFileRoute("/")({
     ],
     links: [{ rel: "canonical", href: "https://ball-predict-ace.lovable.app/" }],
   }),
+  loader: ({ context }) => {
+    context.queryClient.ensureQueryData(fixturesQuery("today"));
+  },
   component: HomePage,
 });
 
@@ -31,30 +42,35 @@ const FILTERS = [
 
 function HomePage() {
   const [filter, setFilter] = useState<(typeof FILTERS)[number]["id"]>("live");
-  const filtered = MATCHES.filter((m) =>
+  const { data: fixtures, isFetching } = useSuspenseQuery(fixturesQuery("today"));
+
+  const filtered = fixtures.filter((m) =>
     filter === "live" ? m.status === "live" || m.status === "ht" : m.status === filter,
   );
-  const grouped = COMPETITIONS.map((c) => ({
-    comp: c,
-    matches: filtered.filter((m) => m.competitionId === c.id),
-  })).filter((g) => g.matches.length > 0);
+
+  // Group by league name
+  const groupedMap = new Map<number, { name: string; logo: string; country: string; matches: typeof fixtures }>();
+  for (const m of filtered) {
+    const g = groupedMap.get(m.league.id) ?? { name: m.league.name, logo: m.league.logo, country: m.league.country, matches: [] };
+    g.matches.push(m);
+    groupedMap.set(m.league.id, g);
+  }
+  const grouped = Array.from(groupedMap.values());
+  const today = new Date().toLocaleDateString("fr-FR", { day: "2-digit", month: "short" });
+
+  const topMatch = fixtures.find((m) => m.status === "live" || m.status === "ht") ?? fixtures[0];
 
   return (
     <AppShell>
       <PageTitle
-        eyebrow="Aujourd'hui · 5 nov."
+        eyebrow={`Aujourd'hui · ${today}`}
         title="Matchs du jour"
-        action={
-          <button className="grid size-10 place-items-center rounded-full bg-surface ring-1 ring-black/5" aria-label="Rechercher">
-            <Search className="size-4" />
-          </button>
-        }
       />
 
       {/* Filter pills */}
       <div className="no-scrollbar flex gap-2 overflow-x-auto px-4 pb-4 lg:px-0">
         {FILTERS.map((f) => {
-          const count = MATCHES.filter((m) =>
+          const count = fixtures.filter((m) =>
             f.id === "live" ? m.status === "live" || m.status === "ht" : m.status === f.id,
           ).length;
           const active = filter === f.id;
@@ -66,7 +82,7 @@ function HomePage() {
                 "shrink-0 rounded-full px-4 py-2 text-xs font-bold transition-all",
                 active
                   ? "bg-foreground text-background"
-                  : "bg-surface text-muted-foreground ring-1 ring-black/5 hover:text-foreground",
+                  : "bg-surface text-muted-foreground ring-1 ring-black/5 hover:text-foreground dark:ring-white/10",
               )}
             >
               {f.label}
@@ -74,87 +90,99 @@ function HomePage() {
             </button>
           );
         })}
+        {isFetching && (
+          <span className="ml-2 inline-flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground">
+            <Loader2 className="size-3 animate-spin" /> Actualisation
+          </span>
+        )}
       </div>
 
-      {/* Featured AI banner + comparator (side-by-side on desktop) */}
-      <div className="grid gap-4 px-4 lg:grid-cols-3 lg:gap-5 lg:px-0">
-        <Link
-          to="/match/$id"
-          params={{ id: "rma-fcb" }}
-          className="group relative block overflow-hidden rounded-3xl bg-foreground p-5 text-background shadow-lg transition-transform hover:-translate-y-0.5 hover:shadow-xl lg:col-span-2 lg:p-7"
-        >
-          <div className="pointer-events-none absolute -right-16 -top-16 size-48 rounded-full bg-data/40 blur-3xl transition-transform group-hover:scale-110" />
-          <div className="pointer-events-none absolute -bottom-20 -left-10 size-40 rounded-full bg-brand/30 blur-3xl transition-transform group-hover:scale-110" />
-          <div className="relative">
-            <div className="mb-3 inline-flex items-center gap-1.5 rounded-full bg-brand/20 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-brand ring-1 ring-brand/30">
-              <Sparkles className="size-3" /> Analyse IA · Match du jour
+      {/* Hero banner */}
+      {topMatch && (
+        <div className="grid gap-4 px-4 lg:grid-cols-3 lg:gap-5 lg:px-0">
+          <Link
+            to="/live/$id"
+            params={{ id: String(topMatch.id) }}
+            className="group relative block overflow-hidden rounded-3xl bg-foreground p-5 text-background shadow-lg transition-transform hover:-translate-y-0.5 hover:shadow-xl lg:col-span-2 lg:p-7"
+          >
+            <div className="pointer-events-none absolute -right-16 -top-16 size-48 rounded-full bg-data/40 blur-3xl transition-transform group-hover:scale-110" />
+            <div className="pointer-events-none absolute -bottom-20 -left-10 size-40 rounded-full bg-brand/30 blur-3xl transition-transform group-hover:scale-110" />
+            <div className="relative">
+              <div className="mb-3 inline-flex items-center gap-1.5 rounded-full bg-brand/20 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-brand ring-1 ring-brand/30">
+                <Sparkles className="size-3" /> Match du jour
+              </div>
+              <h2 className="text-[22px] font-black leading-tight tracking-tight lg:text-3xl">
+                {topMatch.home.name} <span className="text-muted-foreground">vs</span> {topMatch.away.name}
+              </h2>
+              <p className="mt-2 text-xs leading-relaxed text-white/70 lg:text-sm">
+                {topMatch.league.name} · {topMatch.venue ?? topMatch.dayLabel} · Coup d'envoi {topMatch.timeLabel}.
+              </p>
+              <div className="mt-4 flex items-center gap-4">
+                <img src={topMatch.home.logo} alt="" className="size-10 object-contain" />
+                <div className="text-3xl font-black tabular-nums">
+                  {topMatch.homeScore ?? "—"}<span className="mx-2 text-white/40">·</span>{topMatch.awayScore ?? "—"}
+                </div>
+                <img src={topMatch.away.logo} alt="" className="size-10 object-contain" />
+              </div>
+              <div className="mt-4 flex items-center justify-between text-xs font-bold">
+                <span>Voir la fiche complète</span>
+                <ChevronRight className="size-4 transition-transform group-hover:translate-x-1" />
+              </div>
             </div>
-            <h2 className="text-[22px] font-black leading-tight tracking-tight lg:text-3xl">
-              Real Madrid <span className="text-muted-foreground">vs</span> FC Barcelone
-            </h2>
-            <p className="mt-2 text-xs leading-relaxed text-white/70 lg:text-sm">
-              El Clásico — Bernabéu · 21:00. Modèle prédictif : victoire à domicile probable
-              (64% de confiance).
-            </p>
-            <div className="mt-4 grid grid-cols-3 gap-2 text-center lg:max-w-md">
-              <MiniProb label="RMA" value={48} tone="brand" />
-              <MiniProb label="Nul" value={22} tone="muted" />
-              <MiniProb label="FCB" value={30} tone="data" />
-            </div>
-            <div className="mt-4 flex items-center justify-between text-xs font-bold">
-              <span>Voir l'analyse complète</span>
-              <ChevronRight className="size-4 transition-transform group-hover:translate-x-1" />
-            </div>
-          </div>
-        </Link>
+          </Link>
 
-        <Link
-          to="/analyse"
-          className="hidden overflow-hidden rounded-3xl bg-brand/10 p-6 ring-1 ring-brand/20 transition-all hover:bg-brand/15 lg:flex lg:flex-col lg:justify-between"
-        >
-          <div>
-            <div className="mb-3 inline-flex items-center gap-1.5 rounded-full bg-brand/20 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-brand">
-              <Sparkles className="size-3" /> Comparateur
+          <Link
+            to="/analyse"
+            className="hidden overflow-hidden rounded-3xl bg-brand/10 p-6 ring-1 ring-brand/20 transition-all hover:bg-brand/15 lg:flex lg:flex-col lg:justify-between"
+          >
+            <div>
+              <div className="mb-3 inline-flex items-center gap-1.5 rounded-full bg-brand/20 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-brand">
+                <Sparkles className="size-3" /> Comparateur
+              </div>
+              <h3 className="text-xl font-black leading-tight tracking-tight">
+                Analysez deux équipes de votre choix
+              </h3>
+              <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+                Probabilités 1X2, marchés recommandés et facteurs clés — instantanément.
+              </p>
             </div>
-            <h3 className="text-xl font-black leading-tight tracking-tight">
-              Analysez deux équipes de votre choix
-            </h3>
-            <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-              Probabilités 1X2, marchés recommandés et facteurs clés — instantanément.
-            </p>
-          </div>
-          <div className="mt-4 inline-flex items-center gap-2 text-xs font-black text-brand">
-            Lancer une analyse <ChevronRight className="size-4" />
-          </div>
-        </Link>
-      </div>
+            <div className="mt-4 inline-flex items-center gap-2 text-xs font-black text-brand">
+              Lancer une analyse <ChevronRight className="size-4" />
+            </div>
+          </Link>
+        </div>
+      )}
 
       {/* Grouped matches */}
       <div className="mt-8 space-y-6 px-4 lg:px-0">
         {grouped.length === 0 && (
           <div className="rounded-2xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-            Aucun match dans cette catégorie.
+            {filter === "live"
+              ? "Aucun match en direct pour le moment."
+              : filter === "upcoming"
+                ? "Aucun match à venir aujourd'hui."
+                : "Aucun match terminé aujourd'hui."}
           </div>
         )}
-        {grouped.map(({ comp, matches }) => (
-          <section key={comp.id}>
+        {grouped.map((g) => (
+          <section key={g.name}>
             <div className="mb-3 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="size-2 rounded-full" style={{ background: comp.color }} />
-                <h3 className="text-[11px] font-black uppercase tracking-[0.16em]">{comp.name}</h3>
+                <img src={g.logo} alt="" className="size-4 object-contain" />
+                <h3 className="text-[11px] font-black uppercase tracking-[0.16em]">{g.name}</h3>
               </div>
-              <span className="text-[10px] font-semibold text-muted-foreground">{comp.country}</span>
+              <span className="text-[10px] font-semibold text-muted-foreground">{g.country}</span>
             </div>
             <div className="space-y-3 lg:grid lg:grid-cols-2 lg:gap-3 lg:space-y-0 xl:grid-cols-3">
-              {matches.map((m) => (
-                <MatchCard key={m.id} match={m} />
+              {g.matches.map((m) => (
+                <RemoteMatchCard key={m.id} match={m} />
               ))}
             </div>
           </section>
         ))}
       </div>
 
-      {/* CTA (mobile only — desktop shows it inline above) */}
+      {/* CTA (mobile only) */}
       <div className="mt-8 px-4 lg:hidden">
         <Link
           to="/analyse"
@@ -170,16 +198,5 @@ function HomePage() {
         </Link>
       </div>
     </AppShell>
-  );
-}
-
-function MiniProb({ label, value, tone }: { label: string; value: number; tone: "brand" | "muted" | "data" }) {
-  const color =
-    tone === "brand" ? "bg-brand/20 text-brand" : tone === "data" ? "bg-data/20 text-data" : "bg-white/10 text-white/70";
-  return (
-    <div className={cn("rounded-xl px-2 py-2", color)}>
-      <div className="text-[9px] font-bold uppercase tracking-widest opacity-80">{label}</div>
-      <div className="text-lg font-black tabular-nums leading-none">{value}%</div>
-    </div>
   );
 }
