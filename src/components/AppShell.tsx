@@ -3,6 +3,7 @@ import { Radio, Sparkles, Star, User, Bell, Coins, Search, Users } from "lucide-
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { SearchProvider, SmartSearchTrigger, useSearchDialog } from "@/components/SmartSearch";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const NAV = [
   { to: "/", label: "Matchs", icon: Radio, match: (p: string) => p === "/" || p.startsWith("/match") },
@@ -111,7 +112,11 @@ function DesktopSidebar({ pathname }: { pathname: string }) {
         </div>
       </nav>
 
-      <div className="border-t border-border/60 p-3">
+      <div className="space-y-3 border-t border-border/60 p-3">
+        <div className="flex items-center justify-between px-2">
+          <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Thème</span>
+          <ThemeToggle compact />
+        </div>
         <Link
           to="/profil"
           className="flex items-center gap-3 rounded-xl px-2 py-2 hover:bg-surface"
@@ -192,19 +197,22 @@ export function TopBar() {
       </div>
 
       <div className="flex items-center gap-2">
+        <div className="hidden lg:block">
+          <ThemeToggle />
+        </div>
         <button
           onClick={() => setOpen(true)}
-          className="grid size-9 place-items-center rounded-full bg-surface ring-1 ring-black/5 transition-transform hover:scale-105 active:scale-95 lg:hidden"
+          className="grid size-9 place-items-center rounded-full bg-surface ring-1 ring-black/5 transition-transform hover:scale-105 active:scale-95 lg:hidden dark:ring-white/10"
           aria-label="Ouvrir la recherche"
         >
           <Search className="size-4" aria-hidden />
         </button>
-        <div className="flex items-center gap-1.5 rounded-full bg-surface px-2.5 py-1 ring-1 ring-black/5 lg:hidden">
+        <div className="flex items-center gap-1.5 rounded-full bg-surface px-2.5 py-1 ring-1 ring-black/5 lg:hidden dark:ring-white/10">
           <Coins className="size-3.5 text-warn" aria-hidden />
           <span className="text-xs font-bold tabular-nums">140</span>
         </div>
         <button
-          className="relative grid size-9 place-items-center rounded-full bg-surface ring-1 ring-black/5 transition-transform hover:scale-105 active:scale-95"
+          className="relative grid size-9 place-items-center rounded-full bg-surface ring-1 ring-black/5 transition-transform hover:scale-105 active:scale-95 dark:ring-white/10"
           aria-label="Notifications (1 non lue)"
         >
           <Bell className="size-4 text-foreground" aria-hidden />

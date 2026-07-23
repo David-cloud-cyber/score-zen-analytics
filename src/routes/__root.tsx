@@ -14,6 +14,7 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { SessionProvider } from "@/hooks/use-session";
 import { CookieBanner } from "@/components/CookieBanner";
+import { ThemeProvider, THEME_INIT_SCRIPT } from "@/hooks/use-theme";
 
 function NotFoundComponent() {
   return (
@@ -102,6 +103,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
     ],
     scripts: [
+      { children: THEME_INIT_SCRIPT },
       {
         type: "application/ld+json",
         children: JSON.stringify({
@@ -161,11 +163,13 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <SessionProvider>
-        <Outlet />
-        <CookieBanner />
-        <Toaster position="top-center" richColors />
-      </SessionProvider>
+      <ThemeProvider>
+        <SessionProvider>
+          <Outlet />
+          <CookieBanner />
+          <Toaster position="top-center" richColors />
+        </SessionProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }
