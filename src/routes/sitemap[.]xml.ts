@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 import type {} from "@tanstack/react-start";
-import { MATCHES } from "@/data/matches";
 
 const BASE_URL = "https://ball-predict-ace.lovable.app";
 
@@ -14,16 +13,14 @@ export const Route = createFileRoute("/sitemap.xml")({
   server: {
     handlers: {
       GET: async () => {
+        // On liste uniquement les routes publiques stables. Les fiches match
+        // (/live/$id) ne sont pas listées car leurs IDs API-Football changent
+        // en permanence : l'indexation se fait via les liens internes.
         const entries: SitemapEntry[] = [
           { path: "/", changefreq: "hourly", priority: "1.0" },
           { path: "/analyse", changefreq: "weekly", priority: "0.9" },
           { path: "/communaute", changefreq: "daily", priority: "0.8" },
           { path: "/mentions-legales", changefreq: "yearly", priority: "0.3" },
-          ...MATCHES.map((m) => ({
-            path: `/match/${m.id}`,
-            changefreq: "hourly" as const,
-            priority: "0.7",
-          })),
         ];
 
         const urls = entries.map((e) =>
