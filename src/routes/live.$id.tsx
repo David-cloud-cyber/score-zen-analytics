@@ -1,10 +1,11 @@
 import { createFileRoute, Link, useParams } from "@tanstack/react-router";
 import { useSuspenseQuery, queryOptions } from "@tanstack/react-query";
-import { ArrowLeft, MapPin, Shirt, User } from "lucide-react";
+import { ArrowLeft, MapPin, Shirt, User, AlertTriangle, RefreshCw } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { StatBar } from "@/components/StatBar";
 import { getFixtureDetail } from "@/lib/football.functions";
+import { buildRouteMeta } from "@/lib/seo";
 import type { RemoteMatchDetail, ApiLineup } from "@/lib/football-types";
 import { cn } from "@/lib/utils";
 
@@ -14,35 +15,41 @@ const detailQuery = (id: number) =>
     queryFn: () => getFixtureDetail({ data: { id } }),
     staleTime: 60_000,
     refetchInterval: 60_000,
+    retry: 1,
   });
 
 export const Route = createFileRoute("/live/$id")({
-  head: ({ params }) => {
-    const url = `https://ball-predict-ace.lovable.app/live/${params.id}`;
-    return {
-      meta: [
-        { title: `Match #${params.id} en direct — LiveFoot AI` },
-        { name: "description", content: "Score en direct, stats détaillées, compositions et événements de la rencontre." },
-        { property: "og:title", content: `Match en direct — LiveFoot AI` },
-        { property: "og:description", content: "Score, stats et compos en direct." },
-        { property: "og:url", content: url },
-        { name: "twitter:title", content: "Match en direct — LiveFoot AI" },
-        { name: "twitter:description", content: "Score, stats et compos en direct." },
-        { name: "robots", content: "noindex" },
-      ],
-      links: [{ rel: "canonical", href: url }],
-    };
-  },
+  head: ({ params }) =>
+    buildRouteMeta({
+      path: `/live/${params.id}`,
+      title: `Match en direct #${params.id}`,
+      description: "Score en direct, stats détaillées, compositions et événements de la rencontre.",
+      noindex: true,
+    }),
   loader: ({ context, params }) => {
     const id = Number(params.id);
     if (!Number.isFinite(id)) return;
-    context.queryClient.ensureQueryData(detailQuery(id));
+    context.queryClient.ensureQueryData(detailQuery(id)).catch(() => {});
   },
-  errorComponent: ({ error }) => (
-    <div className="grid min-h-screen place-items-center p-8 text-center text-sm text-muted-foreground">
-      {error.message}
-      <Link to="/" className="ml-2 font-bold text-brand">Retour</Link>
-    </div>
+  errorComponent: ({ error, reset }) => (
+    <AppShell>
+      <div className="mx-4 mt-8 rounded-2xl border border-alert/30 bg-alert/5 p-6 text-center lg:mx-0">
+        <AlertTriangle className="mx-auto size-6 text-alert" aria-hidden />
+        <h2 className="mt-3 text-base font-black">Match indisponible</h2>
+        <p className="mt-1 text-sm text-muted-foreground">{error.message || "Impossible de charger cette rencontre."}</p>
+        <div className="mt-4 flex justify-center gap-2">
+          <button
+            onClick={reset}
+            className="inline-flex items-center gap-2 rounded-full bg-foreground px-4 py-2 text-xs font-bold text-background"
+          >
+            <RefreshCw className="size-3.5" /> Réessayer
+          </button>
+          <Link to="/" className="inline-flex items-center rounded-full bg-surface px-4 py-2 text-xs font-bold ring-1 ring-black/5 dark:ring-white/10">
+            Retour
+          </Link>
+        </div>
+      </div>
+    </AppShell>
   ),
   component: LiveMatchPage,
 });
