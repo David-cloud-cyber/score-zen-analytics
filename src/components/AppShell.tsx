@@ -100,7 +100,7 @@ function DesktopSidebar({ pathname }: { pathname: string }) {
             <Sparkles className="size-2.5" /> Premium
           </div>
           <div className="text-[13px] font-bold leading-tight">Analyses illimitées</div>
-          <p className="mt-1 text-[11px] leading-snug text-white/60">
+          <p className="mt-1 text-[11px] leading-snug text-background/60">
             Débloquez tous les modèles prédictifs.
           </p>
           <Link
