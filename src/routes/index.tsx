@@ -131,15 +131,16 @@ function HomePage() {
               <h2 className="text-[22px] font-black leading-tight tracking-tight lg:text-3xl">
                 {topMatch.home.name} <span className="text-muted-foreground">vs</span> {topMatch.away.name}
               </h2>
-              <p className="mt-2 text-xs leading-relaxed text-white/70 lg:text-sm">
+              <p className="mt-2 text-xs leading-relaxed text-background/70 lg:text-sm">
                 {topMatch.league.name} · {topMatch.venue ?? topMatch.dayLabel} · Coup d'envoi {topMatch.timeLabel}.
               </p>
               <div className="mt-4 flex items-center gap-4">
                 <img src={topMatch.home.logo} alt="" className="size-10 object-contain" />
                 <div className="text-3xl font-black tabular-nums">
-                  {topMatch.homeScore ?? "—"}<span className="mx-2 text-white/40">·</span>{topMatch.awayScore ?? "—"}
+                  {topMatch.homeScore ?? "—"}<span className="mx-2 text-background/40">·</span>{topMatch.awayScore ?? "—"}
                 </div>
                 <img src={topMatch.away.logo} alt="" className="size-10 object-contain" />
+
               </div>
               <div className="mt-4 flex items-center justify-between text-xs font-bold">
                 <span>Voir la fiche complète</span>

@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Flame, Hand, Brain, Heart, MessageCircle, Send, Users, Sparkles, Radio, Trophy, Filter } from "lucide-react";
+import { toast } from "sonner";
 import { AppShell, PageTitle } from "@/components/AppShell";
 import { THREADS, type Comment, type Reaction, type Thread } from "@/data/community";
 import { cn } from "@/lib/utils";
@@ -27,14 +28,25 @@ const FILTERS = [
   { id: "competition", label: "Compétitions", icon: Trophy },
 ] as const;
 
+const SORTS = [
+  { id: "hot", label: "Les plus actifs" },
+  { id: "recent", label: "Récents" },
+  { id: "top", label: "Top pronostiqueurs" },
+] as const;
+
 function CommunautePage() {
   const [filter, setFilter] = useState<(typeof FILTERS)[number]["id"]>("all");
+  const [sort, setSort] = useState<(typeof SORTS)[number]["id"]>("hot");
   const [active, setActive] = useState<string>(THREADS[0].id);
+  const [showSort, setShowSort] = useState(false);
 
-  const visibleThreads = useMemo(
-    () => THREADS.filter((t) => filter === "all" || t.scope === filter),
-    [filter],
-  );
+  const visibleThreads = useMemo(() => {
+    const list = THREADS.filter((t) => filter === "all" || t.scope === filter);
+    if (sort === "recent") return [...list].reverse();
+    if (sort === "top") return [...list].sort((a, b) => b.comments.length - a.comments.length);
+    return [...list].sort((a, b) => b.activeUsers - a.activeUsers);
+  }, [filter, sort]);
+
   const activeThread = visibleThreads.find((t) => t.id === active) ?? visibleThreads[0];
 
   return (
@@ -44,12 +56,11 @@ function CommunautePage() {
         title="Discussions live"
         action={
           <div className="hidden items-center gap-1.5 rounded-full bg-brand/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-brand ring-1 ring-brand/20 lg:inline-flex">
-            <Users className="size-3" /> 4 862 en ligne
+            <Users className="size-3" /> {THREADS.reduce((n, t) => n + t.activeUsers, 0).toLocaleString("fr-FR")} en ligne
           </div>
         }
       />
 
-      {/* Filter pills */}
       <div className="no-scrollbar flex gap-2 overflow-x-auto px-4 pb-4 lg:px-0" role="tablist" aria-label="Filtrer les fils">
         {FILTERS.map((f) => {
           const Icon = f.icon;
@@ -64,7 +75,7 @@ function CommunautePage() {
                 "inline-flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold transition-all",
                 activeFilter
                   ? "bg-foreground text-background"
-                  : "bg-surface text-muted-foreground ring-1 ring-black/5 hover:text-foreground",
+                  : "bg-surface text-muted-foreground ring-1 ring-black/5 hover:text-foreground dark:ring-white/10",
               )}
             >
               <Icon className="size-3.5" aria-hidden /> {f.label}
@@ -74,15 +85,35 @@ function CommunautePage() {
       </div>
 
       <div className="grid gap-4 px-4 lg:grid-cols-[300px_1fr] lg:gap-6 lg:px-0">
-        {/* Threads list */}
         <aside aria-label="Fils de discussion">
-          <div className="mb-2 flex items-center justify-between px-1">
+          <div className="relative mb-2 flex items-center justify-between px-1">
             <h2 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
               Fils actifs
             </h2>
-            <button className="inline-flex items-center gap-1 text-[10px] font-bold text-muted-foreground hover:text-foreground" aria-label="Filtrer">
-              <Filter className="size-3" /> Tri
+            <button
+              onClick={() => setShowSort((v) => !v)}
+              className="inline-flex items-center gap-1 text-[10px] font-bold text-muted-foreground hover:text-foreground"
+              aria-label="Trier les fils"
+              aria-expanded={showSort}
+            >
+              <Filter className="size-3" /> {SORTS.find((s) => s.id === sort)?.label ?? "Tri"}
             </button>
+            {showSort && (
+              <div className="absolute right-0 top-full z-10 mt-1 overflow-hidden rounded-xl bg-card shadow-lg ring-1 ring-black/5 dark:ring-white/10">
+                {SORTS.map((s) => (
+                  <button
+                    key={s.id}
+                    onClick={() => { setSort(s.id); setShowSort(false); }}
+                    className={cn(
+                      "block w-full px-4 py-2 text-left text-[11px] font-bold hover:bg-surface",
+                      sort === s.id && "bg-surface text-brand",
+                    )}
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
           <ul className="space-y-2" role="list">
             {visibleThreads.map((t) => (
@@ -97,7 +128,6 @@ function CommunautePage() {
           </ul>
         </aside>
 
-        {/* Active thread */}
         {activeThread && (
           <section aria-label={`Discussion : ${activeThread.title}`} className="min-w-0">
             <ThreadHeader thread={activeThread} />
@@ -125,12 +155,12 @@ function ThreadCard({ thread, active, onSelect }: { thread: Thread; active: bool
         "w-full rounded-2xl p-3 text-left ring-1 transition-all",
         active
           ? "bg-foreground text-background ring-foreground"
-          : "bg-card ring-black/5 hover:ring-black/10",
+          : "bg-card ring-black/5 hover:ring-black/10 dark:ring-white/5",
       )}
     >
       <div className="mb-1.5 flex items-center gap-2">
         <span className="size-2 rounded-full" style={{ background: thread.color }} aria-hidden />
-        <span className={cn("text-[9px] font-black uppercase tracking-widest", active ? "text-white/60" : "text-muted-foreground")}>
+        <span className={cn("text-[9px] font-black uppercase tracking-widest", active ? "text-background/60" : "text-muted-foreground")}>
           {thread.scope === "match" ? "Match" : "Compétition"}
         </span>
         <span className={cn("ml-auto inline-flex items-center gap-1 text-[10px] font-bold", active ? "text-brand" : "text-alert")}>
@@ -139,7 +169,7 @@ function ThreadCard({ thread, active, onSelect }: { thread: Thread; active: bool
         </span>
       </div>
       <div className="text-sm font-black leading-tight">{thread.title}</div>
-      <div className={cn("mt-1 text-[11px]", active ? "text-white/60" : "text-muted-foreground")}>
+      <div className={cn("mt-1 text-[11px]", active ? "text-background/60" : "text-muted-foreground")}>
         {thread.subtitle}
       </div>
     </button>
@@ -154,23 +184,23 @@ function ThreadHeader({ thread }: { thread: Thread }) {
     >
       <div className="pointer-events-none absolute -right-16 -top-16 size-48 rounded-full blur-3xl" style={{ background: thread.color, opacity: 0.25 }} aria-hidden />
       <div className="relative">
-        <div className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest">
+        <div className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-background/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest">
           {thread.scope === "match" ? <Radio className="size-3" /> : <Trophy className="size-3" />}
           {thread.scope === "match" ? "Match" : "Compétition"}
         </div>
         <h3 className="text-lg font-black leading-tight tracking-tight lg:text-2xl">{thread.title}</h3>
-        <p className="mt-1 text-xs text-white/70">{thread.subtitle}</p>
+        <p className="mt-1 text-xs text-background/70">{thread.subtitle}</p>
         <div className="mt-4 flex items-center gap-4 text-[11px]">
-          <span className="inline-flex items-center gap-1.5 text-white/85">
+          <span className="inline-flex items-center gap-1.5 text-background/85">
             <span className="size-1.5 rounded-full bg-alert animate-pulse-dot" aria-hidden />
             <span className="font-bold">{thread.activeUsers.toLocaleString("fr-FR")}</span> en ligne
           </span>
-          <span className="inline-flex items-center gap-1.5 text-white/85">
+          <span className="inline-flex items-center gap-1.5 text-background/85">
             <MessageCircle className="size-3" aria-hidden />
             <span className="font-bold">{thread.comments.length}</span> messages
           </span>
           {thread.scope === "match" && (
-            <Link to="/match/$id" params={{ id: thread.scopeId }} className="ml-auto rounded-full bg-brand px-3 py-1 text-[10px] font-black text-brand-foreground">
+            <Link to="/live/$id" params={{ id: thread.scopeId }} className="ml-auto rounded-full bg-brand px-3 py-1 text-[10px] font-black text-brand-foreground">
               Fiche match
             </Link>
           )}
@@ -208,7 +238,7 @@ function CommentCard({ comment }: { comment: Comment }) {
 
   return (
     <article
-      className="rounded-2xl bg-card p-4 ring-1 ring-black/5"
+      className="rounded-2xl bg-card p-4 ring-1 ring-black/5 dark:ring-white/5"
       aria-label={`Commentaire de ${comment.author}, ${comment.timeAgo}`}
     >
       <header className="flex items-center gap-3">
@@ -254,7 +284,7 @@ function CommentCard({ comment }: { comment: Comment }) {
                 "inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-bold ring-1 transition-all",
                 isPicked
                   ? "bg-foreground text-background ring-foreground"
-                  : "bg-surface text-muted-foreground ring-black/5 hover:text-foreground",
+                  : "bg-surface text-muted-foreground ring-black/5 hover:text-foreground dark:ring-white/10",
               )}
             >
               <Icon className={cn("size-3.5", !isPicked && color)} aria-hidden />
@@ -263,6 +293,7 @@ function CommentCard({ comment }: { comment: Comment }) {
           );
         })}
         <button
+          onClick={() => toast.info("Les réponses arrivent bientôt.")}
           className="ml-auto inline-flex items-center gap-1 text-[11px] font-bold text-muted-foreground hover:text-foreground"
           aria-label={`Voir les ${comment.replies} réponses`}
         >
@@ -290,8 +321,13 @@ function Composer() {
   const [text, setText] = useState("");
   return (
     <form
-      onSubmit={(e) => { e.preventDefault(); setText(""); }}
-      className="sticky bottom-24 mt-4 rounded-2xl bg-card p-3 ring-1 ring-black/5 lg:bottom-4"
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (!text.trim()) return;
+        toast.success("Message publié — la persistance arrive prochainement.");
+        setText("");
+      }}
+      className="sticky bottom-24 mt-4 rounded-2xl bg-card p-3 ring-1 ring-black/5 dark:ring-white/5 lg:bottom-4"
       aria-label="Publier un message"
     >
       <label htmlFor="composer" className="sr-only">Votre message</label>

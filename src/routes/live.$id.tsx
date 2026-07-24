@@ -73,15 +73,16 @@ function LiveMatchView({ m }: { m: RemoteMatchDetail }) {
           <div className="pointer-events-none absolute -bottom-24 left-0 size-56 rounded-full bg-data/25 blur-3xl" />
           <div className="relative">
             <div className="flex items-center justify-between px-4 pt-4">
-              <Link to="/" className="grid size-9 place-items-center rounded-full bg-white/10 backdrop-blur">
+              <Link to="/" className="grid size-9 place-items-center rounded-full bg-background/10 backdrop-blur">
                 <ArrowLeft className="size-4" />
               </Link>
               <div className="text-center">
                 <div className="flex items-center justify-center gap-1.5">
                   <img src={m.league.logo} alt="" className="size-3.5 object-contain" />
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-white/70">{m.league.name}</span>
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-background/70">{m.league.name}</span>
                 </div>
-                <div className="text-[11px] font-semibold text-white/80">
+                <div className="text-[11px] font-semibold text-background/80">
+
                   {m.dayLabel} · {m.venue?.split(",")[0] ?? "—"}
                 </div>
               </div>
@@ -101,19 +102,20 @@ function LiveMatchView({ m }: { m: RemoteMatchDetail }) {
                       {m.status === "ht" ? "MI-TEMPS" : `${m.minute ?? ""}'`}
                     </div>
                     <div className="text-5xl font-black tabular-nums tracking-tighter">
-                      {m.homeScore ?? 0}<span className="mx-2 text-white/40">·</span>{m.awayScore ?? 0}
+                      {m.homeScore ?? 0}<span className="mx-2 text-background/40">·</span>{m.awayScore ?? 0}
                     </div>
                   </>
                 ) : isFinished ? (
                   <>
-                    <div className="mb-1 text-[10px] font-bold uppercase tracking-widest text-white/60">Terminé</div>
+                    <div className="mb-1 text-[10px] font-bold uppercase tracking-widest text-background/60">Terminé</div>
                     <div className="text-5xl font-black tabular-nums tracking-tighter">
-                      {m.homeScore ?? 0}<span className="mx-2 text-white/40">·</span>{m.awayScore ?? 0}
+                      {m.homeScore ?? 0}<span className="mx-2 text-background/40">·</span>{m.awayScore ?? 0}
                     </div>
                   </>
                 ) : (
                   <>
-                    <div className="mb-1 text-[10px] font-bold uppercase tracking-widest text-white/60">Coup d'envoi</div>
+                    <div className="mb-1 text-[10px] font-bold uppercase tracking-widest text-background/60">Coup d'envoi</div>
+
                     <div className="text-4xl font-black tabular-nums tracking-tighter">{m.timeLabel}</div>
                   </>
                 )}
@@ -125,7 +127,7 @@ function LiveMatchView({ m }: { m: RemoteMatchDetail }) {
             </div>
 
             {m.venue && (
-              <div className="flex items-center justify-center gap-2 border-t border-white/10 py-2 text-[10px] font-semibold text-white/60">
+              <div className="flex items-center justify-center gap-2 border-t border-background/10 py-2 text-[10px] font-semibold text-background/60">
                 <MapPin className="size-3" /> {m.venue}
               </div>
             )}

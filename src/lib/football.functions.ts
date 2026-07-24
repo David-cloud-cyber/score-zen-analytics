@@ -65,8 +65,8 @@ type ApiFixture = {
     round?: string;
   };
   teams: {
-    home: { id: number; name: string; logo: string };
-    away: { id: number; name: string; logo: string };
+    home: { id: number; name: string; logo: string; winner?: boolean | null };
+    away: { id: number; name: string; logo: string; winner?: boolean | null };
   };
   goals: { home: number | null; away: number | null };
 };
@@ -123,13 +123,11 @@ export const getFixtures = createServerFn({ method: "GET" })
       .parse(input),
   )
   .handler(async ({ data }) => {
-    // Prefer today's date; if `live` is true, request only live fixtures.
     const params: Record<string, string> = {};
     if (data.live) params.live = "all";
     else params.date = data.date ?? todayISO();
 
     const raw = await apiFootball<ApiFixture[]>("/fixtures", params);
-    // Filter to priority leagues if the raw response is huge (>60), otherwise keep all.
     const list =
       raw.length > 60 ? raw.filter((f) => PRIORITY_LEAGUES.includes(f.league.id)) : raw;
     return list.map(toSummary);
@@ -193,7 +191,6 @@ export const getFixtureDetail = createServerFn({ method: "GET" })
     const f = fixtureArr[0];
     const summary = toSummary(f);
 
-    // Events
     const events: ApiEvent[] = eventsArr.map((e) => {
       const isHome = e.team.id === f.teams.home.id;
       const type: ApiEvent["type"] =
@@ -215,12 +212,10 @@ export const getFixtureDetail = createServerFn({ method: "GET" })
       };
     });
 
-    // Stats
     const homeStats = statsArr.find((s) => s.team.id === f.teams.home.id)?.statistics ?? [];
     const awayStats = statsArr.find((s) => s.team.id === f.teams.away.id)?.statistics ?? [];
     const stats = mapStats(homeStats, awayStats);
 
-    // Lineups
     const buildLineup = (teamId: number, fallbackColor: string): ApiLineup | null => {
       const l = lineupsArr.find((x) => x.team.id === teamId);
       if (!l) return null;
@@ -240,7 +235,6 @@ export const getFixtureDetail = createServerFn({ method: "GET" })
       away: buildLineup(f.teams.away.id, "#3b82f6"),
     };
 
-    // H2H (last 5)
     const h2hRaw = await apiFootball<ApiFixture[]>("/fixtures/headtohead", {
       h2h: `${f.teams.home.id}-${f.teams.away.id}`,
       last: 5,
@@ -277,3 +271,229 @@ export const searchTeams = createServerFn({ method: "GET" })
       logo: r.team.logo,
     }));
   });
+
+// ---------- new endpoints ----------
+
+export type StandingRow = {
+  rank: number;
+  teamId: number;
+  team: string;
+  logo: string;
+  played: number;
+  win: number;
+  draw: number;
+  lose: number;
+  goalsFor: number;
+  goalsAgainst: number;
+  goalDiff: number;
+  points: number;
+  form: string | null;
+};
+
+export const getStandings = createServerFn({ method: "GET" })
+  .inputValidator((input) =>
+    z
+      .object({
+        league: z.number().int().positive().default(61),
+        season: z.number().int().min(2000).max(2100).optional(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data }) => {
+    const season = data.season ?? currentSeasonYear();
+    const raw = await apiFootball<
+      Array<{
+        league: {
+          standings: Array<
+            Array<{
+              rank: number;
+              team: { id: number; name: string; logo: string };
+              all: { played: number; win: number; draw: number; lose: number; goals: { for: number; against: number } };
+              goalsDiff: number;
+              points: number;
+              form: string | null;
+            }>
+          >;
+        };
+      }>
+    >("/standings", { league: data.league, season });
+
+    const flat = raw[0]?.league.standings?.[0] ?? [];
+    return flat.map<StandingRow>((r) => ({
+      rank: r.rank,
+      teamId: r.team.id,
+      team: r.team.name,
+      logo: r.team.logo,
+      played: r.all.played,
+      win: r.all.win,
+      draw: r.all.draw,
+      lose: r.all.lose,
+      goalsFor: r.all.goals.for,
+      goalsAgainst: r.all.goals.against,
+      goalDiff: r.goalsDiff,
+      points: r.points,
+      form: r.form,
+    }));
+  });
+
+export type TopScorer = {
+  rank: number;
+  playerId: number;
+  name: string;
+  photo: string;
+  teamId: number;
+  team: string;
+  teamLogo: string;
+  goals: number;
+  assists: number;
+  appearances: number;
+};
+
+export const getTopScorers = createServerFn({ method: "GET" })
+  .inputValidator((input) =>
+    z
+      .object({
+        league: z.number().int().positive().default(61),
+        season: z.number().int().min(2000).max(2100).optional(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data }) => {
+    const season = data.season ?? currentSeasonYear();
+    const raw = await apiFootball<
+      Array<{
+        player: { id: number; name: string; photo: string };
+        statistics: Array<{
+          team: { id: number; name: string; logo: string };
+          games: { appearences: number | null };
+          goals: { total: number | null; assists: number | null };
+        }>;
+      }>
+    >("/players/topscorers", { league: data.league, season });
+
+    return raw.slice(0, 20).map<TopScorer>((p, i) => {
+      const s = p.statistics[0];
+      return {
+        rank: i + 1,
+        playerId: p.player.id,
+        name: p.player.name,
+        photo: p.player.photo,
+        teamId: s?.team.id ?? 0,
+        team: s?.team.name ?? "—",
+        teamLogo: s?.team.logo ?? "",
+        goals: s?.goals.total ?? 0,
+        assists: s?.goals.assists ?? 0,
+        appearances: s?.games.appearences ?? 0,
+      };
+    });
+  });
+
+export type InjuryRow = {
+  playerId: number;
+  name: string;
+  photo: string;
+  teamId: number;
+  team: string;
+  reason: string;
+  type: string;
+  fixtureId: number | null;
+};
+
+export const getInjuries = createServerFn({ method: "GET" })
+  .inputValidator((input) =>
+    z
+      .object({
+        team: z.number().int().positive().optional(),
+        league: z.number().int().positive().optional(),
+        fixture: z.number().int().positive().optional(),
+        season: z.number().int().optional(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data }) => {
+    const params: Record<string, string | number> = {};
+    if (data.fixture) params.fixture = data.fixture;
+    else if (data.team) {
+      params.team = data.team;
+      params.season = data.season ?? currentSeasonYear();
+    } else if (data.league) {
+      params.league = data.league;
+      params.season = data.season ?? currentSeasonYear();
+    }
+
+    const raw = await apiFootball<
+      Array<{
+        player: { id: number; name: string; photo: string; type: string; reason: string };
+        team: { id: number; name: string };
+        fixture: { id: number | null };
+      }>
+    >("/injuries", params).catch(() => []);
+
+    return raw.slice(0, 40).map<InjuryRow>((r) => ({
+      playerId: r.player.id,
+      name: r.player.name,
+      photo: r.player.photo,
+      teamId: r.team.id,
+      team: r.team.name,
+      reason: r.player.reason,
+      type: r.player.type,
+      fixtureId: r.fixture.id,
+    }));
+  });
+
+export type TeamFormMatch = {
+  id: number;
+  date: string;
+  opponent: string;
+  home: boolean;
+  goalsFor: number | null;
+  goalsAgainst: number | null;
+  result: "W" | "D" | "L" | "?";
+  competition: string;
+};
+
+export const getTeamForm = createServerFn({ method: "GET" })
+  .inputValidator((input) =>
+    z
+      .object({
+        team: z.number().int().positive(),
+        last: z.number().int().min(1).max(20).default(5),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data }) => {
+    const raw = await apiFootball<ApiFixture[]>("/fixtures", {
+      team: data.team,
+      last: data.last,
+    });
+
+    return raw.map<TeamFormMatch>((f) => {
+      const isHome = f.teams.home.id === data.team;
+      const gf = isHome ? f.goals.home : f.goals.away;
+      const ga = isHome ? f.goals.away : f.goals.home;
+      let result: "W" | "D" | "L" | "?" = "?";
+      if (gf !== null && ga !== null) {
+        if (gf > ga) result = "W";
+        else if (gf === ga) result = "D";
+        else result = "L";
+      }
+      return {
+        id: f.fixture.id,
+        date: new Date(f.fixture.date).toLocaleDateString("fr-FR", { day: "2-digit", month: "short" }),
+        opponent: isHome ? f.teams.away.name : f.teams.home.name,
+        home: isHome,
+        goalsFor: gf,
+        goalsAgainst: ga,
+        result,
+        competition: f.league.name,
+      };
+    });
+  });
+
+function currentSeasonYear(): number {
+  // API-Football saisons européennes : la saison 2024/25 est identifiée par 2024.
+  // On bascule au 1er juillet.
+  const d = new Date();
+  const m = d.getUTCMonth() + 1;
+  return m >= 7 ? d.getUTCFullYear() : d.getUTCFullYear() - 1;
+}
