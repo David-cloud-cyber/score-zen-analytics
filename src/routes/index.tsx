@@ -1,10 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { useSuspenseQuery, queryOptions } from "@tanstack/react-query";
-import { Sparkles, ChevronRight, Loader2 } from "lucide-react";
+import { useSuspenseQuery, useQueryClient, queryOptions } from "@tanstack/react-query";
+import { Sparkles, ChevronRight, Loader2, AlertTriangle, RefreshCw } from "lucide-react";
 import { AppShell, PageTitle } from "@/components/AppShell";
 import { RemoteMatchCard } from "@/components/RemoteMatchCard";
 import { getFixtures } from "@/lib/football.functions";
+import { buildRouteMeta } from "@/lib/seo";
 import { cn } from "@/lib/utils";
 
 const fixturesQuery = (mode: "today" | "live") =>
@@ -13,26 +14,42 @@ const fixturesQuery = (mode: "today" | "live") =>
     queryFn: () => getFixtures({ data: mode === "live" ? { live: true } : {} }),
     staleTime: mode === "live" ? 30_000 : 5 * 60_000,
     refetchInterval: mode === "live" ? 30_000 : false,
+    retry: 1,
   });
 
 export const Route = createFileRoute("/")({
-  head: () => ({
-    meta: [
-      { title: "LiveFoot AI — Matchs du jour & scores en direct" },
-      { name: "description", content: "Suivez tous les matchs du jour en direct : Ligue 1, Liga, Premier League, Ligue des champions. Scores, compos et analyses IA." },
-      { property: "og:title", content: "LiveFoot AI — Matchs du jour & scores en direct" },
-      { property: "og:description", content: "Tous les matchs du jour, scores en direct et analyses IA sur chaque rencontre." },
-      { property: "og:url", content: "https://ball-predict-ace.lovable.app/" },
-      { name: "twitter:title", content: "LiveFoot AI — Matchs du jour & scores en direct" },
-      { name: "twitter:description", content: "Scores en direct et analyses IA sur toutes les compétitions majeures." },
-    ],
-    links: [{ rel: "canonical", href: "https://ball-predict-ace.lovable.app/" }],
-  }),
+  head: () =>
+    buildRouteMeta({
+      path: "/",
+      title: "Matchs du jour & scores en direct",
+      description:
+        "Suivez tous les matchs du jour en direct : Ligue 1, Liga, Premier League, Ligue des champions. Scores, compos et analyses IA.",
+    }),
   loader: ({ context }) => {
-    context.queryClient.ensureQueryData(fixturesQuery("today"));
+    // Best-effort prefetch — never crash the page on API errors.
+    context.queryClient.ensureQueryData(fixturesQuery("today")).catch(() => {});
   },
+  errorComponent: HomeError,
   component: HomePage,
 });
+
+function HomeError({ error, reset }: { error: Error; reset: () => void }) {
+  return (
+    <AppShell>
+      <div className="mx-4 mt-8 rounded-2xl border border-alert/30 bg-alert/5 p-6 text-center lg:mx-0">
+        <AlertTriangle className="mx-auto size-6 text-alert" aria-hidden />
+        <h2 className="mt-3 text-base font-black">Données football indisponibles</h2>
+        <p className="mt-1 text-sm text-muted-foreground">{error.message || "Réessayez dans un instant."}</p>
+        <button
+          onClick={reset}
+          className="mt-4 inline-flex items-center gap-2 rounded-full bg-foreground px-4 py-2 text-xs font-bold text-background"
+        >
+          <RefreshCw className="size-3.5" /> Réessayer
+        </button>
+      </div>
+    </AppShell>
+  );
+}
 
 const FILTERS = [
   { id: "live", label: "En direct" },
