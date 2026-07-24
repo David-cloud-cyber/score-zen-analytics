@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { useSuspenseQuery, useQueryClient, queryOptions } from "@tanstack/react-query";
+import { useSuspenseQuery, queryOptions } from "@tanstack/react-query";
 import { Sparkles, ChevronRight, Loader2, AlertTriangle, RefreshCw } from "lucide-react";
 import { AppShell, PageTitle } from "@/components/AppShell";
 import { RemoteMatchCard } from "@/components/RemoteMatchCard";
