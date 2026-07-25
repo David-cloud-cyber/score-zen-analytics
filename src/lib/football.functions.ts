@@ -123,13 +123,44 @@ export const getFixtures = createServerFn({ method: "GET" })
       .parse(input),
   )
   .handler(async ({ data }) => {
-    const params: Record<string, string> = {};
-    if (data.live) params.live = "all";
-    else params.date = data.date ?? todayISO();
+    if (data.live) {
+      const raw = await apiFootball<ApiFixture[]>("/fixtures", { live: "all" });
+      return raw.map(toSummary);
+    }
 
-    const raw = await apiFootball<ApiFixture[]>("/fixtures", params);
-    const list =
-      raw.length > 60 ? raw.filter((f) => PRIORITY_LEAGUES.includes(f.league.id)) : raw;
+    const date = data.date ?? todayISO();
+    const raw = await apiFootball<ApiFixture[]>("/fixtures", { date });
+
+    // Off-season / quiet day fallback: fetch upcoming fixtures from the
+    // major leagues so the home page never looks empty.
+    let list = raw;
+    if (raw.length < 3) {
+      const fallbacks = await Promise.all(
+        PRIORITY_LEAGUES.map((lid) =>
+          apiFootball<ApiFixture[]>("/fixtures", {
+            league: lid,
+            season: currentSeasonYear(),
+            next: 5,
+          }).catch(() => [] as ApiFixture[]),
+        ),
+      );
+      const seen = new Set(raw.map((f) => f.fixture.id));
+      const extra: ApiFixture[] = [];
+      for (const arr of fallbacks) {
+        for (const f of arr) {
+          if (!seen.has(f.fixture.id)) {
+            seen.add(f.fixture.id);
+            extra.push(f);
+          }
+        }
+      }
+      list = [...raw, ...extra];
+    } else if (raw.length > 80) {
+      const priority = raw.filter((f) => PRIORITY_LEAGUES.includes(f.league.id));
+      list = priority.length ? priority : raw.slice(0, 80);
+    }
+
+    list.sort((a, b) => new Date(a.fixture.date).getTime() - new Date(b.fixture.date).getTime());
     return list.map(toSummary);
   });
 

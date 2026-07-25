@@ -58,8 +58,9 @@ const FILTERS = [
 ] as const;
 
 function HomePage() {
-  const [filter, setFilter] = useState<(typeof FILTERS)[number]["id"]>("live");
   const { data: fixtures, isFetching } = useSuspenseQuery(fixturesQuery("today"));
+  const hasLive = fixtures.some((m) => m.status === "live" || m.status === "ht");
+  const [filter, setFilter] = useState<(typeof FILTERS)[number]["id"]>(hasLive ? "live" : "upcoming");
 
   const filtered = fixtures.filter((m) =>
     filter === "live" ? m.status === "live" || m.status === "ht" : m.status === filter,
