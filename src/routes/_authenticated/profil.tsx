@@ -1,20 +1,21 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { useSuspenseQuery, queryOptions, useQueryClient } from "@tanstack/react-query";
+import { useSuspenseQuery, useQuery, queryOptions, useQueryClient } from "@tanstack/react-query";
 import { Crown, History, Settings, LogOut, ChevronRight, Coins, Sparkles, Plus, TrendingDown, TrendingUp, Check, Info, X } from "lucide-react";
 import { AppShell, PageTitle } from "@/components/AppShell";
 import { PRICED_PACKS, formatXaf, type PricedPack } from "@/lib/pricing";
 import { createTopupCheckout, verifyTopup, getMyPayments } from "@/lib/payments.functions";
-const CREDIT_RULES = [
-  { cost: 2, label: "Analyse IA d'un match", desc: "Probabilités 1X2, score probable et marchés recommandés" },
-  { cost: 2, label: "Comparateur personnalisé", desc: "Analyse de deux équipes de votre choix" },
-  { cost: 0, label: "Livescore & statistiques", desc: "Toujours gratuit — mises à jour temps réel" },
-];
 import { getMyBalance, getMyAnalysisHistory } from "@/lib/analyses.functions";
 import { useServerFn } from "@tanstack/react-start";
 import { useSession } from "@/hooks/use-session";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+
+const CREDIT_RULES = [
+  { cost: 2, label: "Analyse IA d'un match", desc: "Probabilités 1X2, score probable et marchés recommandés" },
+  { cost: 2, label: "Comparateur personnalisé", desc: "Analyse de deux équipes de votre choix" },
+  { cost: 0, label: "Livescore & statistiques", desc: "Toujours gratuit — mises à jour temps réel" },
+];
 
 export const Route = createFileRoute("/_authenticated/profil")({
   head: () => ({
@@ -314,6 +315,39 @@ function ProfilPage() {
         />
       </section>
 
+      {payments.length > 0 && (
+        <section className="mt-6 px-4 lg:px-0">
+          <h2 className="mb-3 text-[11px] font-black uppercase tracking-widest text-muted-foreground">Mes recharges</h2>
+          <div className="space-y-2">
+            {payments.map((p) => (
+              <div key={p.id} className="flex items-center justify-between gap-3 rounded-2xl bg-card p-3 ring-1 ring-black/5 dark:ring-white/5">
+                <div className="min-w-0">
+                  <div className="text-[13px] font-bold">{p.credits} crédits · {formatXaf(p.amount_xaf)}</div>
+                  <div className="text-[10px] text-muted-foreground">
+                    {new Date(p.created_at).toLocaleString("fr-FR")} · {p.status}
+                  </div>
+                </div>
+                {p.status !== "SUCCESSFUL" && p.trans_id && (
+                  <div className="flex shrink-0 items-center gap-2">
+                    {p.link && (
+                      <a href={p.link} className="rounded-xl bg-surface px-2.5 py-1.5 text-[11px] font-bold ring-1 ring-black/5 dark:ring-white/10">
+                        Payer
+                      </a>
+                    )}
+                    <button
+                      onClick={() => handleVerify(p.trans_id as string)}
+                      className="rounded-xl bg-foreground px-2.5 py-1.5 text-[11px] font-bold text-background"
+                    >
+                      Vérifier
+                    </button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
       <div className="mt-6 px-4 pb-4 lg:px-0">
         <Link to="/" className="block text-center text-[10px] font-semibold text-muted-foreground">
           LiveFoot AI · v0.9 · © 2026
@@ -321,7 +355,7 @@ function ProfilPage() {
       </div>
 
       {showTopup && (
-        <TopupDialog onClose={() => setShowTopup(false)} onBuy={handleTopup} />
+        <TopupDialog onClose={() => setShowTopup(false)} onBuy={handleTopup} busyPack={busyPack} />
       )}
     </AppShell>
   );
