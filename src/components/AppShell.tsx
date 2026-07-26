@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { SearchProvider, SmartSearchTrigger, useSearchDialog } from "@/components/SmartSearch";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { NotificationPopover } from "@/components/NotificationPopover";
 
 const NAV = [
   { to: "/", label: "Matchs", icon: Radio, match: (p: string) => p === "/" || p.startsWith("/match") },
@@ -211,13 +212,7 @@ export function TopBar() {
           <Coins className="size-3.5 text-warn" aria-hidden />
           <span className="text-xs font-bold tabular-nums">Crédits</span>
         </Link>
-        <button
-          className="relative grid size-9 place-items-center rounded-full bg-surface ring-1 ring-black/5 transition-transform hover:scale-105 active:scale-95 dark:ring-white/10"
-          aria-label="Notifications"
-        >
-          <Bell className="size-4 text-foreground" aria-hidden />
-          <span className="absolute right-1.5 top-1.5 size-1.5 rounded-full bg-alert" aria-hidden />
-        </button>
+        <NotificationPopover />
       </div>
     </header>
   );
