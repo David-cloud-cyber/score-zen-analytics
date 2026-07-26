@@ -4,4 +4,4 @@ Disallow: /auth
 Disallow: /profil
 Disallow: /favoris
 
-Sitemap: https://ball-predict-ace.lovable.app/sitemap.xml
+Sitemap: https://www.livefoot.fun/sitemap.xml

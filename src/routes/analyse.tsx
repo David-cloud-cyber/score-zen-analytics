@@ -12,18 +12,13 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/analyse")({
-  head: () => ({
-    meta: [
-      { title: "Comparateur d'équipes — Score Zen Analytics" },
-      { name: "description", content: "Analysez n'importe quelle rencontre : entrez deux équipes et obtenez une prédiction IA complète (probabilités, marchés, score)." },
-      { property: "og:title", content: "Comparateur d'équipes — Score Zen Analytics" },
-      { property: "og:description", content: "Prédictions IA sur mesure pour n'importe quel match : entrez deux équipes, obtenez l'analyse." },
-      { property: "og:url", content: "https://score-zen-analytics.vercel.app/analyse" },
-      { name: "twitter:title", content: "Comparateur d'équipes — Score Zen Analytics" },
-      { name: "twitter:description", content: "Prédictions IA sur mesure pour n'importe quel match de football." },
-    ],
-    links: [{ rel: "canonical", href: "https://score-zen-analytics.vercel.app/analyse" }],
-  }),
+  head: () =>
+    buildRouteMeta({
+      path: "/analyse",
+      title: "Comparateur d'équipes & Prédictions IA",
+      description:
+        "Analysez n'importe quelle rencontre : entrez deux équipes et obtenez une prédiction IA complète (probabilités, marchés, score).",
+    }),
   component: AnalysePage,
 });
 

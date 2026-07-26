@@ -1,17 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, AlertTriangle } from "lucide-react";
+import { buildRouteMeta } from "@/lib/seo";
 
 export const Route = createFileRoute("/mentions-legales")({
-  head: () => ({
-    meta: [
-      { title: "Mentions légales & CGU — LiveFoot AI" },
-      { name: "description", content: "Mentions légales, CGU, politique de confidentialité et avertissement paris sportifs de LiveFoot AI." },
-      { property: "og:title", content: "Mentions légales & CGU — LiveFoot AI" },
-      { property: "og:description", content: "Éditeur, hébergement, RGPD et avertissement ANJ sur les paris sportifs." },
-      { property: "og:url", content: "https://ball-predict-ace.lovable.app/mentions-legales" },
-    ],
-    links: [{ rel: "canonical", href: "https://ball-predict-ace.lovable.app/mentions-legales" }],
-  }),
+  head: () =>
+    buildRouteMeta({
+      path: "/mentions-legales",
+      title: "Mentions légales & CGU",
+      description: "Mentions légales, CGU, politique de confidentialité et avertissement paris sportifs de ScoreZen AI.",
+    }),
   component: LegalPage,
 });
 
@@ -29,7 +26,7 @@ function LegalPage() {
         <AlertTriangle className="size-5 shrink-0 text-warn" />
         <div className="text-[13px] leading-relaxed">
           <strong className="font-black">Avertissement paris sportifs.</strong> Les analyses et
-          probabilités présentées sur LiveFoot AI sont fournies à titre <em>strictement
+          probabilités présentées sur ScoreZen AI sont fournies à titre <em>strictement
           informatif</em>. Elles ne constituent en aucun cas une incitation aux paris. Réservé aux
           personnes majeures (+18 ans). <strong>Jouer comporte des risques : endettement, isolement,
           dépendance.</strong> Pour être aidé, appelez le 09 74 75 13 13 (appel non surtaxé) ou
@@ -42,36 +39,36 @@ function LegalPage() {
 
       <Section title="Éditeur">
         <p>
-          LiveFoot AI est édité par <strong>[Raison sociale à compléter]</strong>, [forme juridique],
+          ScoreZen AI est édité par <strong>[Raison sociale à compléter]</strong>, [forme juridique],
           au capital de [montant] €, immatriculée au RCS de [ville] sous le n° [SIREN], dont le siège
           social est situé [adresse complète]. Directeur de la publication : [Nom].
-          Contact : <a href="mailto:contact@livefoot.ai" className="underline">contact@livefoot.ai</a>.
+          Contact : <a href="mailto:contact@livefoot.fun" className="underline">contact@livefoot.fun</a>.
         </p>
       </Section>
 
       <Section title="Hébergement">
         <p>
-          Le service est hébergé par Lovable (Cloudflare Workers) et Supabase.
+          Le service est hébergé par Cloudflare (Cloudflare Pages) et Supabase.
           Infrastructure : Cloudflare Inc., 101 Townsend St, San Francisco, CA 94107, USA.
         </p>
       </Section>
 
       <Section title="Objet du service">
         <p>
-          LiveFoot AI est un service d'information sportive proposant scores en direct, statistiques
+          ScoreZen AI est un service d'information sportive proposant scores en direct, statistiques
           et analyses générées par intelligence artificielle. Le service ne propose ni pari, ni jeu
-          d'argent. Aucune transaction liée à des paris sportifs n'est traitée par LiveFoot AI.
+          d'argent. Aucune transaction liée à des paris sportifs n'est traitée par ScoreZen AI.
         </p>
       </Section>
 
       <Section title="Données personnelles (RGPD)">
         <p>
           Les données collectées (email, nom d'affichage, historique d'analyses, favoris) sont
-          traitées par LiveFoot AI en qualité de responsable de traitement, sur la base de votre
+          traitées par ScoreZen AI en qualité de responsable de traitement, sur la base de votre
           consentement et de l'exécution du contrat. Elles sont conservées pendant la durée de votre
           compte + 3 ans. Vous disposez d'un droit d'accès, de rectification, d'effacement, de
           portabilité et d'opposition à l'adresse{" "}
-          <a href="mailto:privacy@livefoot.ai" className="underline">privacy@livefoot.ai</a>. Vous
+          <a href="mailto:privacy@livefoot.fun" className="underline">privacy@livefoot.fun</a>. Vous
           pouvez introduire une réclamation auprès de la CNIL.
         </p>
       </Section>
@@ -87,7 +84,7 @@ function LegalPage() {
       <Section title="Propriété intellectuelle">
         <p>
           Les marques et logos des clubs, compétitions et joueurs restent la propriété exclusive de
-          leurs titulaires. Leur utilisation sur LiveFoot AI relève d'un usage informatif et
+          leurs titulaires. Leur utilisation sur ScoreZen AI relève d'un usage informatif et
           éditorial. Les contenus générés par IA sont fournis « en l'état », sans garantie de
           fiabilité ou d'exactitude.
         </p>
@@ -95,7 +92,7 @@ function LegalPage() {
 
       <Section title="Responsabilité">
         <p>
-          LiveFoot AI ne saurait être tenu responsable des décisions prises sur la base des
+          ScoreZen AI ne saurait être tenu responsable des décisions prises sur la base des
           informations et analyses fournies. L'utilisateur reconnaît utiliser le service à ses
           risques et périls.
         </p>

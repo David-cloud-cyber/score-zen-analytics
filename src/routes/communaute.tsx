@@ -4,19 +4,15 @@ import { MessageCircle, Send, Users, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell, PageTitle } from "@/components/AppShell";
 
+import { buildRouteMeta } from "@/lib/seo";
+
 export const Route = createFileRoute("/communaute")({
-  head: () => ({
-    meta: [
-      { title: "Communauté — LiveFoot AI" },
-      { name: "description", content: "Discutez des matchs, partagez vos pronostics et rejoignez la communauté LiveFoot AI." },
-      { property: "og:title", content: "Communauté LiveFoot AI" },
-      { property: "og:description", content: "Discussions live, pronostics et débats tactiques entre passionnés." },
-      { property: "og:url", content: "https://ball-predict-ace.lovable.app/communaute" },
-      { name: "twitter:title", content: "Communauté LiveFoot AI" },
-      { name: "twitter:description", content: "Discussions live, pronostics et débats tactiques entre passionnés." },
-    ],
-    links: [{ rel: "canonical", href: "https://ball-predict-ace.lovable.app/communaute" }],
-  }),
+  head: () =>
+    buildRouteMeta({
+      path: "/communaute",
+      title: "Communauté & Échanges Live",
+      description: "Discutez des matchs en direct, partagez vos pronostics de football et échangez vos tactiques.",
+    }),
   component: CommunautePage,
 });
 
@@ -34,7 +30,7 @@ function CommunautePage() {
               <Sparkles className="size-3" aria-hidden /> Bientôt disponible
             </div>
             <h2 className="text-xl font-black leading-tight lg:text-2xl">
-              La communauté LiveFoot AI arrive
+              La communauté ScoreZen AI arrive
             </h2>
             <p className="mt-2 max-w-lg text-xs leading-relaxed text-background/70 lg:text-sm">
               Les fils de discussion par match et par compétition sont en cours de finalisation.
