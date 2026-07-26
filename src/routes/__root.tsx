@@ -91,6 +91,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:site_name", content: "LiveFoot AI" },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { property: "og:title", content: "LiveFoot AI — Livescore & analyse football en temps réel" },
+      { name: "twitter:title", content: "LiveFoot AI — Livescore & analyse football en temps réel" },
+      { property: "og:description", content: "Scores en direct et analyses IA détaillées sur chaque match : probabilités, marchés, compositions et prédictions." },
+      { name: "twitter:description", content: "Scores en direct et analyses IA détaillées sur chaque match : probabilités, marchés, compositions et prédictions." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/d554b2ca-26a9-4db6-8969-647d9a681379/id-preview-5fff50e2--f5749538-374b-48fc-94be-c38d0c9c32b6.lovable.app-1785068186017.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/d554b2ca-26a9-4db6-8969-647d9a681379/id-preview-5fff50e2--f5749538-374b-48fc-94be-c38d0c9c32b6.lovable.app-1785068186017.png" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
