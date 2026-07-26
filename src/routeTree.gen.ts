@@ -20,6 +20,7 @@ import { Route as MatchIdRouteImport } from './routes/match.$id'
 import { Route as LiveIdRouteImport } from './routes/live.$id'
 import { Route as AuthenticatedProfilRouteImport } from './routes/_authenticated/profil'
 import { Route as AuthenticatedFavorisRouteImport } from './routes/_authenticated/favoris'
+import { Route as ApiPublicFapshiWebhookRouteImport } from './routes/api/public/fapshi-webhook'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
@@ -75,6 +76,11 @@ const AuthenticatedFavorisRoute = AuthenticatedFavorisRouteImport.update({
   path: '/favoris',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const ApiPublicFapshiWebhookRoute = ApiPublicFapshiWebhookRouteImport.update({
+  id: '/api/public/fapshi-webhook',
+  path: '/api/public/fapshi-webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -87,6 +93,7 @@ export interface FileRoutesByFullPath {
   '/profil': typeof AuthenticatedProfilRoute
   '/live/$id': typeof LiveIdRoute
   '/match/$id': typeof MatchIdRoute
+  '/api/public/fapshi-webhook': typeof ApiPublicFapshiWebhookRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -99,6 +106,7 @@ export interface FileRoutesByTo {
   '/profil': typeof AuthenticatedProfilRoute
   '/live/$id': typeof LiveIdRoute
   '/match/$id': typeof MatchIdRoute
+  '/api/public/fapshi-webhook': typeof ApiPublicFapshiWebhookRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -113,6 +121,7 @@ export interface FileRoutesById {
   '/_authenticated/profil': typeof AuthenticatedProfilRoute
   '/live/$id': typeof LiveIdRoute
   '/match/$id': typeof MatchIdRoute
+  '/api/public/fapshi-webhook': typeof ApiPublicFapshiWebhookRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -127,6 +136,7 @@ export interface FileRouteTypes {
     | '/profil'
     | '/live/$id'
     | '/match/$id'
+    | '/api/public/fapshi-webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -139,6 +149,7 @@ export interface FileRouteTypes {
     | '/profil'
     | '/live/$id'
     | '/match/$id'
+    | '/api/public/fapshi-webhook'
   id:
     | '__root__'
     | '/'
@@ -152,6 +163,7 @@ export interface FileRouteTypes {
     | '/_authenticated/profil'
     | '/live/$id'
     | '/match/$id'
+    | '/api/public/fapshi-webhook'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -164,6 +176,7 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   LiveIdRoute: typeof LiveIdRoute
   MatchIdRoute: typeof MatchIdRoute
+  ApiPublicFapshiWebhookRoute: typeof ApiPublicFapshiWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -245,6 +258,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedFavorisRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/public/fapshi-webhook': {
+      id: '/api/public/fapshi-webhook'
+      path: '/api/public/fapshi-webhook'
+      fullPath: '/api/public/fapshi-webhook'
+      preLoaderRoute: typeof ApiPublicFapshiWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -271,6 +291,7 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   LiveIdRoute: LiveIdRoute,
   MatchIdRoute: MatchIdRoute,
+  ApiPublicFapshiWebhookRoute: ApiPublicFapshiWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

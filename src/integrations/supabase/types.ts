@@ -107,6 +107,54 @@ export type Database = {
         }
         Relationships: []
       }
+      payments: {
+        Row: {
+          amount_xaf: number
+          created_at: string
+          credited_at: string | null
+          credits: number
+          external_id: string
+          id: string
+          link: string | null
+          pack_id: string
+          provider: string
+          status: string
+          trans_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount_xaf: number
+          created_at?: string
+          credited_at?: string | null
+          credits: number
+          external_id: string
+          id?: string
+          link?: string | null
+          pack_id: string
+          provider?: string
+          status?: string
+          trans_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount_xaf?: number
+          created_at?: string
+          credited_at?: string | null
+          credits?: number
+          external_id?: string
+          id?: string
+          link?: string | null
+          pack_id?: string
+          provider?: string
+          status?: string
+          trans_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null

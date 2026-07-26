@@ -1,24 +1,21 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { useSuspenseQuery, queryOptions, useQueryClient } from "@tanstack/react-query";
+import { useSuspenseQuery, useQuery, queryOptions, useQueryClient } from "@tanstack/react-query";
 import { Crown, History, Settings, LogOut, ChevronRight, Coins, Sparkles, Plus, TrendingDown, TrendingUp, Check, Info, X } from "lucide-react";
 import { AppShell, PageTitle } from "@/components/AppShell";
-const CREDIT_PACKS = [
-  { id: "p1", credits: 20, price: "1,99 €", perAnalysis: "0,10 €/analyse", best: false },
-  { id: "p2", credits: 50, price: "3,99 €", perAnalysis: "0,08 €/analyse", best: true },
-  { id: "p3", credits: 150, price: "9,99 €", perAnalysis: "0,07 €/analyse", best: false },
-  { id: "p4", credits: 500, price: "24,99 €", perAnalysis: "0,05 €/analyse", best: false },
-];
-const CREDIT_RULES = [
-  { cost: 2, label: "Analyse IA d'un match", desc: "Probabilités 1X2, score probable et marchés recommandés" },
-  { cost: 2, label: "Comparateur personnalisé", desc: "Analyse de deux équipes de votre choix" },
-  { cost: 0, label: "Livescore & statistiques", desc: "Toujours gratuit — mises à jour temps réel" },
-];
+import { PRICED_PACKS, formatXaf, type PricedPack } from "@/lib/pricing";
+import { createTopupCheckout, verifyTopup, getMyPayments } from "@/lib/payments.functions";
 import { getMyBalance, getMyAnalysisHistory } from "@/lib/analyses.functions";
 import { useServerFn } from "@tanstack/react-start";
 import { useSession } from "@/hooks/use-session";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+
+const CREDIT_RULES = [
+  { cost: 2, label: "Analyse IA d'un match", desc: "Probabilités 1X2, score probable et marchés recommandés" },
+  { cost: 2, label: "Comparateur personnalisé", desc: "Analyse de deux équipes de votre choix" },
+  { cost: 0, label: "Livescore & statistiques", desc: "Toujours gratuit — mises à jour temps réel" },
+];
 
 export const Route = createFileRoute("/_authenticated/profil")({
   head: () => ({
@@ -53,6 +50,11 @@ function ProfilPage() {
   const queryClient = useQueryClient();
   const { data: profile } = useSuspenseQuery(balanceQuery);
   const { data: history } = useSuspenseQuery(historyQuery);
+  const { data: payments = [] } = useQuery({
+    queryKey: ["me", "payments"],
+    queryFn: () => getMyPayments(),
+    staleTime: 15_000,
+  });
 
   const [showTopup, setShowTopup] = useState(false);
   const [flash, setFlash] = useState<string | null>(null);
@@ -63,10 +65,40 @@ function ProfilPage() {
   const displayName = profile.display_name ?? user?.email?.split("@")[0] ?? "Utilisateur";
   const initials = displayName.split(/[\s.]+/).map((s) => s[0]).slice(0, 2).join("").toUpperCase();
 
-  const handleTopup = (credits: number, price: string) => {
-    setShowTopup(false);
-    setFlash(`Recharge de ${credits} crédits (${price}) — paiements bientôt disponibles.`);
-    setTimeout(() => setFlash(null), 4000);
+  const [busyPack, setBusyPack] = useState<string | null>(null);
+  const checkoutFn = useServerFn(createTopupCheckout);
+  const verifyFn = useServerFn(verifyTopup);
+
+  const handleTopup = async (pack: PricedPack) => {
+    setBusyPack(pack.id);
+    try {
+      const res = await checkoutFn({
+        data: { packId: pack.id, origin: typeof window !== "undefined" ? window.location.origin : undefined },
+      });
+      setShowTopup(false);
+      setFlash(`Paiement de ${formatXaf(res.amountXaf)} initié — finalisez sur Fapshi.`);
+      window.location.href = res.link;
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Impossible d'initier le paiement.");
+    } finally {
+      setBusyPack(null);
+    }
+  };
+
+  const handleVerify = async (transId: string) => {
+    try {
+      const out = await verifyFn({ data: { transId } });
+      if (out.credited) {
+        toast.success(`+${out.credits} crédits ajoutés.`);
+      } else if (out.status === "SUCCESSFUL") {
+        toast.info("Paiement déjà crédité.");
+      } else {
+        toast.info(`Statut du paiement : ${out.status}.`);
+      }
+      await queryClient.invalidateQueries({ queryKey: ["me"] });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Vérification impossible.");
+    }
   };
 
   const handleLogout = async () => {
@@ -288,6 +320,39 @@ function ProfilPage() {
         />
       </section>
 
+      {payments.length > 0 && (
+        <section className="mt-6 px-4 lg:px-0">
+          <h2 className="mb-3 text-[11px] font-black uppercase tracking-widest text-muted-foreground">Mes recharges</h2>
+          <div className="space-y-2">
+            {payments.map((p) => (
+              <div key={p.id} className="flex items-center justify-between gap-3 rounded-2xl bg-card p-3 ring-1 ring-black/5 dark:ring-white/5">
+                <div className="min-w-0">
+                  <div className="text-[13px] font-bold">{p.credits} crédits · {formatXaf(p.amount_xaf)}</div>
+                  <div className="text-[10px] text-muted-foreground">
+                    {new Date(p.created_at).toLocaleString("fr-FR")} · {p.status}
+                  </div>
+                </div>
+                {p.status !== "SUCCESSFUL" && p.trans_id && (
+                  <div className="flex shrink-0 items-center gap-2">
+                    {p.link && (
+                      <a href={p.link} className="rounded-xl bg-surface px-2.5 py-1.5 text-[11px] font-bold ring-1 ring-black/5 dark:ring-white/10">
+                        Payer
+                      </a>
+                    )}
+                    <button
+                      onClick={() => handleVerify(p.trans_id as string)}
+                      className="rounded-xl bg-foreground px-2.5 py-1.5 text-[11px] font-bold text-background"
+                    >
+                      Vérifier
+                    </button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
       <div className="mt-6 px-4 pb-4 lg:px-0">
         <Link to="/" className="block text-center text-[10px] font-semibold text-muted-foreground">
           LiveFoot AI · v0.9 · © 2026
@@ -295,7 +360,7 @@ function ProfilPage() {
       </div>
 
       {showTopup && (
-        <TopupDialog onClose={() => setShowTopup(false)} onBuy={handleTopup} />
+        <TopupDialog onClose={() => setShowTopup(false)} onBuy={handleTopup} busyPack={busyPack} />
       )}
     </AppShell>
   );
@@ -329,7 +394,7 @@ function MenuRow({ icon, label, tone, onClick }: { icon: React.ReactNode; label:
   );
 }
 
-function TopupDialog({ onClose, onBuy }: { onClose: () => void; onBuy: (credits: number, price: string) => void }) {
+function TopupDialog({ onClose, onBuy, busyPack }: { onClose: () => void; onBuy: (pack: PricedPack) => void; busyPack: string | null }) {
   return (
     <div
       className="fixed inset-0 z-50 grid place-items-end bg-foreground/60 backdrop-blur-sm sm:place-items-center"
@@ -348,7 +413,7 @@ function TopupDialog({ onClose, onBuy }: { onClose: () => void; onBuy: (credits:
               <Coins className="size-3" aria-hidden /> Recharge de crédits
             </div>
             <h2 id="topup-title" className="text-xl font-black leading-tight">Choisir un pack</h2>
-            <p className="mt-1 text-xs text-muted-foreground">Paiements en ligne bientôt disponibles.</p>
+            <p className="mt-1 text-xs text-muted-foreground">Paiement MTN MoMo ou Orange Money via Fapshi. Prix TTC en FCFA, frais inclus.</p>
           </div>
           <button
             onClick={onClose}
@@ -360,17 +425,18 @@ function TopupDialog({ onClose, onBuy }: { onClose: () => void; onBuy: (credits:
         </div>
 
         <div className="mt-4 grid grid-cols-2 gap-2.5">
-          {CREDIT_PACKS.map((p) => (
+          {PRICED_PACKS.map((p) => (
             <button
               key={p.id}
-              onClick={() => onBuy(p.credits, p.price)}
+              onClick={() => onBuy(p)}
+              disabled={busyPack !== null}
               className={cn(
-                "relative flex flex-col items-start gap-1 rounded-2xl p-3 text-left ring-1 transition-all hover:-translate-y-0.5",
+                "relative flex flex-col items-start gap-1 rounded-2xl p-3 text-left ring-1 transition-all hover:-translate-y-0.5 disabled:opacity-60",
                 p.best
                   ? "bg-brand/10 ring-brand/40 hover:ring-brand"
                   : "bg-card ring-black/5 hover:ring-black/10 dark:ring-white/5",
               )}
-              aria-label={`Acheter ${p.credits} crédits pour ${p.price}`}
+              aria-label={`Acheter ${p.credits} crédits pour ${p.priceLabel}`}
             >
               {p.best && (
                 <span className="absolute -top-2 right-3 rounded-full bg-brand px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-brand-foreground">
@@ -382,8 +448,8 @@ function TopupDialog({ onClose, onBuy }: { onClose: () => void; onBuy: (credits:
                 <span className="text-[10px] font-black uppercase tracking-widest">Crédits</span>
               </div>
               <div className="text-2xl font-black tabular-nums leading-none">{p.credits}</div>
-              <div className="text-sm font-black">{p.price}</div>
-              <div className="text-[10px] text-muted-foreground">{p.perAnalysis}</div>
+              <div className="text-sm font-black tabular-nums">{busyPack === p.id ? "Redirection…" : p.priceLabel}</div>
+              <div className="text-[10px] text-muted-foreground">{p.perAnalysisLabel}</div>
             </button>
           ))}
         </div>
@@ -391,7 +457,7 @@ function TopupDialog({ onClose, onBuy }: { onClose: () => void; onBuy: (credits:
         <p className="mt-4 text-[10px] leading-snug text-muted-foreground">
           Les crédits sont utilisés pour les analyses IA (2 crédits par analyse). Le livescore
           et les statistiques restent gratuits. Les crédits non utilisés sont conservés
-          indéfiniment.
+          indéfiniment. Montants en FCFA (XAF), frais de transaction inclus.
         </p>
       </div>
     </div>
