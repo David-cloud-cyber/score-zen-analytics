@@ -50,6 +50,11 @@ function ProfilPage() {
   const queryClient = useQueryClient();
   const { data: profile } = useSuspenseQuery(balanceQuery);
   const { data: history } = useSuspenseQuery(historyQuery);
+  const { data: payments = [] } = useQuery({
+    queryKey: ["me", "payments"],
+    queryFn: () => getMyPayments(),
+    staleTime: 15_000,
+  });
 
   const [showTopup, setShowTopup] = useState(false);
   const [flash, setFlash] = useState<string | null>(null);
