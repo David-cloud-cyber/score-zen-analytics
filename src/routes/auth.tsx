@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import { z } from "zod";
 import { Sparkles, Mail, Lock, ArrowRight, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable";
 import { toast } from "sonner";
 
 const searchSchema = z.object({ redirect: z.string().optional() });
@@ -12,16 +11,14 @@ export const Route = createFileRoute("/auth")({
   validateSearch: (s) => searchSchema.parse(s),
   head: () => ({
     meta: [
-      { title: "Connexion & inscription — LiveFoot AI" },
-      { name: "description", content: "Connectez-vous ou créez votre compte LiveFoot AI. 10 crédits d'analyse IA offerts à l'inscription." },
-      { property: "og:title", content: "Connexion & inscription — LiveFoot AI" },
-      { property: "og:description", content: "Rejoignez LiveFoot AI : 10 crédits d'analyse IA offerts, favoris et historique personnalisés." },
-      { property: "og:url", content: "https://ball-predict-ace.lovable.app/auth" },
-      { name: "twitter:title", content: "Connexion & inscription — LiveFoot AI" },
-      { name: "twitter:description", content: "Rejoignez LiveFoot AI : analyses IA, favoris et alertes personnalisées." },
+      { title: "Connexion & Inscription — Score Zen Analytics" },
+      { name: "description", content: "Connectez-vous ou créez votre compte Score Zen Analytics. 10 crédits d'analyse IA offerts à l'inscription." },
+      { property: "og:title", content: "Connexion & Inscription — Score Zen Analytics" },
+      { property: "og:description", content: "Rejoignez Score Zen Analytics : 10 crédits offerts, favoris et historique personnalisés." },
+      { property: "og:url", content: "https://score-zen-analytics.vercel.app/auth" },
       { name: "robots", content: "noindex" },
     ],
-    links: [{ rel: "canonical", href: "https://ball-predict-ace.lovable.app/auth" }],
+    links: [{ rel: "canonical", href: "https://score-zen-analytics.vercel.app/auth" }],
   }),
   component: AuthPage,
 });
@@ -35,7 +32,7 @@ function AuthPage() {
   const [displayName, setDisplayName] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // If already signed in, bounce
+  // If already signed in, auto-redirect
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       if (data.session) navigate({ to: (redirect as never) ?? "/" });
@@ -49,7 +46,7 @@ function AuthPage() {
       if (mode === "signin") {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        toast.success("Bienvenue !");
+        toast.success("Bienvenue ! Connexion réussie.");
       } else {
         const { error } = await supabase.auth.signUp({
           email,
@@ -60,12 +57,12 @@ function AuthPage() {
           },
         });
         if (error) throw error;
-        toast.success("Compte créé ! Vous pouvez vous connecter.");
+        toast.success("Compte créé avec succès ! Vous pouvez vous connecter.");
       }
       const dest = typeof redirect === "string" && redirect.startsWith("/") ? redirect : "/";
       navigate({ to: dest as never });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Une erreur est survenue.");
+      toast.error(err instanceof Error ? err.message : "Une erreur est survenue lors de l'authentification.");
     } finally {
       setLoading(false);
     }
@@ -74,15 +71,15 @@ function AuthPage() {
   async function handleGoogle() {
     setLoading(true);
     try {
-      const result = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: window.location.origin,
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: typeof window !== "undefined" ? window.location.origin : undefined,
+        },
       });
-      if (result.error) throw result.error;
-      if (result.redirected) return;
-      const dest = typeof redirect === "string" && redirect.startsWith("/") ? redirect : "/";
-      navigate({ to: dest as never });
+      if (error) throw error;
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Connexion Google impossible.");
+      toast.error(err instanceof Error ? err.message : "Connexion Google via Supabase impossible.");
     } finally {
       setLoading(false);
     }
@@ -93,14 +90,14 @@ function AuthPage() {
       <div className="w-full max-w-md">
         <Link to="/" className="mb-8 flex items-center justify-center gap-2.5">
           <div className="grid size-10 place-items-center rounded-xl bg-foreground text-background">
-            <span className="text-[13px] font-black italic tracking-tighter">LF</span>
+            <span className="text-[13px] font-black italic tracking-tighter">SZ</span>
           </div>
           <div className="text-lg font-bold tracking-tight">
-            LiveFoot <span className="text-brand">AI</span>
+            ScoreZen <span className="text-brand">AI</span>
           </div>
         </Link>
 
-        <div className="rounded-3xl bg-card p-6 ring-1 ring-black/5 shadow-lg">
+        <div className="rounded-3xl bg-card p-6 shadow-xl ring-1 ring-black/5 dark:ring-white/5">
           <div className="mb-1 text-[10px] font-black uppercase tracking-[0.18em] text-brand">
             {mode === "signin" ? "Connexion" : "Inscription"}
           </div>
@@ -109,14 +106,14 @@ function AuthPage() {
           </h1>
           <p className="mb-5 text-sm text-muted-foreground">
             {mode === "signin"
-              ? "Retrouvez vos favoris, crédits et analyses."
+              ? "Retrouvez vos favoris, crédits et prédictions."
               : "10 crédits offerts à l'inscription."}
           </p>
 
           <button
             onClick={handleGoogle}
             disabled={loading}
-            className="mb-4 flex w-full items-center justify-center gap-2 rounded-2xl border border-border bg-background py-3 text-sm font-bold transition-transform active:scale-[0.98] disabled:opacity-50"
+            className="mb-4 flex w-full items-center justify-center gap-2 rounded-2xl border border-border bg-background py-3 text-sm font-bold shadow-xs transition-transform active:scale-[0.98] disabled:opacity-50"
           >
             <GoogleIcon /> Continuer avec Google
           </button>
@@ -131,7 +128,7 @@ function AuthPage() {
                 <input
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
-                  placeholder="Alex"
+                  placeholder="ex. Alex"
                   className="flex-1 bg-transparent text-sm outline-none"
                 />
               </Field>
@@ -161,11 +158,15 @@ function AuthPage() {
             <button
               type="submit"
               disabled={loading}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-foreground py-3 text-sm font-bold text-background transition-transform active:scale-[0.98] disabled:opacity-50"
+              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-foreground py-3.5 text-sm font-bold text-background shadow-md transition-transform active:scale-[0.98] disabled:opacity-50"
             >
-              {loading ? <Loader2 className="size-4 animate-spin" /> : <>
-                {mode === "signin" ? "Se connecter" : "Créer mon compte"} <ArrowRight className="size-4" />
-              </>}
+              {loading ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <>
+                  {mode === "signin" ? "Se connecter" : "Créer mon compte"} <ArrowRight className="size-4" />
+                </>
+              )}
             </button>
           </form>
 
@@ -197,7 +198,7 @@ function Field({ label, icon, children }: { label: string; icon: React.ReactNode
   return (
     <label className="block">
       <div className="mb-1 px-1 text-[10px] font-black uppercase tracking-widest text-muted-foreground">{label}</div>
-      <div className="flex items-center gap-2 rounded-2xl bg-surface px-3 py-2.5 ring-1 ring-black/5 focus-within:ring-2 focus-within:ring-brand">
+      <div className="flex items-center gap-2.5 rounded-2xl bg-surface px-3.5 py-3 ring-1 ring-black/5 focus-within:ring-2 focus-within:ring-brand dark:ring-white/10">
         <span className="text-muted-foreground" aria-hidden>{icon}</span>
         {children}
       </div>
