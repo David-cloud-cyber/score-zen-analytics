@@ -180,14 +180,14 @@ export function TopBar() {
     <header className="sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-border/60 bg-background/85 px-4 py-3 backdrop-blur-xl lg:px-8 lg:py-4">
       <Link to="/" className="flex items-center gap-2 lg:hidden">
         <div className="grid size-8 place-items-center rounded-lg bg-foreground text-background">
-          <span className="text-[11px] font-black italic tracking-tighter">LF</span>
+          <span className="text-[11px] font-black italic tracking-tighter">SZ</span>
         </div>
         <div className="flex flex-col leading-none">
           <span className="text-[15px] font-bold tracking-tight">
-            LiveFoot <span className="text-brand">AI</span>
+            ScoreZen <span className="text-brand">AI</span>
           </span>
           <span className="text-[9px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
-            Livescore · Analyse
+            Livescore · Analytics
           </span>
         </div>
       </Link>
@@ -207,13 +207,13 @@ export function TopBar() {
         >
           <Search className="size-4" aria-hidden />
         </button>
-        <div className="flex items-center gap-1.5 rounded-full bg-surface px-2.5 py-1 ring-1 ring-black/5 lg:hidden dark:ring-white/10">
+        <Link to="/profil" className="flex items-center gap-1.5 rounded-full bg-surface px-2.5 py-1 ring-1 ring-black/5 lg:hidden dark:ring-white/10">
           <Coins className="size-3.5 text-warn" aria-hidden />
-          <span className="text-xs font-bold tabular-nums">140</span>
-        </div>
+          <span className="text-xs font-bold tabular-nums">Crédits</span>
+        </Link>
         <button
           className="relative grid size-9 place-items-center rounded-full bg-surface ring-1 ring-black/5 transition-transform hover:scale-105 active:scale-95 dark:ring-white/10"
-          aria-label="Notifications (1 non lue)"
+          aria-label="Notifications"
         >
           <Bell className="size-4 text-foreground" aria-hidden />
           <span className="absolute right-1.5 top-1.5 size-1.5 rounded-full bg-alert" aria-hidden />
