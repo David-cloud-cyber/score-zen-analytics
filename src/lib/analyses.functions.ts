@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
-import { generateObject, NoObjectGeneratedError } from "ai";
+import { generateObject } from "ai";
 
 const ANALYSIS_COST = 2;
 
@@ -126,14 +126,101 @@ async function fetchHeadToHead(homeId: number, awayId: number) {
   }
 }
 
+/**
+ * Routeur d'IA Hybride (Google AI Studio -> OpenRouter -> Lovable Gateway)
+ * Bascule automatiquement sans bloquer l'utilisateur en cas de rate-limit / quota dépassé.
+ */
+async function callSmartAIRouter(systemPrompt: string, userPrompt: string): Promise<AnalysisResult> {
+  const geminiKey = process.env.GEMINI_API_KEY;
+  const openRouterKey = process.env.OPENROUTER_API_KEY;
+
+  // 1. Essayer Google AI Studio (Gemini 2.0 Flash) — Gratuit & Ultra Rapide
+  if (geminiKey) {
+    try {
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          system_instruction: { parts: [{ text: systemPrompt }] },
+          contents: [{ parts: [{ text: userPrompt }] }],
+          generationConfig: {
+            response_mime_type: "application/json",
+            temperature: 0.2,
+          },
+        }),
+      });
+
+      if (res.ok) {
+        const json = await res.json();
+        const text = json.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (text) {
+          const parsed = JSON.parse(text);
+          return resultSchema.parse(parsed);
+        }
+      }
+    } catch (err) {
+      console.warn("Primary AI (Gemini Studio) failover notice:", err instanceof Error ? err.message : err);
+    }
+  }
+
+  // 2. Fallback vers OpenRouter (DeepSeek R1 / Llama 3.3 70B)
+  if (openRouterKey) {
+    try {
+      const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${openRouterKey}`,
+          "Content-Type": "application/json",
+          "HTTP-Referer": "https://www.livefoot.fun",
+          "X-Title": "ScoreZen AI",
+        },
+        body: JSON.stringify({
+          model: "meta-llama/llama-3.3-70b-instruct:free",
+          response_format: { type: "json_object" },
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt },
+          ],
+          temperature: 0.2,
+        }),
+      });
+
+      if (res.ok) {
+        const json = await res.json();
+        const text = json.choices?.[0]?.message?.content;
+        if (text) {
+          const parsed = JSON.parse(text);
+          return resultSchema.parse(parsed);
+        }
+      }
+    } catch (err) {
+      console.warn("Secondary AI (OpenRouter) failover notice:", err instanceof Error ? err.message : err);
+    }
+  }
+
+  // 3. Secours ultime : Lovable AI Gateway
+  const lovableKey = process.env.LOVABLE_API_KEY;
+  if (lovableKey) {
+    const { createLovableAI } = await import("./ai-gateway.server");
+    const gateway = createLovableAI(lovableKey);
+    const model = gateway("google/gemini-3.1-pro-preview");
+    const { object } = await generateObject({
+      model,
+      schema: resultSchema,
+      system: systemPrompt,
+      prompt: userPrompt,
+    });
+    return object;
+  }
+
+  throw new Error("L'analyse IA est momentanément indisponible. Veuillez réessayer dans un instant.");
+}
+
 export const runAnalysis = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => inputSchema.parse(data))
   .handler(async ({ data, context }): Promise<AnalysisResult> => {
-    const apiKey = process.env.LOVABLE_API_KEY;
-    if (!apiKey) throw new Error("Lovable AI Gateway indisponible.");
-
-    // 0. Cache-hit ? (n'impacte pas les crédits — analyse identique récente)
+    // 0. Cache-hit ?
     const cacheKey = `${data.home.toLowerCase().trim()}::${data.away.toLowerCase().trim()}`;
     const cached = analysisCache.get(cacheKey);
     if (cached && Date.now() - cached.at < CACHE_TTL_MS) {
@@ -181,8 +268,6 @@ export const runAnalysis = createServerFn({ method: "POST" })
     }
 
     // 2. Enrichissement : forme + H2H + blessures via API-Football.
-    // Tourne en parallèle. Chaque appel est protégé par try/catch → l'IA reste
-    // appelée même sans contexte externe (dégradation gracieuse).
     const [homeCtx, awayCtx] = await Promise.all([
       fetchTeamContext(data.home),
       fetchTeamContext(data.away),
@@ -199,40 +284,23 @@ export const runAnalysis = createServerFn({ method: "POST" })
       h2h.length ? `## Confrontations directes récentes\n${h2h.join("\n")}` : `## Confrontations directes\nAucune donnée récente.`,
     ].join("\n\n");
 
-    // 3. Appel IA — modèle Gemini 3.1 Pro Preview (raisonnement supérieur).
-    const { createLovableAI } = await import("./ai-gateway.server");
-    const gateway = createLovableAI(apiKey);
-    const model = gateway("google/gemini-3.1-pro-preview");
+    const systemPrompt =
+      "Tu es un analyste football professionnel qui répond UNIQUEMENT en français sous format JSON strict.\n" +
+      "Tu utilises EXCLUSIVEMENT les données factuelles fournies dans le contexte (forme récente, blessures, confrontations directes) — n'invente aucun résultat ni statistique.\n" +
+      "Tu produis des probabilités 1X2 entières (0-100) qui SOMMENT à 100 et un score probable réaliste.\n" +
+      "Tu proposes 5 marchés recommandés couvrant 1X2, Double Chance, BTTS, Over/Under 2.5, et un marché parmi Corners ou Cartons.\n" +
+      "Confiance = 0-100 (jamais > 85 : garde toujours de l'humilité). Risque = bas | moyen | eleve.\n" +
+      "aiText = 3-4 phrases synthétisant la forme, les absents et la dynamique du match.\n" +
+      "keyFactors = 3-5 puces courtes (facteurs déterminants).\n" +
+      "Reste factuel, prudent, ne pousse jamais aux paris.";
 
-    let result: AnalysisResult;
-    try {
-      const { object } = await generateObject({
-        model,
-        schema: resultSchema,
-        system:
-          "Tu es un analyste football professionnel qui répond UNIQUEMENT en français.\n" +
-          "Tu utilises EXCLUSIVEMENT les données factuelles fournies dans le contexte (forme récente, blessures, confrontations directes) — n'invente aucun résultat ni statistique.\n" +
-          "Tu produis des probabilités 1X2 entières (0-100) qui SOMMENT à 100 et un score probable réaliste.\n" +
-          "Tu proposes 5 marchés recommandés couvrant 1X2, Double Chance, BTTS, Over/Under 2.5, et un marché parmi Corners ou Cartons.\n" +
-          "Confiance = 0-100 (jamais > 85 : garde toujours de l'humilité). Risque = bas | moyen | eleve.\n" +
-          "aiText = 3-4 phrases synthétisant la forme, les absents et la dynamique du match.\n" +
-          "keyFactors = 3-5 puces courtes (facteurs déterminants).\n" +
-          "Reste factuel, prudent, ne pousse jamais aux paris.",
-        prompt:
-          `Analyse la rencontre ${data.home} vs ${data.away}.\n\n` +
-          `Données à utiliser :\n${contextBlock}\n\n` +
-          `Produis l'analyse structurée demandée.`,
-      });
-      result = object;
-    } catch (err) {
-      if (NoObjectGeneratedError.isInstance(err)) {
-        throw new Error("L'IA n'a pas pu produire d'analyse structurée. Réessayez.");
-      }
-      const msg = err instanceof Error ? err.message : String(err);
-      if (msg.includes("429")) throw new Error("Trop de requêtes vers l'IA. Réessayez dans un instant.");
-      if (msg.includes("402")) throw new Error("Crédits AI Gateway épuisés. Contactez le support.");
-      throw new Error("L'analyse IA a échoué. Réessayez dans un instant.");
-    }
+    const userPrompt =
+      `Analyse la rencontre ${data.home} vs ${data.away}.\n\n` +
+      `Données à utiliser :\n${contextBlock}\n\n` +
+      `Produis l'analyse structurée demandée au format JSON avec les champs: probabilities (home, draw, away), probableScore, markets (array de objets), aiText, keyFactors (array).`;
+
+    // 3. Execution du Routeur Hybride
+    let result = await callSmartAIRouter(systemPrompt, userPrompt);
 
     // Normalisation post-hoc : garantir la somme à 100.
     result = { ...result, probabilities: normalizeProbabilities(result.probabilities) };
