@@ -1,99 +1,396 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
-import { MessageCircle, Send, Users, Sparkles } from "lucide-react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState, useEffect, useRef } from "react";
+import { MessageCircle, Send, Users, Sparkles, Trophy, Flame, CheckCircle2, User, Radio, Award } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell, PageTitle } from "@/components/AppShell";
-
+import { useSession } from "@/hooks/use-session";
+import { supabase } from "@/integrations/supabase/client";
 import { buildRouteMeta } from "@/lib/seo";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/communaute")({
   head: () =>
     buildRouteMeta({
       path: "/communaute",
       title: "Communauté & Échanges Live",
-      description: "Discutez des matchs en direct, partagez vos pronostics de football et échangez vos tactiques.",
+      description:
+        "Rejoignez la communauté ScoreZen AI : pronostics en direct, chat live par match, sondages de foule et classement des experts.",
     }),
   component: CommunautePage,
 });
 
+interface ChatMessage {
+  id: string;
+  user_name: string;
+  user_avatar?: string;
+  message: string;
+  created_at: string;
+}
+
+interface MatchPoll {
+  id: number;
+  homeTeam: string;
+  awayTeam: string;
+  homeLogo: string;
+  awayLogo: string;
+  league: string;
+  votes: { home: number; draw: number; away: number };
+}
+
+const FEATURED_POLLS: MatchPoll[] = [
+  {
+    id: 101,
+    homeTeam: "Real Madrid",
+    awayTeam: "FC Barcelone",
+    homeLogo: "https://media.api-sports.io/football/teams/541.png",
+    awayLogo: "https://media.api-sports.io/football/teams/529.png",
+    league: "LaLiga 🇪🇸",
+    votes: { home: 62, draw: 18, away: 20 },
+  },
+  {
+    id: 102,
+    homeTeam: "Paris Saint-Germain",
+    awayTeam: "Bayern Munich",
+    homeLogo: "https://media.api-sports.io/football/teams/85.png",
+    awayLogo: "https://media.api-sports.io/football/teams/157.png",
+    league: "Ligue des Champions 🇪🇺",
+    votes: { home: 45, draw: 25, away: 30 },
+  },
+  {
+    id: 103,
+    homeTeam: "Arsenal FC",
+    awayTeam: "Manchester City",
+    homeLogo: "https://media.api-sports.io/football/teams/42.png",
+    awayLogo: "https://media.api-sports.io/football/teams/50.png",
+    league: "Premier League 🏴󠁧󠁢󠁥󠁮󠁧󠁿",
+    votes: { home: 35, draw: 30, away: 35 },
+  },
+];
+
+const MOCK_MESSAGES: ChatMessage[] = [
+  {
+    id: "m1",
+    user_name: "Alex_Analyst",
+    message: "Le Real a une cote incroyable ce soir ! La compo avec Bellingham et Vinícius s'annonce dévastatrice 🔥",
+    created_at: "2026-07-26T20:10:00Z",
+  },
+  {
+    id: "m2",
+    user_name: "Karim93",
+    message: "Attention au Barca en contre-attaque. Lamine Yamal est en forme olympique !",
+    created_at: "2026-07-26T20:12:00Z",
+  },
+  {
+    id: "m3",
+    user_name: "Zinedine_P",
+    message: "L'analyse IA donne 62% pour le Real Madrid. Je suis à 100% aligné avec la prédiction de ScoreZen !",
+    created_at: "2026-07-26T20:15:00Z",
+  },
+];
+
+const LEADERBOARD = [
+  { rank: 1, name: "Zinedine_P", points: 1450, winRate: "84%", badge: "🥇 Master 1X2" },
+  { rank: 2, name: "Alex_Analyst", points: 1320, winRate: "79%", badge: "🥈 Expert Score" },
+  { rank: 3, name: "Mbappe_Fan9", points: 1180, winRate: "76%", badge: "🥉 Top Stratège" },
+  { rank: 4, name: "David_Cloud", points: 990, winRate: "72%", badge: "⭐ Analyste Star" },
+  { rank: 5, name: "Bellingham_5", points: 870, winRate: "69%", badge: "⭐ Pronostiqueur" },
+];
+
 function CommunautePage() {
+  const { session } = useSession();
+  const [messages, setMessages] = useState<ChatMessage[]>(MOCK_MESSAGES);
+  const [newMessage, setNewMessage] = useState("");
+  const [userVotes, setUserVotes] = useState<Record<number, "home" | "draw" | "away">>({});
+  const [polls, setPolls] = useState<MatchPoll[]>(FEATURED_POLLS);
+  const chatEndRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to bottom of chat
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  // Realtime subscription setup fallback
+  useEffect(() => {
+    const channel = supabase
+      .channel("community_messages_channel")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "community_messages" },
+        (payload) => {
+          const newMsg = payload.new as ChatMessage;
+          setMessages((prev) => [...prev, newMsg]);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  const handleVote = (pollId: number, option: "home" | "draw" | "away") => {
+    if (userVotes[pollId]) {
+      toast.info("Vous avez déjà voté pour ce match !");
+      return;
+    }
+
+    setUserVotes((prev) => ({ ...prev, [pollId]: option }));
+    setPolls((prev) =>
+      prev.map((poll) => {
+        if (poll.id === pollId) {
+          return {
+            ...poll,
+            votes: {
+              ...poll.votes,
+              [option]: poll.votes[option] + 1,
+            },
+          };
+        }
+        return poll;
+      })
+    );
+    toast.success("Vote enregistré avec succès !");
+  };
+
+  const handleSendMessage = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newMessage.trim()) return;
+
+    const userName = session?.user?.email?.split("@")[0] || "Fan_" + Math.floor(Math.random() * 1000);
+    const msgObj: ChatMessage = {
+      id: Date.now().toString(),
+      user_name: userName,
+      message: newMessage.trim(),
+      created_at: new Date().toISOString(),
+    };
+
+    // Optimistic insert
+    setMessages((prev) => [...prev, msgObj]);
+    setNewMessage("");
+
+    // Send to Supabase DB (best-effort)
+    supabase
+      .from("community_messages")
+      .insert({
+        user_name: userName,
+        message: msgObj.message,
+      })
+      .then(({ error }) => {
+        if (error) console.warn("Supabase insert notice:", error.message);
+      });
+  };
+
   return (
     <AppShell>
-      <PageTitle eyebrow="Communauté" title="Discussions live" />
+      <PageTitle eyebrow="Espace Membres" title="Communauté ScoreZen" />
 
-      <div className="px-4 lg:px-0">
-        <div className="relative overflow-hidden rounded-3xl bg-foreground p-6 text-background">
+      <div className="space-y-6 px-4 pb-20 lg:px-0">
+        {/* Banner Hero */}
+        <div className="relative overflow-hidden rounded-3xl bg-foreground p-6 text-background shadow-xl">
           <div className="pointer-events-none absolute -right-16 -top-16 size-48 rounded-full bg-brand/25 blur-3xl" aria-hidden />
           <div className="pointer-events-none absolute -bottom-16 -left-10 size-40 rounded-full bg-data/25 blur-3xl" aria-hidden />
           <div className="relative">
-            <div className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-background/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest">
-              <Sparkles className="size-3" aria-hidden /> Bientôt disponible
+            <div className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-brand/20 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-brand">
+              <Radio className="size-3 animate-pulse" /> En Direct Live
             </div>
             <h2 className="text-xl font-black leading-tight lg:text-2xl">
-              La communauté ScoreZen AI arrive
+              Pronostiquez & Échangez en temps réel
             </h2>
             <p className="mt-2 max-w-lg text-xs leading-relaxed text-background/70 lg:text-sm">
-              Les fils de discussion par match et par compétition sont en cours de finalisation.
-              Bientôt, vous pourrez partager vos pronostics, réagir aux actions live et débattre
-              avec la communauté en temps réel.
+              Partagez vos analyses, comparez les votes de la communauté avec l'IA et grimpez dans le classement mensuel des meilleurs experts.
             </p>
-            <div className="mt-5 flex flex-wrap items-center gap-4 text-[11px] text-background/80">
-              <span className="inline-flex items-center gap-1.5">
-                <Users className="size-3.5" aria-hidden /> Fils par match & compétition
-              </span>
-              <span className="inline-flex items-center gap-1.5">
-                <MessageCircle className="size-3.5" aria-hidden /> Réactions & pronostics
-              </span>
-            </div>
           </div>
         </div>
 
-        <div className="mt-6 rounded-2xl border border-dashed border-border p-8 text-center">
-          <div className="mx-auto mb-3 grid size-12 place-items-center rounded-full bg-surface">
-            <MessageCircle className="size-5 text-muted-foreground" aria-hidden />
+        {/* Section 1: Crowd Wisdom / Sondages en direct */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Flame className="size-4 text-alert" />
+              <h3 className="text-sm font-black uppercase tracking-wider">Pronostics de la Communauté</h3>
+            </div>
+            <span className="text-[11px] font-bold text-muted-foreground">Matchs Vedettes</span>
           </div>
-          <h3 className="text-sm font-black">Aucune discussion pour l'instant</h3>
-          <p className="mx-auto mt-2 max-w-md text-xs text-muted-foreground">
-            Soyez notifié dès le lancement des discussions live. Laissez votre e-mail via le
-            formulaire ci-dessous.
-          </p>
-          <NotifyForm />
+
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            {polls.map((poll) => {
+              const totalVotes = poll.votes.home + poll.votes.draw + poll.votes.away;
+              const homePct = Math.round((poll.votes.home / totalVotes) * 100);
+              const drawPct = Math.round((poll.votes.draw / totalVotes) * 100);
+              const awayPct = Math.round((poll.votes.away / totalVotes) * 100);
+              const userVoted = userVotes[poll.id];
+
+              return (
+                <div key={poll.id} className="rounded-3xl bg-card p-4 shadow-sm ring-1 ring-black/5 dark:ring-white/5 space-y-3">
+                  <div className="flex items-center justify-between border-b border-border/60 pb-2 text-[10px] font-bold text-muted-foreground">
+                    <span>{poll.league}</span>
+                    <span className="rounded-full bg-surface px-2 py-0.5">{totalVotes} votes</span>
+                  </div>
+
+                  <div className="flex items-center justify-between px-2">
+                    <div className="flex items-center gap-2">
+                      <img src={poll.homeLogo} alt="" className="size-8 object-contain" />
+                      <span className="text-xs font-bold">{poll.homeTeam}</span>
+                    </div>
+                    <span className="text-xs font-black text-muted-foreground">VS</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold">{poll.awayTeam}</span>
+                      <img src={poll.awayLogo} alt="" className="size-8 object-contain" />
+                    </div>
+                  </div>
+
+                  {/* Vote Buttons */}
+                  <div className="grid grid-cols-3 gap-2">
+                    <VoteButton
+                      label={`1 (${homePct}%)`}
+                      selected={userVoted === "home"}
+                      onClick={() => handleVote(poll.id, "home")}
+                    />
+                    <VoteButton
+                      label={`N (${drawPct}%)`}
+                      selected={userVoted === "draw"}
+                      onClick={() => handleVote(poll.id, "draw")}
+                    />
+                    <VoteButton
+                      label={`2 (${awayPct}%)`}
+                      selected={userVoted === "away"}
+                      onClick={() => handleVote(poll.id, "away")}
+                    />
+                  </div>
+
+                  {/* Progress Bar Visualizer */}
+                  <div className="flex h-2 w-full overflow-hidden rounded-full bg-surface">
+                    <div style={{ width: `${homePct}%` }} className="bg-brand transition-all" title={`1: ${homePct}%`} />
+                    <div style={{ width: `${drawPct}%` }} className="bg-warn transition-all" title={`N: ${drawPct}%`} />
+                    <div style={{ width: `${awayPct}%` }} className="bg-data transition-all" title={`2: ${awayPct}%`} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Section 2: Live Chat Feed & Leaderboard Grid */}
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          {/* Chat Feed (2 cols) */}
+          <div className="lg:col-span-2 flex flex-col rounded-3xl bg-card shadow-sm ring-1 ring-black/5 dark:ring-white/5 h-[460px]">
+            <div className="flex items-center justify-between border-b border-border/60 px-5 py-3.5">
+              <div className="flex items-center gap-2">
+                <MessageCircle className="size-4 text-brand" />
+                <h3 className="text-xs font-black uppercase tracking-wider">Chat Live Général</h3>
+              </div>
+              <span className="flex items-center gap-1.5 text-[10px] font-bold text-emerald-500">
+                <span className="size-2 rounded-full bg-emerald-500 animate-ping" />
+                En ligne
+              </span>
+            </div>
+
+            {/* Messages Area */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              {messages.map((m) => (
+                <div key={m.id} className="flex items-start gap-3 text-xs">
+                  <div className="grid size-8 shrink-0 place-items-center rounded-full bg-surface font-black text-brand ring-1 ring-black/5 dark:ring-white/10">
+                    <User className="size-4" />
+                  </div>
+                  <div className="flex-1 rounded-2xl bg-surface p-3 ring-1 ring-black/5 dark:ring-white/5">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-bold text-foreground">{m.user_name}</span>
+                      <span className="text-[9px] text-muted-foreground">
+                        {new Date(m.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      </span>
+                    </div>
+                    <p className="text-muted-foreground leading-relaxed">{m.message}</p>
+                  </div>
+                </div>
+              ))}
+              <div ref={chatEndRef} />
+            </div>
+
+            {/* Input Form */}
+            <form onSubmit={handleSendMessage} className="border-t border-border/60 p-3">
+              <div className="flex items-center gap-2 rounded-2xl bg-surface px-3 py-2 ring-1 ring-black/5 dark:ring-white/10 focus-within:ring-2 focus-within:ring-brand">
+                <input
+                  type="text"
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  placeholder={session ? "Écrivez un message..." : "Connectez-vous pour discuter..."}
+                  className="flex-1 bg-transparent text-xs outline-none placeholder:text-muted-foreground"
+                />
+                <button
+                  type="submit"
+                  disabled={!newMessage.trim()}
+                  className="grid size-8 place-items-center rounded-xl bg-foreground text-background transition-transform active:scale-95 disabled:opacity-40"
+                >
+                  <Send className="size-3.5" />
+                </button>
+              </div>
+            </form>
+          </div>
+
+          {/* Leaderboard (1 col) */}
+          <div className="rounded-3xl bg-card p-5 shadow-sm ring-1 ring-black/5 dark:ring-white/5 space-y-4">
+            <div className="flex items-center justify-between border-b border-border/60 pb-3">
+              <div className="flex items-center gap-2">
+                <Trophy className="size-4 text-warn" />
+                <h3 className="text-xs font-black uppercase tracking-wider">Top Pronostiqueurs</h3>
+              </div>
+              <span className="text-[10px] font-bold text-muted-foreground">Ce mois</span>
+            </div>
+
+            <ul className="space-y-2.5">
+              {LEADERBOARD.map((user) => (
+                <li
+                  key={user.rank}
+                  className="flex items-center justify-between rounded-2xl bg-surface p-2.5 text-xs ring-1 ring-black/5 dark:ring-white/5"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <span
+                      className={cn(
+                        "grid size-6 place-items-center rounded-full text-[10px] font-black",
+                        user.rank === 1 && "bg-warn text-white",
+                        user.rank === 2 && "bg-muted text-foreground",
+                        user.rank === 3 && "bg-amber-700 text-white",
+                        user.rank > 3 && "bg-surface text-muted-foreground"
+                      )}
+                    >
+                      {user.rank}
+                    </span>
+                    <div className="truncate">
+                      <div className="font-bold truncate">{user.name}</div>
+                      <div className="text-[9px] text-muted-foreground">{user.badge}</div>
+                    </div>
+                  </div>
+
+                  <div className="text-right shrink-0">
+                    <div className="font-black text-brand">{user.points} pts</div>
+                    <div className="text-[9px] font-semibold text-emerald-500">{user.winRate} succés</div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+
+            <div className="rounded-2xl bg-brand/10 p-3 text-center text-[11px] text-brand font-bold">
+              ⚡ Pronostiquez sur les matchs pour remonter le classement !
+            </div>
+          </div>
         </div>
       </div>
     </AppShell>
   );
 }
 
-function NotifyForm() {
-  const [email, setEmail] = useState("");
+function VoteButton({ label, selected, onClick }: { label: string; selected?: boolean; onClick: () => void }) {
   return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        if (!/.+@.+\..+/.test(email)) {
-          toast.error("Adresse e-mail invalide.");
-          return;
-        }
-        toast.success("Merci — nous vous préviendrons au lancement.");
-        setEmail("");
-      }}
-      className="mx-auto mt-4 flex max-w-sm items-center gap-2 rounded-2xl bg-card p-2 ring-1 ring-black/5 dark:ring-white/5"
+    <button
+      onClick={onClick}
+      className={cn(
+        "rounded-2xl py-2 text-center text-xs font-black transition-all ring-1",
+        selected
+          ? "bg-foreground text-background ring-foreground shadow-md"
+          : "bg-surface text-foreground ring-black/5 dark:ring-white/10 hover:bg-card"
+      )}
     >
-      <label htmlFor="notify-email" className="sr-only">E-mail</label>
-      <input
-        id="notify-email"
-        type="email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        placeholder="votre@email.com"
-        className="flex-1 bg-transparent px-2 text-sm outline-none placeholder:text-muted-foreground"
-      />
-      <button
-        type="submit"
-        className="inline-flex items-center gap-1.5 rounded-xl bg-foreground px-3 py-2 text-[11px] font-black text-background"
-      >
-        <Send className="size-3.5" aria-hidden /> Me prévenir
-      </button>
-    </form>
+      {label}
+    </button>
   );
 }
