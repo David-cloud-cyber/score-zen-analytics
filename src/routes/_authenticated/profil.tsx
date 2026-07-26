@@ -3,12 +3,8 @@ import { useState } from "react";
 import { useSuspenseQuery, queryOptions, useQueryClient } from "@tanstack/react-query";
 import { Crown, History, Settings, LogOut, ChevronRight, Coins, Sparkles, Plus, TrendingDown, TrendingUp, Check, Info, X } from "lucide-react";
 import { AppShell, PageTitle } from "@/components/AppShell";
-const CREDIT_PACKS = [
-  { id: "p1", credits: 20, price: "1,99 €", perAnalysis: "0,10 €/analyse", best: false },
-  { id: "p2", credits: 50, price: "3,99 €", perAnalysis: "0,08 €/analyse", best: true },
-  { id: "p3", credits: 150, price: "9,99 €", perAnalysis: "0,07 €/analyse", best: false },
-  { id: "p4", credits: 500, price: "24,99 €", perAnalysis: "0,05 €/analyse", best: false },
-];
+import { PRICED_PACKS, formatXaf, type PricedPack } from "@/lib/pricing";
+import { createTopupCheckout, verifyTopup, getMyPayments } from "@/lib/payments.functions";
 const CREDIT_RULES = [
   { cost: 2, label: "Analyse IA d'un match", desc: "Probabilités 1X2, score probable et marchés recommandés" },
   { cost: 2, label: "Comparateur personnalisé", desc: "Analyse de deux équipes de votre choix" },
