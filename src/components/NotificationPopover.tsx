@@ -13,44 +13,7 @@ export type NotificationItem = {
   link?: string;
 };
 
-const INITIAL_NOTIFICATIONS: NotificationItem[] = [
-  {
-    id: "1",
-    type: "match",
-    title: "But ! Real Madrid 1 - 0 FC Barcelone",
-    message: "Vinícius Jr (34') ouvre le score d'une frappe du droit dans la surface !",
-    time: "Il y a 5 min",
-    read: false,
-    link: "/live/1035",
-  },
-  {
-    id: "2",
-    type: "ai",
-    title: "Analyse IA Prête ✨",
-    message: "La prédiction tactique pour PSG vs Bayern Munich est disponible.",
-    time: "Il y a 20 min",
-    read: false,
-    link: "/analyse",
-  },
-  {
-    id: "3",
-    type: "credit",
-    title: "Recharge effectuée 🪙",
-    message: "+50 crédits ajoutés avec succès via Fapshi Mobile Money.",
-    time: "Il y a 2h",
-    read: false,
-    link: "/profil",
-  },
-  {
-    id: "4",
-    type: "match",
-    title: "Coup d'envoi !",
-    message: "Le match Arsenal vs Manchester City vient de débuter.",
-    time: "Il y a 3h",
-    read: true,
-    link: "/live/1036",
-  },
-];
+const INITIAL_NOTIFICATIONS: NotificationItem[] = [];
 
 export function NotificationPopover() {
   const [open, setOpen] = useState(false);
