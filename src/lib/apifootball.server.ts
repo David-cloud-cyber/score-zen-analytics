@@ -1,6 +1,9 @@
 // Server-only client for API-Football (v3.football.api-sports.io).
 // Handles rate limiting, transient errors, and keeps a last-good response
 // per URL so callers can fall back to recent data when the API misbehaves.
+// The API key is read from env (Cloudflare Worker secret) or Supabase app_config.
+
+import { getConfig } from "./config.server";
 
 const BASE = "https://v3.football.api-sports.io";
 
@@ -26,8 +29,8 @@ export async function apiFootball<T = unknown>(
   path: string,
   params: Record<string, string | number | undefined> = {},
 ): Promise<T> {
-  const key = process.env.APIFOOTBALL_KEY;
-  if (!key) throw new ApiFootballError("unauthorized", 401, "APIFOOTBALL_KEY missing on server.");
+  const key = await getConfig("APIFOOTBALL_KEY");
+  if (!key) throw new ApiFootballError("unauthorized", 401, "APIFOOTBALL_KEY missing — add it to Cloudflare Worker secrets or Supabase app_config.");
   const url = new URL(`${BASE}${path}`);
   for (const [k, v] of Object.entries(params)) {
     if (v !== undefined && v !== null && v !== "") url.searchParams.set(k, String(v));

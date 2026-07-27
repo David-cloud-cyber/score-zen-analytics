@@ -1,0 +1,20 @@
+name = "score-zen-analytics"
+main = "dist/server/index.mjs"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+SUPABASE_URL = "https://oirdlreedxhldmwadwom.supabase.co"
+SUPABASE_PUBLISHABLE_KEY = "sb_publishable_yxv1dFxXbVRB4V58m1833w_MW11Uigv"
+VITE_SUPABASE_URL = "https://oirdlreedxhldmwadwom.supabase.co"
+VITE_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_yxv1dFxXbVRB4V58m1833w_MW11Uigv"
+
+# Secrets (set via: wrangler secret put SECRET_NAME)
+# APIFOOTBALL_KEY  ← wrangler secret put APIFOOTBALL_KEY
+
+[[routes]]
+pattern = "www.livefoot.fun/*"
+zone_name = "livefoot.fun"
+
+[assets]
+directory = "./dist/client"
