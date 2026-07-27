@@ -10,6 +10,7 @@ import { runAnalysis, type AnalysisResult } from "@/lib/analyses.functions";
 import { useSession } from "@/hooks/use-session";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { buildRouteMeta } from "@/lib/seo";
 
 export const Route = createFileRoute("/analyse")({
   head: () =>
