@@ -17,7 +17,7 @@ export const Route = createFileRoute("/premium")({
     buildRouteMeta({
       title: "Abonnement Premium & Packs de Crédits",
       description:
-        "Passez à Livefoot IA Premium : 100 crédits d'analyse par mois, favoris illimités et accès aux packs de recharge exclusifs.",
+        "Passez à ScoreZen AI Premium : 100 crédits d'analyse par mois, favoris illimités et accès aux packs de recharge exclusifs.",
       path: "/premium",
     }),
   component: PremiumPage,
@@ -93,7 +93,7 @@ function PremiumPage() {
 
           <div className="relative">
             <div className="inline-flex items-center gap-1.5 rounded-full bg-brand/20 px-3 py-1 text-xs font-black uppercase tracking-widest text-brand">
-              <Crown className="size-3.5" /> Livefoot IA Premium
+              <Crown className="size-3.5" /> ScoreZen AI Premium
             </div>
 
             <h1 className="mt-3 text-2xl font-black leading-tight sm:text-3xl">

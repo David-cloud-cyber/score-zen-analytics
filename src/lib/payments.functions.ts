@@ -32,7 +32,7 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
       userId: context.userId.replace(/-/g, ""),
       externalId,
       redirectUrl: data.origin ? `${data.origin.replace(/\/+$/, "")}/profil` : undefined,
-      message: `Abonnement ${plan.name} Livefoot IA`,
+      message: `Abonnement ${plan.name} ScoreZen AI`,
     });
 
     const { error } = await supabaseAdmin.from("subscriptions").insert({
@@ -87,7 +87,7 @@ export const createTopupCheckout = createServerFn({ method: "POST" })
       userId: context.userId.replace(/-/g, ""),
       externalId,
       redirectUrl: data.origin ? `${data.origin.replace(/\/+$/, "")}/profil` : undefined,
-      message: `Recharge ${pack.credits} crédits Livefoot IA`,
+      message: `Recharge ${pack.credits} crédits ScoreZen AI`,
     });
 
     const { error } = await supabaseAdmin.from("payments").insert({

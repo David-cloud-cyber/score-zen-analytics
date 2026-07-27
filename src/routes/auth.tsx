@@ -11,14 +11,14 @@ export const Route = createFileRoute("/auth")({
   validateSearch: (s) => searchSchema.parse(s),
   head: () => ({
     meta: [
-      { title: "Connexion & Inscription — Livefoot IA" },
-      { name: "description", content: "Connectez-vous ou créez votre compte Livefoot IA. 10 crédits d'analyse IA offerts à l'inscription." },
-      { property: "og:title", content: "Connexion & Inscription — Livefoot IA" },
-      { property: "og:description", content: "Rejoignez Livefoot IA : 10 crédits offerts, favoris et historique personnalisés." },
-      { property: "og:url", content: "https://www.livefoot.fun/auth" },
+      { title: "Connexion & Inscription — Score Zen Analytics" },
+      { name: "description", content: "Connectez-vous ou créez votre compte Score Zen Analytics. 10 crédits d'analyse IA offerts à l'inscription." },
+      { property: "og:title", content: "Connexion & Inscription — Score Zen Analytics" },
+      { property: "og:description", content: "Rejoignez Score Zen Analytics : 10 crédits offerts, favoris et historique personnalisés." },
+      { property: "og:url", content: "https://score-zen-analytics.vercel.app/auth" },
       { name: "robots", content: "noindex" },
     ],
-    links: [{ rel: "canonical", href: "https://www.livefoot.fun/auth" }],
+    links: [{ rel: "canonical", href: "https://score-zen-analytics.vercel.app/auth" }],
   }),
   component: AuthPage,
 });
@@ -90,10 +90,10 @@ function AuthPage() {
       <div className="w-full max-w-md">
         <Link to="/" className="mb-8 flex items-center justify-center gap-2.5">
           <div className="grid size-10 place-items-center rounded-xl bg-foreground text-background">
-            <span className="text-[13px] font-black italic tracking-tighter">LF</span>
+            <span className="text-[13px] font-black italic tracking-tighter">SZ</span>
           </div>
           <div className="text-lg font-bold tracking-tight">
-            Livefoot <span className="text-brand">IA</span>
+            ScoreZen <span className="text-brand">AI</span>
           </div>
         </Link>
 

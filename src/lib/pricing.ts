@@ -1,4 +1,4 @@
-// Tarification en FCFA (XAF) — packs de crédits et abonnements Premium Livefoot IA.
+// Tarification en FCFA (XAF) — packs de crédits et abonnements Premium ScoreZen AI.
 //
 // Principe : le prix affiché doit couvrir les frais de l'agrégateur Fapshi (3%)
 // ET laisser une marge nette, arrondi au palier de 100 FCFA supérieur.
