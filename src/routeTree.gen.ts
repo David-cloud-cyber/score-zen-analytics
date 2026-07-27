@@ -17,88 +17,180 @@ import { Route as CommunauteRouteImport } from './routes/communaute'
 import { Route as MentionsLegalesRouteImport } from './routes/mentions-legales'
 import { Route as PremiumRouteImport } from './routes/premium'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
-import { Route as MatchIdRouteImport } from './routes/match.$id'
-import { Route as LiveIdRouteImport } from './routes/live.$id'
-import { Route as AuthenticatedProfilRouteImport } from './routes/_authenticated/profil'
 import { Route as AuthenticatedFavorisRouteImport } from './routes/_authenticated/favoris'
+import { Route as AuthenticatedProfilRouteImport } from './routes/_authenticated/profil'
+import { Route as LiveIdRouteImport } from './routes/live.$id'
+import { Route as MatchIdRouteImport } from './routes/match.$id'
 import { Route as ApiPublicFapshiWebhookRouteImport } from './routes/api/public/fapshi-webhook'
-
-const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
-  id: '/sitemap.xml',
-  path: '/sitemap.xml',
-  getParentRoute: () => rootRouteImport,
-} as any)
-
-const PremiumRoute = PremiumRouteImport.update({
-  id: '/premium',
-  path: '/premium',
-  getParentRoute: () => rootRouteImport,
-} as any)
-
-const MentionsLegalesRoute = MentionsLegalesRouteImport.update({
-  id: '/mentions-legales',
-  path: '/mentions-legales',
-  getParentRoute: () => rootRouteImport,
-} as any)
-
-const CommunauteRoute = CommunauteRouteImport.update({
-  id: '/communaute',
-  path: '/communaute',
-  getParentRoute: () => rootRouteImport,
-} as any)
-
-const AuthRoute = AuthRouteImport.update({
-  id: '/auth',
-  path: '/auth',
-  getParentRoute: () => rootRouteImport,
-} as any)
-
-const AnalyseRoute = AnalyseRouteImport.update({
-  id: '/analyse',
-  path: '/analyse',
-  getParentRoute: () => rootRouteImport,
-} as any)
-
-const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
-  id: '/_authenticated',
-  getParentRoute: () => rootRouteImport,
-} as any)
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-
-const MatchIdRoute = MatchIdRouteImport.update({
-  id: '/match/$id',
-  path: '/match/$id',
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
-
-const LiveIdRoute = LiveIdRouteImport.update({
-  id: '/live/$id',
-  path: '/live/$id',
+const AnalyseRoute = AnalyseRouteImport.update({
+  id: '/analyse',
+  path: '/analyse',
   getParentRoute: () => rootRouteImport,
 } as any)
-
-const AuthenticatedProfilRoute = AuthenticatedProfilRouteImport.update({
-  id: '/profil',
-  path: '/profil',
-  getParentRoute: () => AuthenticatedRouteRoute,
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
 } as any)
-
+const CommunauteRoute = CommunauteRouteImport.update({
+  id: '/communaute',
+  path: '/communaute',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MentionsLegalesRoute = MentionsLegalesRouteImport.update({
+  id: '/mentions-legales',
+  path: '/mentions-legales',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PremiumRoute = PremiumRouteImport.update({
+  id: '/premium',
+  path: '/premium',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedFavorisRoute = AuthenticatedFavorisRouteImport.update({
   id: '/favoris',
   path: '/favoris',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-
+const AuthenticatedProfilRoute = AuthenticatedProfilRouteImport.update({
+  id: '/profil',
+  path: '/profil',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const LiveIdRoute = LiveIdRouteImport.update({
+  id: '/live/$id',
+  path: '/live/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MatchIdRoute = MatchIdRouteImport.update({
+  id: '/match/$id',
+  path: '/match/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicFapshiWebhookRoute = ApiPublicFapshiWebhookRouteImport.update({
   id: '/api/public/fapshi-webhook',
   path: '/api/public/fapshi-webhook',
   getParentRoute: () => rootRouteImport,
 } as any)
+
+export interface FileRoutesByFullPath {
+  '/': typeof IndexRoute
+  '/analyse': typeof AnalyseRoute
+  '/auth': typeof AuthRoute
+  '/communaute': typeof CommunauteRoute
+  '/mentions-legales': typeof MentionsLegalesRoute
+  '/premium': typeof PremiumRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/favoris': typeof AuthenticatedFavorisRoute
+  '/profil': typeof AuthenticatedProfilRoute
+  '/live/$id': typeof LiveIdRoute
+  '/match/$id': typeof MatchIdRoute
+  '/api/public/fapshi-webhook': typeof ApiPublicFapshiWebhookRoute
+}
+export interface FileRoutesByTo {
+  '/': typeof IndexRoute
+  '/analyse': typeof AnalyseRoute
+  '/auth': typeof AuthRoute
+  '/communaute': typeof CommunauteRoute
+  '/mentions-legales': typeof MentionsLegalesRoute
+  '/premium': typeof PremiumRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/favoris': typeof AuthenticatedFavorisRoute
+  '/profil': typeof AuthenticatedProfilRoute
+  '/live/$id': typeof LiveIdRoute
+  '/match/$id': typeof MatchIdRoute
+  '/api/public/fapshi-webhook': typeof ApiPublicFapshiWebhookRoute
+}
+export interface FileRoutesById {
+  __root__: typeof rootRouteImport
+  '/': typeof IndexRoute
+  '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/analyse': typeof AnalyseRoute
+  '/auth': typeof AuthRoute
+  '/communaute': typeof CommunauteRoute
+  '/mentions-legales': typeof MentionsLegalesRoute
+  '/premium': typeof PremiumRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/_authenticated/favoris': typeof AuthenticatedFavorisRoute
+  '/_authenticated/profil': typeof AuthenticatedProfilRoute
+  '/live/$id': typeof LiveIdRoute
+  '/match/$id': typeof MatchIdRoute
+  '/api/public/fapshi-webhook': typeof ApiPublicFapshiWebhookRoute
+}
+export interface FileRouteTypes {
+  fileRoutesByFullPath: FileRoutesByFullPath
+  fullPaths:
+    | '/'
+    | '/analyse'
+    | '/auth'
+    | '/communaute'
+    | '/mentions-legales'
+    | '/premium'
+    | '/sitemap.xml'
+    | '/favoris'
+    | '/profil'
+    | '/live/$id'
+    | '/match/$id'
+    | '/api/public/fapshi-webhook'
+  fileRoutesByTo: FileRoutesByTo
+  to:
+    | '/'
+    | '/analyse'
+    | '/auth'
+    | '/communaute'
+    | '/mentions-legales'
+    | '/premium'
+    | '/sitemap.xml'
+    | '/favoris'
+    | '/profil'
+    | '/live/$id'
+    | '/match/$id'
+    | '/api/public/fapshi-webhook'
+  id:
+    | '__root__'
+    | '/'
+    | '/_authenticated'
+    | '/analyse'
+    | '/auth'
+    | '/communaute'
+    | '/mentions-legales'
+    | '/premium'
+    | '/sitemap.xml'
+    | '/_authenticated/favoris'
+    | '/_authenticated/profil'
+    | '/live/$id'
+    | '/match/$id'
+    | '/api/public/fapshi-webhook'
+  fileRoutesById: FileRoutesById
+}
+export interface RootRouteChildren {
+  IndexRoute: typeof IndexRoute
+  AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  AnalyseRoute: typeof AnalyseRoute
+  AuthRoute: typeof AuthRoute
+  CommunauteRoute: typeof CommunauteRoute
+  MentionsLegalesRoute: typeof MentionsLegalesRoute
+  PremiumRoute: typeof PremiumRoute
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  LiveIdRoute: typeof LiveIdRoute
+  MatchIdRoute: typeof MatchIdRoute
+  ApiPublicFapshiWebhookRoute: typeof ApiPublicFapshiWebhookRoute
+}
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
@@ -112,7 +204,7 @@ declare module '@tanstack/react-router' {
     '/_authenticated': {
       id: '/_authenticated'
       path: ''
-      fullPath: ''
+      fullPath: '/'
       preLoaderRoute: typeof AuthenticatedRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
@@ -163,14 +255,14 @@ declare module '@tanstack/react-router' {
       path: '/favoris'
       fullPath: '/favoris'
       preLoaderRoute: typeof AuthenticatedFavorisRouteImport
-      parentRoute: typeof AuthenticatedRouteRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/profil': {
       id: '/_authenticated/profil'
       path: '/profil'
       fullPath: '/profil'
       preLoaderRoute: typeof AuthenticatedProfilRouteImport
-      parentRoute: typeof AuthenticatedRouteRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/live/$id': {
       id: '/live/$id'
@@ -196,56 +288,22 @@ declare module '@tanstack/react-router' {
   }
 }
 
-export interface FileRoutesByTo {
-  '/': typeof IndexRoute
-  '': typeof AuthenticatedRouteRoute
-  '/analyse': typeof AnalyseRoute
-  '/auth': typeof AuthRoute
-  '/communaute': typeof CommunauteRoute
-  '/mentions-legales': typeof MentionsLegalesRoute
-  '/premium': typeof PremiumRoute
-  '/sitemap.xml': typeof SitemapDotxmlRoute
-  '/favoris': typeof AuthenticatedFavorisRoute
-  '/profil': typeof AuthenticatedProfilRoute
-  '/live/$id': typeof LiveIdRoute
-  '/match/$id': typeof MatchIdRoute
-  '/api/public/fapshi-webhook': typeof ApiPublicFapshiWebhookRoute
+interface AuthenticatedRouteRouteChildren {
+  AuthenticatedFavorisRoute: typeof AuthenticatedFavorisRoute
+  AuthenticatedProfilRoute: typeof AuthenticatedProfilRoute
 }
 
-export interface FileRoutesById {
-  __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
-  '/_authenticated': typeof AuthenticatedRouteRoute
-  '/analyse': typeof AnalyseRoute
-  '/auth': typeof AuthRoute
-  '/communaute': typeof CommunauteRoute
-  '/mentions-legales': typeof MentionsLegalesRoute
-  '/premium': typeof PremiumRoute
-  '/sitemap.xml': typeof SitemapDotxmlRoute
-  '/_authenticated/favoris': typeof AuthenticatedFavorisRoute
-  '/_authenticated/profil': typeof AuthenticatedProfilRoute
-  '/live/$id': typeof LiveIdRoute
-  '/match/$id': typeof MatchIdRoute
-  '/api/public/fapshi-webhook': typeof ApiPublicFapshiWebhookRoute
+const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedFavorisRoute: AuthenticatedFavorisRoute,
+  AuthenticatedProfilRoute: AuthenticatedProfilRoute,
 }
 
-export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
-  AuthenticatedRouteRoute: typeof AuthenticatedRouteRoute
-  AnalyseRoute: typeof AnalyseRoute
-  AuthRoute: typeof AuthRoute
-  CommunauteRoute: typeof CommunauteRoute
-  MentionsLegalesRoute: typeof MentionsLegalesRoute
-  PremiumRoute: typeof PremiumRoute
-  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
-  LiveIdRoute: typeof LiveIdRoute
-  MatchIdRoute: typeof MatchIdRoute
-  ApiPublicFapshiWebhookRoute: typeof ApiPublicFapshiWebhookRoute
-}
+const AuthenticatedRouteRouteWithChildren =
+  AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AuthenticatedRouteRoute: AuthenticatedRouteRoute,
+  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AnalyseRoute: AnalyseRoute,
   AuthRoute: AuthRoute,
   CommunauteRoute: CommunauteRoute,
@@ -256,7 +314,16 @@ const rootRouteChildren: RootRouteChildren = {
   MatchIdRoute: MatchIdRoute,
   ApiPublicFapshiWebhookRoute: ApiPublicFapshiWebhookRoute,
 }
-
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
