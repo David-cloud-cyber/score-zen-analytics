@@ -59,8 +59,8 @@ function DesktopSidebar({ pathname }: { pathname: string }) {
         to="/"
         className="flex items-center gap-2.5 border-b border-border/60 px-5 py-5 rounded-none"
       >
-        <div className="grid size-9 place-items-center rounded-lg overflow-hidden">
-          <img src="/logo.png" alt="LiveFoot AI" className="size-9 object-cover" />
+        <div className="grid size-11 place-items-center rounded-lg overflow-hidden">
+          <img src="/logo.png" alt="LiveFoot AI" className="size-11 object-cover" />
         </div>
         <div className="flex flex-col leading-none">
           <span className="text-[15px] font-bold tracking-tight">
@@ -182,8 +182,8 @@ export function TopBar() {
   return (
     <header className="sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-border/60 bg-background/85 px-4 py-3 backdrop-blur-xl lg:px-8 lg:py-4">
       <Link to="/" className="flex items-center gap-2 lg:hidden">
-        <div className="grid size-8 place-items-center rounded-lg overflow-hidden">
-          <img src="/logo.png" alt="LiveFoot AI" className="size-8 object-cover" />
+        <div className="grid size-10 place-items-center rounded-lg overflow-hidden">
+          <img src="/logo.png" alt="LiveFoot AI" className="size-10 object-cover" />
         </div>
         <div className="flex flex-col leading-none">
           <span className="text-[15px] font-bold tracking-tight">
