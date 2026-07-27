@@ -9,7 +9,7 @@ type ThemeCtx = {
 };
 
 const Ctx = createContext<ThemeCtx | null>(null);
-const KEY = "scorezen-theme";
+const KEY = "livefoot-theme";
 
 function resolve(t: Theme): "light" | "dark" {
   if (t === "auto") {
@@ -69,5 +69,5 @@ export function useTheme(): ThemeCtx {
 
 // Injected before hydration to avoid flash of wrong theme.
 export const THEME_INIT_SCRIPT = `
-(function(){try{var s=localStorage.getItem('scorezen-theme')||localStorage.getItem('livefoot-theme');var t=(s==='light'||s==='dark')?s:(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');if(t==='dark')document.documentElement.classList.add('dark');document.documentElement.style.colorScheme=t;}catch(e){}})();
+(function(){try{var s=localStorage.getItem('livefoot-theme')||localStorage.getItem('scorezen-theme');var t=(s==='light'||s==='dark')?s:(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');if(t==='dark')document.documentElement.classList.add('dark');document.documentElement.style.colorScheme=t;}catch(e){}})();
 `.trim();

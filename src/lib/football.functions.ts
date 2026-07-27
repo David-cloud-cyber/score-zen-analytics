@@ -109,53 +109,6 @@ function toSummary(f: ApiFixture): RemoteMatchSummary {
 
 const PRIORITY_LEAGUES = [61 /*L1*/, 39 /*PL*/, 140 /*Liga*/, 135 /*SerieA*/, 78 /*Bundesliga*/, 2 /*UCL*/, 3 /*UEL*/];
 
-const MOCK_FIXTURES: RemoteMatchSummary[] = [
-  {
-    id: 1001,
-    status: "live",
-    statusShort: "2H",
-    minute: 74,
-    kickoff: new Date().toISOString(),
-    timeLabel: "21:00",
-    dayLabel: "Aujourd'hui",
-    home: { id: 541, name: "Real Madrid", short: "Real Madrid", logo: "https://media.api-sports.io/football/teams/541.png" },
-    away: { id: 529, name: "FC Barcelone", short: "FC Barcelone", logo: "https://media.api-sports.io/football/teams/529.png" },
-    homeScore: 2,
-    awayScore: 1,
-    league: { id: 140, name: "LaLiga 🇪🇸", country: "Espagne", logo: "https://media.api-sports.io/football/leagues/140.png", flag: null, season: 2026, round: "Journée 28" },
-    venue: "Stadio Santiago Bernabéu, Madrid"
-  },
-  {
-    id: 1002,
-    status: "upcoming",
-    statusShort: "NS",
-    minute: null,
-    kickoff: new Date(Date.now() + 3600_000 * 2).toISOString(),
-    timeLabel: "22:00",
-    dayLabel: "Aujourd'hui",
-    home: { id: 85, name: "Paris Saint-Germain", short: "PSG", logo: "https://media.api-sports.io/football/teams/85.png" },
-    away: { id: 157, name: "Bayern Munich", short: "Bayern", logo: "https://media.api-sports.io/football/teams/157.png" },
-    homeScore: null,
-    awayScore: null,
-    league: { id: 2, name: "Ligue des Champions 🏆", country: "Europe", logo: "https://media.api-sports.io/football/leagues/2.png", flag: null, season: 2026, round: "Quarts de finale" },
-    venue: "Parc des Princes, Paris"
-  },
-  {
-    id: 1003,
-    status: "finished",
-    statusShort: "FT",
-    minute: 90,
-    kickoff: new Date(Date.now() - 3600_000 * 3).toISOString(),
-    timeLabel: "18:30",
-    dayLabel: "Aujourd'hui",
-    home: { id: 50, name: "Manchester City", short: "Man City", logo: "https://media.api-sports.io/football/teams/50.png" },
-    away: { id: 42, name: "Arsenal FC", short: "Arsenal", logo: "https://media.api-sports.io/football/teams/42.png" },
-    homeScore: 3,
-    awayScore: 1,
-    league: { id: 39, name: "Premier League 🏴󠁧󠁢󠁥󠁮󠁧󠁿", country: "Angleterre", logo: "https://media.api-sports.io/football/leagues/39.png", flag: null, season: 2026, round: "Journée 30" },
-    venue: "Etihad Stadium, Manchester"
-  }
-];
 
 // ---------- server functions ----------
 
@@ -173,7 +126,7 @@ export const getFixtures = createServerFn({ method: "GET" })
     try {
       if (data.live) {
         const raw = await apiFootball<ApiFixture[]>("/fixtures", { live: "all" });
-        if (!raw || raw.length === 0) return MOCK_FIXTURES.filter(m => m.status === "live");
+        if (!raw || raw.length === 0) return [];
         return raw.map(toSummary);
       }
 
@@ -207,13 +160,13 @@ export const getFixtures = createServerFn({ method: "GET" })
         list = priority.length ? priority : raw.slice(0, 80);
       }
 
-      if (list.length === 0) return MOCK_FIXTURES;
+      if (list.length === 0) return [];
 
       list.sort((a, b) => new Date(a.fixture.date).getTime() - new Date(b.fixture.date).getTime());
       return list.map(toSummary);
     } catch (err) {
       console.warn("API Football catch fallback notice:", err instanceof Error ? err.message : err);
-      return MOCK_FIXTURES;
+      return [];
     }
   });
 
@@ -351,70 +304,8 @@ export const getFixtureDetail = createServerFn({ method: "GET" })
         lineups: { home: homeLineup, away: awayLineup },
         h2h,
       };
-    } catch {
-      // Mock match detail fallback
-      return {
-        ...MOCK_FIXTURES[0],
-        stats: {
-          possession: { home: 58, away: 42 },
-          shots: { home: 14, away: 8 },
-          shotsOnTarget: { home: 6, away: 3 },
-          xg: { home: 1.85, away: 0.92 },
-          corners: { home: 7, away: 3 },
-          fouls: { home: 10, away: 12 },
-          yellow: { home: 2, away: 3 },
-          red: { home: 0, away: 0 },
-          passAccuracy: { home: 88, away: 81 },
-          offsides: { home: 1, away: 2 },
-        },
-        events: [
-          { id: 1, minute: 23, teamId: 541, player: "Vinícius Júnior", type: "goal", detail: "Tir du pied droit" },
-          { id: 2, minute: 41, teamId: 529, player: "Robert Lewandowski", type: "goal", detail: "Tête sur corner" },
-          { id: 3, minute: 67, teamId: 541, player: "Jude Bellingham", type: "goal", detail: "Pénalty transformé" }
-        ],
-        lineups: {
-          home: {
-            formation: "4-3-3",
-            coach: "Carlo Ancelotti",
-            color: "#10b981",
-            players: [
-              { name: "Courtois", number: 1, position: "G" },
-              { name: "Carvajal", number: 2, position: "D" },
-              { name: "Militão", number: 3, position: "D" },
-              { name: "Rüdiger", number: 22, position: "D" },
-              { name: "Mendy", number: 23, position: "D" },
-              { name: "Valverde", number: 8, position: "M" },
-              { name: "Tchouaméni", number: 14, position: "M" },
-              { name: "Bellingham", number: 5, position: "M" },
-              { name: "Rodrygo", number: 11, position: "A" },
-              { name: "Mbappé", number: 9, position: "A" },
-              { name: "Vinícius Jr", number: 7, position: "A" }
-            ]
-          },
-          away: {
-            formation: "4-2-3-1",
-            coach: "Hansi Flick",
-            color: "#3b82f6",
-            players: [
-              { name: "Ter Stegen", number: 1, position: "G" },
-              { name: "Koundé", number: 23, position: "D" },
-              { name: "Cubarsí", number: 2, position: "D" },
-              { name: "Iñigo Martínez", number: 5, position: "D" },
-              { name: "Balde", number: 3, position: "D" },
-              { name: "Casadó", number: 17, position: "M" },
-              { name: "Pedri", number: 8, position: "M" },
-              { name: "Lamine Yamal", number: 19, position: "A" },
-              { name: "Olmo", number: 20, position: "M" },
-              { name: "Raphinha", number: 11, position: "A" },
-              { name: "Lewandowski", number: 9, position: "A" }
-            ]
-          }
-        },
-        h2h: [
-          { id: 1, date: "26 Oct 2025", home: "Real Madrid", away: "FC Barcelone", score: "0 - 4", competition: "LaLiga" },
-          { id: 2, date: "21 Avr 2025", home: "Real Madrid", away: "FC Barcelone", score: "3 - 2", competition: "LaLiga" }
-        ]
-      };
+    } catch (err) {
+      throw new Error(err instanceof Error ? err.message : "Match introuvable ou API indisponible.");
     }
   });
 
