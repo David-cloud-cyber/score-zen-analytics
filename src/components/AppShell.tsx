@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { SearchProvider, SmartSearchTrigger, useSearchDialog } from "@/components/SmartSearch";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { NotificationPopover } from "@/components/NotificationPopover";
+import { useSession } from "@/hooks/use-session";
 
 const NAV = [
   { to: "/", label: "Matchs", icon: Radio, match: (p: string) => p === "/" || p.startsWith("/match") },
@@ -46,6 +47,9 @@ export function AppShell({ children, hideHeader = false }: { children: ReactNode
 }
 
 function DesktopSidebar({ pathname }: { pathname: string }) {
+  const { user } = useSession();
+  const displayName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Profil";
+  const initials = displayName.slice(0, 2).toUpperCase();
   return (
     <aside
       className="fixed left-0 top-0 z-40 hidden h-dvh w-64 flex-col border-r border-border/60 bg-background/95 backdrop-blur-xl lg:flex"
@@ -123,13 +127,11 @@ function DesktopSidebar({ pathname }: { pathname: string }) {
           className="flex items-center gap-3 rounded-xl px-2 py-2 hover:bg-surface"
         >
           <div className="grid size-9 place-items-center rounded-full bg-foreground text-xs font-black text-background">
-            AL
+            {initials}
           </div>
           <div className="min-w-0 flex-1">
-            <div className="truncate text-xs font-bold">Alex Leroy</div>
-            <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
-              <Coins className="size-2.5 text-warn" /> 140 crédits
-            </div>
+            <div className="truncate text-xs font-bold">{displayName}</div>
+            <div className="text-[10px] text-muted-foreground">Mon profil</div>
           </div>
         </Link>
       </div>
@@ -181,14 +183,14 @@ export function TopBar() {
     <header className="sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-border/60 bg-background/85 px-4 py-3 backdrop-blur-xl lg:px-8 lg:py-4">
       <Link to="/" className="flex items-center gap-2 lg:hidden">
         <div className="grid size-8 place-items-center rounded-lg bg-foreground text-background">
-          <span className="text-[11px] font-black italic tracking-tighter">SZ</span>
+          <span className="text-[11px] font-black italic tracking-tighter">LF</span>
         </div>
         <div className="flex flex-col leading-none">
           <span className="text-[15px] font-bold tracking-tight">
-            ScoreZen <span className="text-brand">AI</span>
+            Livefoot <span className="text-brand">IA</span>
           </span>
           <span className="text-[9px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
-            Livescore · Analytics
+            Livescore · Analyse
           </span>
         </div>
       </Link>

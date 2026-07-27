@@ -10,9 +10,9 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/_authenticated/favoris")({
   head: () => ({
     meta: [
-      { title: "Mes favoris & alertes — ScoreZen AI" },
+      { title: "Mes favoris & alertes — Livefoot IA" },
       { name: "description", content: "Retrouvez toutes vos équipes, joueurs et compétitions favoris, et gérez vos alertes en temps réel." },
-      { property: "og:title", content: "Mes favoris & alertes — ScoreZen AI" },
+      { property: "og:title", content: "Mes favoris & alertes — Livefoot IA" },
       { property: "og:description", content: "Équipes, joueurs, compétitions favorites et alertes de buts personnalisées." },
       { property: "og:url", content: "https://www.livefoot.fun/favoris" },
       { name: "robots", content: "noindex" },
@@ -151,7 +151,7 @@ function FavorisPage() {
                     <Crown className="mx-auto size-6 text-brand" />
                     <div className="mt-2 text-xs font-black">Limite de 3 favoris atteinte</div>
                     <p className="mt-1 text-[11px] text-muted-foreground">
-                      Passez à ScoreZen AI Premium pour ajouter un nombre illimité d'équipes et de compétitions.
+                      Passez à Livefoot IA Premium pour ajouter un nombre illimité d'équipes et de compétitions.
                     </p>
                     <button
                       onClick={() => navigate({ to: "/premium" })}

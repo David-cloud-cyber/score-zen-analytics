@@ -14,7 +14,7 @@ export const Route = createFileRoute("/communaute")({
       path: "/communaute",
       title: "Communauté & Échanges Live",
       description:
-        "Rejoignez la communauté ScoreZen AI : pronostics en direct, chat live par match, sondages de foule et classement des experts.",
+        "Rejoignez la communauté Livefoot IA : pronostics en direct, chat live par match, sondages de foule et classement des experts.",
     }),
   component: CommunautePage,
 });
@@ -37,68 +37,13 @@ interface MatchPoll {
   votes: { home: number; draw: number; away: number };
 }
 
-const FEATURED_POLLS: MatchPoll[] = [
-  {
-    id: 101,
-    homeTeam: "Real Madrid",
-    awayTeam: "FC Barcelone",
-    homeLogo: "https://media.api-sports.io/football/teams/541.png",
-    awayLogo: "https://media.api-sports.io/football/teams/529.png",
-    league: "LaLiga 🇪🇸",
-    votes: { home: 62, draw: 18, away: 20 },
-  },
-  {
-    id: 102,
-    homeTeam: "Paris Saint-Germain",
-    awayTeam: "Bayern Munich",
-    homeLogo: "https://media.api-sports.io/football/teams/85.png",
-    awayLogo: "https://media.api-sports.io/football/teams/157.png",
-    league: "Ligue des Champions 🇪🇺",
-    votes: { home: 45, draw: 25, away: 30 },
-  },
-  {
-    id: 103,
-    homeTeam: "Arsenal FC",
-    awayTeam: "Manchester City",
-    homeLogo: "https://media.api-sports.io/football/teams/42.png",
-    awayLogo: "https://media.api-sports.io/football/teams/50.png",
-    league: "Premier League 🏴󠁧󠁢󠁥󠁮󠁧󠁿",
-    votes: { home: 35, draw: 30, away: 35 },
-  },
-];
+const FEATURED_POLLS: MatchPoll[] = [];
 
-const MOCK_MESSAGES: ChatMessage[] = [
-  {
-    id: "m1",
-    user_name: "Alex_Analyst",
-    message: "Le Real a une cote incroyable ce soir ! La compo avec Bellingham et Vinícius s'annonce dévastatrice 🔥",
-    created_at: "2026-07-26T20:10:00Z",
-  },
-  {
-    id: "m2",
-    user_name: "Karim93",
-    message: "Attention au Barca en contre-attaque. Lamine Yamal est en forme olympique !",
-    created_at: "2026-07-26T20:12:00Z",
-  },
-  {
-    id: "m3",
-    user_name: "Zinedine_P",
-    message: "L'analyse IA donne 62% pour le Real Madrid. Je suis à 100% aligné avec la prédiction de ScoreZen !",
-    created_at: "2026-07-26T20:15:00Z",
-  },
-];
-
-const LEADERBOARD = [
-  { rank: 1, name: "Zinedine_P", points: 1450, winRate: "84%", badge: "🥇 Master 1X2" },
-  { rank: 2, name: "Alex_Analyst", points: 1320, winRate: "79%", badge: "🥈 Expert Score" },
-  { rank: 3, name: "Mbappe_Fan9", points: 1180, winRate: "76%", badge: "🥉 Top Stratège" },
-  { rank: 4, name: "David_Cloud", points: 990, winRate: "72%", badge: "⭐ Analyste Star" },
-  { rank: 5, name: "Bellingham_5", points: 870, winRate: "69%", badge: "⭐ Pronostiqueur" },
-];
+const LEADERBOARD: { rank: number; name: string; points: number; winRate: string; badge: string }[] = [];
 
 function CommunautePage() {
   const { session } = useSession();
-  const [messages, setMessages] = useState<ChatMessage[]>(MOCK_MESSAGES);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [userVotes, setUserVotes] = useState<Record<number, "home" | "draw" | "away">>({});
   const [polls, setPolls] = useState<MatchPoll[]>(FEATURED_POLLS);
@@ -172,7 +117,7 @@ function CommunautePage() {
 
   return (
     <AppShell>
-      <PageTitle eyebrow="Espace Membres" title="Communauté ScoreZen" />
+      <PageTitle eyebrow="Espace Membres" title="Communauté Livefoot IA" />
 
       <div className="space-y-6 px-4 pb-20 lg:px-0">
         {/* Banner Hero */}

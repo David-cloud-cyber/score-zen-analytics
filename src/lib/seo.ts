@@ -1,6 +1,6 @@
 // Route meta helper — keeps title/description/canonical/OG in sync.
 const SITE = "https://www.livefoot.fun";
-const SITE_NAME = "ScoreZen AI";
+const SITE_NAME = "Livefoot IA";
 
 export type RouteMetaInput = {
   path: string; // e.g. "/analyse" or "/live/123"

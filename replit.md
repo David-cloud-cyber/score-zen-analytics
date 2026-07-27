@@ -1,4 +1,4 @@
-# score-zen-analytics
+# Livefoot IA
 
 French football scores & AI analytics app.
 

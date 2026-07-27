@@ -23,7 +23,7 @@ export const Route = createFileRoute("/live/$id")({
   head: ({ params }) =>
     buildRouteMeta({
       path: `/live/${params.id}`,
-      title: `Match en direct #${params.id} — Score Zen Analytics`,
+      title: `Match en direct #${params.id} — Livefoot IA`,
       description: "Score en direct, stats détaillées, compositions tactiques 2D et prédictions IA de la rencontre.",
       noindex: true,
     }),

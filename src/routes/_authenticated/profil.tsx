@@ -20,9 +20,9 @@ const CREDIT_RULES = [
 export const Route = createFileRoute("/_authenticated/profil")({
   head: () => ({
     meta: [
-      { title: "Mon profil & crédits — ScoreZen AI" },
-      { name: "description", content: "Votre tableau de bord ScoreZen AI : solde de crédits, historique d'analyses, packs de recharge et abonnement Premium." },
-      { property: "og:title", content: "Mon profil & crédits — ScoreZen AI" },
+      { title: "Mon profil & crédits — Livefoot IA" },
+      { name: "description", content: "Votre tableau de bord Livefoot IA : solde de crédits, historique d'analyses, packs de recharge et abonnement Premium." },
+      { property: "og:title", content: "Mon profil & crédits — Livefoot IA" },
       { property: "og:description", content: "Gérez vos crédits d'analyse IA, votre historique et votre abonnement Premium." },
       { property: "og:url", content: "https://www.livefoot.fun/profil" },
       { name: "robots", content: "noindex" },
@@ -372,7 +372,7 @@ function ProfilPage() {
 
       <div className="mt-6 px-4 pb-4 lg:px-0">
         <Link to="/" className="block text-center text-[10px] font-semibold text-muted-foreground">
-          ScoreZen AI · v1.0 · © 2026
+          Livefoot IA · v1.0 · © 2026
         </Link>
       </div>
 
