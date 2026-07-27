@@ -276,7 +276,7 @@ function TacticalPitch2D({
 }: {
   home: { short: string; logo: string };
   away: { short: string; logo: string };
-  lineups: { home?: ApiLineup; away?: ApiLineup };
+  lineups: { home?: ApiLineup | null; away?: ApiLineup | null };
 }) {
   const homeFormation = lineups.home?.formation ?? "4-3-3";
   const awayFormation = lineups.away?.formation ?? "4-3-3";
