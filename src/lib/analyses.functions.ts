@@ -163,7 +163,7 @@ async function callSmartAIRouter(systemPrompt: string, userPrompt: string): Prom
     }
   }
 
-  // 2. Fallback vers OpenRouter (DeepSeek R1 / Llama 3.3 70B)
+  // 3. Fallback d'urgence 2: OpenRouter DeepSeek R1 / Auto
   if (openRouterKey) {
     try {
       const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
@@ -172,10 +172,10 @@ async function callSmartAIRouter(systemPrompt: string, userPrompt: string): Prom
           Authorization: `Bearer ${openRouterKey}`,
           "Content-Type": "application/json",
           "HTTP-Referer": "https://www.livefoot.fun",
-          "X-Title": "ScoreZen AI",
+          "X-Title": "LiveFoot AI",
         },
         body: JSON.stringify({
-          model: "meta-llama/llama-3.3-70b-instruct:free",
+          model: "deepseek/deepseek-r1:free",
           response_format: { type: "json_object" },
           messages: [
             { role: "system", content: systemPrompt },
@@ -194,23 +194,8 @@ async function callSmartAIRouter(systemPrompt: string, userPrompt: string): Prom
         }
       }
     } catch (err) {
-      console.warn("Secondary AI (OpenRouter) failover notice:", err instanceof Error ? err.message : err);
+      console.warn("Tertiary AI (OpenRouter DeepSeek) failover notice:", err instanceof Error ? err.message : err);
     }
-  }
-
-  // 3. Secours ultime : Lovable AI Gateway
-  const lovableKey = process.env.LOVABLE_API_KEY;
-  if (lovableKey) {
-    const { createLovableAI } = await import("./ai-gateway.server");
-    const gateway = createLovableAI(lovableKey);
-    const model = gateway("google/gemini-3.1-pro-preview");
-    const { object } = await generateObject({
-      model,
-      schema: resultSchema,
-      system: systemPrompt,
-      prompt: userPrompt,
-    });
-    return object;
   }
 
   throw new Error("L'analyse IA est momentanément indisponible. Veuillez réessayer dans un instant.");
