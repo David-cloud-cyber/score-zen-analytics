@@ -168,16 +168,6 @@ function CommunautePage() {
     setMessages((prev) => [...prev, msgObj]);
     setNewMessage("");
 
-    // Send to Supabase DB (best-effort)
-    supabase
-      .from("community_messages")
-      .insert({
-        user_name: userName,
-        message: msgObj.message,
-      })
-      .then(({ error }) => {
-        if (error) console.warn("Supabase insert notice:", error.message);
-      });
   };
 
   return (
