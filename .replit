@@ -5,3 +5,39 @@ channel = "stable-25_05"
 
 [agent]
 expertMode = true
+
+[userenv]
+
+[userenv.shared]
+SUPABASE_PUBLISHABLE_KEY = "sb_publishable_yxv1dFxXbVRB4V58m1833w_MW11Uigv"
+SUPABASE_URL = "https://oirdlreedxhldmwadwom.supabase.co"
+VITE_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_yxv1dFxXbVRB4V58m1833w_MW11Uigv"
+VITE_SUPABASE_URL = "https://oirdlreedxhldmwadwom.supabase.co"
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Start application"
+
+[[workflows.workflow]]
+name = "Start application"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run dev"
+waitForPort = 5000
+
+[workflows.workflow.metadata]
+outputType = "webview"
+
+[[ports]]
+localPort = 5000
+externalPort = 80

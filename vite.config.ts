@@ -12,4 +12,13 @@ export default defineConfig({
     // nitro/vite builds from this
     server: { entry: "server" },
   },
+  // Override port/host for Replit (webview requires port 5000)
+  vite: {
+    server: {
+      port: 5000,
+      host: "0.0.0.0",
+      strictPort: false,
+      allowedHosts: "all",
+    },
+  },
 });
