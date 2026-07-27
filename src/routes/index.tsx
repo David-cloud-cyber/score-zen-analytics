@@ -7,6 +7,7 @@ import { RemoteMatchCard } from "@/components/RemoteMatchCard";
 import { getFixtures } from "@/lib/football.functions";
 import { buildRouteMeta } from "@/lib/seo";
 import { cn } from "@/lib/utils";
+import { PageSkeleton } from "@/components/PageSkeleton";
 
 const fixturesQuery = (mode: "today" | "live") =>
   queryOptions({
@@ -29,6 +30,8 @@ export const Route = createFileRoute("/")({
     // Best-effort prefetch — never crash the page on API errors.
     context.queryClient.ensureQueryData(fixturesQuery("today")).catch(() => {});
   },
+  pendingComponent: PageSkeleton,
+  pendingMs: 0,
   errorComponent: HomeError,
   component: HomePage,
 });

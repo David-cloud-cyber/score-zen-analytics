@@ -2,6 +2,7 @@ import { createFileRoute, Link, useParams } from "@tanstack/react-router";
 import { useSuspenseQuery, queryOptions } from "@tanstack/react-query";
 import { ArrowLeft, MapPin, Shirt, User, AlertTriangle, RefreshCw, Sparkles, Activity, ShieldCheck, Trophy, ChevronRight } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
+import { MatchSkeleton } from "@/components/PageSkeleton";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { StatBar } from "@/components/StatBar";
 import { getFixtureDetail } from "@/lib/football.functions";
@@ -31,6 +32,8 @@ export const Route = createFileRoute("/live/$id")({
     if (!Number.isFinite(id)) return;
     context.queryClient.ensureQueryData(detailQuery(id)).catch(() => {});
   },
+  pendingComponent: MatchSkeleton,
+  pendingMs: 0,
   errorComponent: ({ error, reset }) => (
     <AppShell>
       <div className="mx-4 mt-8 rounded-2xl border border-alert/30 bg-alert/5 p-6 text-center lg:mx-0">
