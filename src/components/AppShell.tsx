@@ -105,10 +105,10 @@ function DesktopSidebar({ pathname }: { pathname: string }) {
             Débloquez tous les modèles prédictifs.
           </p>
           <Link
-            to="/profil"
+            to="/premium"
             className="mt-3 block rounded-lg bg-warn py-1.5 text-center text-[11px] font-black text-neutral-900 transition-transform hover:scale-[1.02]"
           >
-            Essayer
+            Découvrir
           </Link>
         </div>
       </nav>

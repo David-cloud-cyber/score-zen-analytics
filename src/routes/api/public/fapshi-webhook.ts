@@ -24,8 +24,8 @@ export const Route = createFileRoute("/api/public/fapshi-webhook")({
         }
 
         try {
-          const { settlePayment } = await import("@/lib/payments.server");
-          const outcome = await settlePayment(transId);
+          const { settlePaymentOrSubscription } = await import("@/lib/payments.server");
+          const outcome = await settlePaymentOrSubscription(transId);
           return Response.json({ ok: true, status: outcome.status, credited: outcome.credited });
         } catch (err) {
           console.error("Fapshi webhook error", err);
