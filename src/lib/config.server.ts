@@ -1,7 +1,7 @@
 /**
  * Runtime config fetcher — reads from env vars first (Cloudflare Worker secrets),
- * then falls back to the Supabase `app_config` table (accessible with anon key).
- * This keeps all secrets out of Replit and the codebase.
+ * then falls back to the private Supabase `app_config` table using the
+ * service-role key (server-side only; the table is not readable by anon/authenticated).
  */
 
 const SUPABASE_URL =
@@ -9,8 +9,7 @@ const SUPABASE_URL =
   "https://oirdlreedxhldmwadwom.supabase.co";
 
 const SUPABASE_KEY =
-  (typeof process !== "undefined" && process.env?.SUPABASE_PUBLISHABLE_KEY) ||
-  "sb_publishable_yxv1dFxXbVRB4V58m1833w_MW11Uigv";
+  typeof process !== "undefined" ? process.env?.SUPABASE_SERVICE_ROLE_KEY : undefined;
 
 const configCache = new Map<string, string>();
 
@@ -22,7 +21,8 @@ export async function getConfig(name: string): Promise<string | undefined> {
   // 2. In-memory cache
   if (configCache.has(name)) return configCache.get(name);
 
-  // 3. Supabase app_config table (readable with anon key)
+  // 3. Private app_config table — service-role only
+  if (!SUPABASE_KEY) return undefined;
   try {
     const res = await fetch(
       `${SUPABASE_URL}/rest/v1/app_config?key=eq.${encodeURIComponent(name)}&select=value&limit=1`,

@@ -304,7 +304,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "user"
-      credit_kind: "analysis" | "topup" | "bonus" | "refund"
+      credit_kind: "analysis" | "topup" | "bonus" | "refund" | "subscription"
       favorite_kind: "team" | "competition" | "match"
       plan_tier: "free" | "premium"
     }
@@ -435,7 +435,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "user"],
-      credit_kind: ["analysis", "topup", "bonus", "refund"],
+      credit_kind: ["analysis", "topup", "bonus", "refund", "subscription"],
       favorite_kind: ["team", "competition", "match"],
       plan_tier: ["free", "premium"],
     },

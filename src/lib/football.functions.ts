@@ -242,7 +242,7 @@ export const getFixtureDetail = createServerFn({ method: "GET" })
       const homeLineupRaw = lineupsArr.find((l) => l.team.id === homeId);
       const awayLineupRaw = lineupsArr.find((l) => l.team.id === awayId);
 
-      const homeLineup: ApiLineup | undefined = homeLineupRaw
+      const homeLineup: ApiLineup | null = homeLineupRaw
         ? {
             formation: homeLineupRaw.formation,
             coach: homeLineupRaw.coach.name,
@@ -255,9 +255,9 @@ export const getFixtureDetail = createServerFn({ method: "GET" })
               position: p.player.pos,
             })),
           }
-        : undefined;
+        : null;
 
-      const awayLineup: ApiLineup | undefined = awayLineupRaw
+      const awayLineup: ApiLineup | null = awayLineupRaw
         ? {
             formation: awayLineupRaw.formation,
             coach: awayLineupRaw.coach.name,
@@ -270,12 +270,11 @@ export const getFixtureDetail = createServerFn({ method: "GET" })
               position: p.player.pos,
             })),
           }
-        : undefined;
+        : null;
 
       const events: ApiEvent[] = eventsArr.map((e, idx) => ({
-        id: idx + 1,
         minute: e.time.elapsed,
-        teamId: e.team.id,
+        side: e.team.id === homeId ? ("home" as const) : ("away" as const),
         player: e.player.name,
         type: (e.type.toLowerCase().includes("goal")
           ? "goal"
