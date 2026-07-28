@@ -3,7 +3,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import { generateObject } from "ai";
 
-const ANALYSIS_COST = 2;
+const ANALYSIS_COST = 3;
 
 // Cache mémoire des analyses (30 min) — protège le quota API-Football + AI Gateway
 // quand plusieurs utilisateurs demandent la même paire d'équipes.

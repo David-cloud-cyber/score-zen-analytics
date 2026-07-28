@@ -141,7 +141,7 @@ function LiveMatchView({ m }: { m: RemoteMatchDetail }) {
               >
                 <div className="flex items-center gap-2">
                   <Sparkles className="size-4 animate-bounce" />
-                  <span>Obtenir la prédiction IA pour ce match (2 crédits)</span>
+                  <span>Obtenir la prédiction IA pour ce match (3 crédits)</span>
                 </div>
                 <ChevronRight className="size-4" />
               </button>
