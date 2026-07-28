@@ -4,8 +4,13 @@ import { z } from "zod";
 import { Sparkles, Mail, Lock, ArrowRight, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useServerFn } from "@tanstack/react-start";
+import { applyReferral } from "@/lib/referral.functions";
 
-const searchSchema = z.object({ redirect: z.string().optional() });
+const searchSchema = z.object({
+  redirect: z.string().optional(),
+  ref: z.string().optional(), // code de parrainage
+});
 
 export const Route = createFileRoute("/auth")({
   validateSearch: (s) => searchSchema.parse(s),
@@ -23,21 +28,53 @@ export const Route = createFileRoute("/auth")({
   component: AuthPage,
 });
 
+const PENDING_REF_KEY = "lfai_pending_ref";
+
 function AuthPage() {
   const navigate = useNavigate();
-  const { redirect } = useSearch({ from: "/auth" });
+  const { redirect, ref } = useSearch({ from: "/auth" });
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [loading, setLoading] = useState(false);
+  const applyReferralFn = useServerFn(applyReferral);
 
-  // If already signed in, auto-redirect
+  // Persister le code de parrainage dans sessionStorage pour ne pas le perdre
+  // si la page se recharge ou si l'utilisateur passe par Google OAuth.
+  useEffect(() => {
+    if (ref) {
+      try {
+        sessionStorage.setItem(PENDING_REF_KEY, ref.toUpperCase());
+      } catch {
+        // SSR safety
+      }
+      // Basculer automatiquement en mode inscription si on arrive avec un code
+      setMode("signup");
+    }
+  }, [ref]);
+
+  // Si déjà connecté, auto-redirect
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       if (data.session) navigate({ to: (redirect as never) ?? "/" });
     });
   }, [navigate, redirect]);
+
+  /** Applique le code de parrainage stocké en session après connexion/inscription. */
+  async function tryApplyPendingReferral() {
+    try {
+      const code = sessionStorage.getItem(PENDING_REF_KEY);
+      if (!code) return;
+      sessionStorage.removeItem(PENDING_REF_KEY);
+      const result = await applyReferralFn({ data: { referralCode: code } });
+      if (result.ok) {
+        toast.success("🎉 Code de parrainage appliqué ! Votre parrain reçoit +5 crédits.");
+      }
+    } catch {
+      // Silencieux — ne pas bloquer la navigation
+    }
+  }
 
   async function handleEmail(e: React.FormEvent) {
     e.preventDefault();
@@ -59,6 +96,7 @@ function AuthPage() {
         if (error) throw error;
         toast.success("Compte créé avec succès ! Vous pouvez vous connecter.");
       }
+      await tryApplyPendingReferral();
       const dest = typeof redirect === "string" && redirect.startsWith("/") ? redirect : "/";
       navigate({ to: dest as never });
     } catch (err) {
@@ -80,12 +118,16 @@ function AuthPage() {
         options: { redirectTo: callbackUrl },
       });
       if (error) throw error;
+      // Note : le code de parrainage sera appliqué au retour depuis /auth/callback
+      // via auth.callback.tsx qui peut lire sessionStorage.
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Connexion Google via Supabase impossible.");
     } finally {
       setLoading(false);
     }
   }
+
+  const hasRefCode = !!(ref || (() => { try { return sessionStorage.getItem(PENDING_REF_KEY); } catch { return null; } })());
 
   return (
     <div className="grid min-h-dvh place-items-center bg-background px-4 py-10">
@@ -98,6 +140,16 @@ function AuthPage() {
             Livefoot IA <span className="text-brand">AI</span>
           </div>
         </Link>
+
+        {/* Bannière code parrain */}
+        {hasRefCode && mode === "signup" && (
+          <div className="mb-4 flex items-center gap-2 rounded-2xl bg-brand/10 px-4 py-3 ring-1 ring-brand/20">
+            <Sparkles className="size-4 shrink-0 text-brand" />
+            <p className="text-xs font-bold text-brand">
+              Invitation activée — votre parrain recevra +5 crédits dès votre inscription !
+            </p>
+          </div>
+        )}
 
         <div className="rounded-3xl bg-card p-6 shadow-xl ring-1 ring-black/5 dark:ring-white/5">
           <div className="mb-1 text-[10px] font-black uppercase tracking-[0.18em] text-brand">

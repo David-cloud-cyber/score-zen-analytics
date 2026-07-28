@@ -2,12 +2,15 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
+
+const PENDING_REF_KEY = "lfai_pending_ref";
 
 /**
  * Route de retour après OAuth (Google, etc.)
  * Supabase redirige ici avec un `code` dans l'URL.
  * Le SDK échange automatiquement ce code contre une session,
- * puis on renvoie l'utilisateur vers l'accueil.
+ * puis on applique le code de parrainage éventuel et on redirige.
  */
 export const Route = createFileRoute("/auth/callback")({
   ssr: false,
@@ -18,19 +21,38 @@ function AuthCallbackPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Supabase JS v2 détecte automatiquement le ?code= dans l'URL et crée la session
-    const { data: sub } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "SIGNED_IN") {
-        navigate({ to: "/" });
-      }
-    });
+    async function handleCallback() {
+      const { data: sub } = supabase.auth.onAuthStateChange(async (event, session) => {
+        if (event === "SIGNED_IN" && session) {
+          // Appliquer le code de parrainage en attente (Google OAuth flow)
+          try {
+            const code = sessionStorage.getItem(PENDING_REF_KEY);
+            if (code) {
+              sessionStorage.removeItem(PENDING_REF_KEY);
+              // Import dynamique pour éviter le chargement côté serveur
+              const { applyReferral } = await import("@/lib/referral.functions");
+              // applyReferral est un server function — on l'appelle directement
+              // (pas de useServerFn disponible hors composant React)
+              const result = await (applyReferral as unknown as (args: { data: { referralCode: string } }) => Promise<{ ok: boolean }>)({ data: { referralCode: code } });
+              if (result?.ok) {
+                toast.success("🎉 Code de parrainage appliqué ! Votre parrain reçoit +5 crédits.");
+              }
+            }
+          } catch {
+            // Silencieux — ne pas bloquer la navigation
+          }
+          navigate({ to: "/" });
+        }
+      });
 
-    // Fallback : si la session est déjà là (rechargement), on redirige
-    supabase.auth.getSession().then(({ data }) => {
+      // Fallback : session déjà disponible (rechargement)
+      const { data } = await supabase.auth.getSession();
       if (data.session) navigate({ to: "/" });
-    });
 
-    return () => sub.subscription.unsubscribe();
+      return () => sub.subscription.unsubscribe();
+    }
+
+    handleCallback();
   }, [navigate]);
 
   return (

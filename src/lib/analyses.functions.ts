@@ -489,10 +489,10 @@ export const getMyBalance = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data } = await context.supabase
       .from("profiles")
-      .select("credits, plan, display_name, avatar_url")
+      .select("credits, plan, display_name, avatar_url, premium_until")
       .eq("id", context.userId)
       .maybeSingle();
-    return data ?? { credits: 0, plan: "free" as const, display_name: null, avatar_url: null };
+    return data ?? { credits: 0, plan: "free" as const, display_name: null, avatar_url: null, premium_until: null };
   });
 
 export const getMyAnalysisHistory = createServerFn({ method: "GET" })
