@@ -1,5 +1,14 @@
 import "./lib/error-capture";
 
+// Node 20 n'a pas de WebSocket natif — Supabase Realtime en a besoin côté SSR.
+// On le polyfille avant tout autre import pour éviter le crash.
+if (typeof globalThis.WebSocket === "undefined") {
+  // @ts-ignore
+  const { WebSocket } = await import("ws");
+  // @ts-ignore
+  globalThis.WebSocket = WebSocket;
+}
+
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
 
