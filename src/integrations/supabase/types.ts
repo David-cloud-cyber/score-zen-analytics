@@ -163,9 +163,6 @@ export type Database = {
           display_name: string | null
           id: string
           plan: Database["public"]["Enums"]["plan_tier"]
-          premium_until: string | null
-          referral_code: string | null
-          referred_by: string | null
           updated_at: string
         }
         Insert: {
@@ -175,9 +172,6 @@ export type Database = {
           display_name?: string | null
           id: string
           plan?: Database["public"]["Enums"]["plan_tier"]
-          premium_until?: string | null
-          referral_code?: string | null
-          referred_by?: string | null
           updated_at?: string
         }
         Update: {
@@ -187,55 +181,7 @@ export type Database = {
           display_name?: string | null
           id?: string
           plan?: Database["public"]["Enums"]["plan_tier"]
-          premium_until?: string | null
-          referral_code?: string | null
-          referred_by?: string | null
           updated_at?: string
-        }
-        Relationships: []
-      }
-      subscriptions: {
-        Row: {
-          amount_xaf: number
-          created_at: string
-          current_period_end: string | null
-          current_period_start: string | null
-          external_id: string
-          id: string
-          plan_id: string
-          provider: string
-          status: string
-          trans_id: string | null
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          amount_xaf: number
-          created_at?: string
-          current_period_end?: string | null
-          current_period_start?: string | null
-          external_id: string
-          id?: string
-          plan_id: string
-          provider?: string
-          status?: string
-          trans_id?: string | null
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          amount_xaf?: number
-          created_at?: string
-          current_period_end?: string | null
-          current_period_start?: string | null
-          external_id?: string
-          id?: string
-          plan_id?: string
-          provider?: string
-          status?: string
-          trans_id?: string | null
-          updated_at?: string
-          user_id?: string
         }
         Relationships: []
       }
@@ -275,7 +221,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "user"
-      credit_kind: "analysis" | "topup" | "bonus" | "refund" | "subscription"
+      credit_kind: "analysis" | "topup" | "bonus" | "refund"
       favorite_kind: "team" | "competition" | "match"
       plan_tier: "free" | "premium"
     }
@@ -406,7 +352,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "user"],
-      credit_kind: ["analysis", "topup", "bonus", "refund", "subscription"],
+      credit_kind: ["analysis", "topup", "bonus", "refund"],
       favorite_kind: ["team", "competition", "match"],
       plan_tier: ["free", "premium"],
     },
