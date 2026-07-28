@@ -9,9 +9,7 @@ const SUPABASE_URL =
   "https://oirdlreedxhldmwadwom.supabase.co";
 
 const SUPABASE_KEY =
-  (typeof process !== "undefined" && process.env?.SUPABASE_SERVICE_ROLE_KEY) ||
-  // Fallback hardcodé pour l'environnement Replit (sera retiré avant push GitHub)
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9pcmRscmVlZHhobGRtd2Fkd29tIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NTA2MjE4MSwiZXhwIjoyMTAwNjM4MTgxfQ.76icuXVIVelZNeS0UhYwuAJa5NYqHY_8O2oE_1vjtwc";
+  typeof process !== "undefined" ? process.env?.SUPABASE_SERVICE_ROLE_KEY : undefined;
 
 const configCache = new Map<string, string>();
 
