@@ -44,6 +44,27 @@ export type Database = {
         }
         Relationships: []
       }
+      app_config: {
+        Row: {
+          description: string | null
+          key: string
+          updated_at: string
+          value: string
+        }
+        Insert: {
+          description?: string | null
+          key: string
+          updated_at?: string
+          value: string
+        }
+        Update: {
+          description?: string | null
+          key?: string
+          updated_at?: string
+          value?: string
+        }
+        Relationships: []
+      }
       credits_ledger: {
         Row: {
           amount: number
@@ -163,6 +184,9 @@ export type Database = {
           display_name: string | null
           id: string
           plan: Database["public"]["Enums"]["plan_tier"]
+          premium_until: string | null
+          referral_code: string | null
+          referred_by: string | null
           updated_at: string
         }
         Insert: {
@@ -172,6 +196,9 @@ export type Database = {
           display_name?: string | null
           id: string
           plan?: Database["public"]["Enums"]["plan_tier"]
+          premium_until?: string | null
+          referral_code?: string | null
+          referred_by?: string | null
           updated_at?: string
         }
         Update: {
@@ -181,7 +208,63 @@ export type Database = {
           display_name?: string | null
           id?: string
           plan?: Database["public"]["Enums"]["plan_tier"]
+          premium_until?: string | null
+          referral_code?: string | null
+          referred_by?: string | null
           updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_referred_by_fkey"
+            columns: ["referred_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subscriptions: {
+        Row: {
+          amount_xaf: number
+          created_at: string
+          current_period_end: string | null
+          current_period_start: string | null
+          external_id: string
+          id: string
+          plan_id: string
+          provider: string
+          status: string
+          trans_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount_xaf: number
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          external_id: string
+          id?: string
+          plan_id: string
+          provider?: string
+          status?: string
+          trans_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount_xaf?: number
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          external_id?: string
+          id?: string
+          plan_id?: string
+          provider?: string
+          status?: string
+          trans_id?: string | null
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
