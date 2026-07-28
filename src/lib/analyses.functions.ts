@@ -127,43 +127,51 @@ async function fetchHeadToHead(homeId: number, awayId: number) {
 }
 
 /**
- * Routeur d'IA Hybride (Google AI Studio -> OpenRouter -> Lovable Gateway)
- * Bascule automatiquement sans bloquer l'utilisateur en cas de rate-limit / quota dépassé.
+ * Routeur IA Hybride — priorité Gemini 2.5 Flash (Google AI Studio) puis DeepSeek R1 (OpenRouter).
+ * Les clés sont lues via getConfig() : env var Cloudflare Worker en prod, table app_config Supabase en fallback.
+ * Bascule silencieusement sans que l'utilisateur le sache.
  */
 async function callSmartAIRouter(systemPrompt: string, userPrompt: string): Promise<AnalysisResult> {
-  const geminiKey = process.env.GEMINI_API_KEY;
-  const openRouterKey = process.env.OPENROUTER_API_KEY;
+  const { getConfig } = await import("./config.server");
+  const [geminiKey, openRouterKey] = await Promise.all([
+    getConfig("GEMINI_API_KEY"),
+    getConfig("OPENROUTER_API_KEY"),
+  ]);
 
-  // 1. Essayer Google AI Studio (Gemini 2.0 Flash) — Gratuit & Ultra Rapide
+  // 1. Google AI Studio — Gemini 2.5 Flash (quota gratuit : 15 req/min, 1 M tokens/jour)
   if (geminiKey) {
     try {
-      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          system_instruction: { parts: [{ text: systemPrompt }] },
-          contents: [{ parts: [{ text: userPrompt }] }],
-          generationConfig: {
-            response_mime_type: "application/json",
-            temperature: 0.2,
-          },
-        }),
-      });
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            system_instruction: { parts: [{ text: systemPrompt }] },
+            contents: [{ parts: [{ text: userPrompt }] }],
+            generationConfig: { response_mime_type: "application/json", temperature: 0.2 },
+          }),
+        },
+      );
 
       if (res.ok) {
-        const json = await res.json();
+        const json = await res.json() as { candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }> };
         const text = json.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (text) {
-          const parsed = JSON.parse(text);
-          return resultSchema.parse(parsed);
-        }
+        if (text) return resultSchema.parse(JSON.parse(text));
+      }
+
+      // Quota dépassé → on tente le prochain provider
+      const status = res.status;
+      if (status !== 429 && status !== 503) {
+        const body = await res.text().catch(() => "");
+        console.warn(`Gemini 2.5 Flash HTTP ${status}:`, body.slice(0, 200));
       }
     } catch (err) {
-      console.warn("Primary AI (Gemini Studio) failover notice:", err instanceof Error ? err.message : err);
+      console.warn("Gemini 2.5 Flash failover:", err instanceof Error ? err.message : err);
     }
   }
 
-  // 3. Fallback d'urgence 2: OpenRouter DeepSeek R1 / Auto
+  // 2. OpenRouter — DeepSeek R1 :free (raisonnement puissant, quota ~200 req/jour)
   if (openRouterKey) {
     try {
       const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
@@ -172,7 +180,7 @@ async function callSmartAIRouter(systemPrompt: string, userPrompt: string): Prom
           Authorization: `Bearer ${openRouterKey}`,
           "Content-Type": "application/json",
           "HTTP-Referer": "https://www.livefoot.fun",
-          "X-Title": "LiveFoot AI",
+          "X-Title": "Livefoot IA",
         },
         body: JSON.stringify({
           model: "deepseek/deepseek-r1:free",
@@ -186,15 +194,38 @@ async function callSmartAIRouter(systemPrompt: string, userPrompt: string): Prom
       });
 
       if (res.ok) {
-        const json = await res.json();
+        const json = await res.json() as { choices?: Array<{ message?: { content?: string } }> };
         const text = json.choices?.[0]?.message?.content;
-        if (text) {
-          const parsed = JSON.parse(text);
-          return resultSchema.parse(parsed);
-        }
+        if (text) return resultSchema.parse(JSON.parse(text));
+      }
+
+      // Quota OpenRouter dépassé → 3e tentative avec un modèle alternatif gratuit
+      const resAlt = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${openRouterKey}`,
+          "Content-Type": "application/json",
+          "HTTP-Referer": "https://www.livefoot.fun",
+          "X-Title": "Livefoot IA",
+        },
+        body: JSON.stringify({
+          model: "meta-llama/llama-3.3-70b-instruct:free",
+          response_format: { type: "json_object" },
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt },
+          ],
+          temperature: 0.2,
+        }),
+      });
+
+      if (resAlt.ok) {
+        const json = await resAlt.json() as { choices?: Array<{ message?: { content?: string } }> };
+        const text = json.choices?.[0]?.message?.content;
+        if (text) return resultSchema.parse(JSON.parse(text));
       }
     } catch (err) {
-      console.warn("Tertiary AI (OpenRouter DeepSeek) failover notice:", err instanceof Error ? err.message : err);
+      console.warn("OpenRouter failover:", err instanceof Error ? err.message : err);
     }
   }
 
