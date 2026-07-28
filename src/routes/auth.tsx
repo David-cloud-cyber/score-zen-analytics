@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { applyReferral } from "@/lib/referral.functions";
+import livefootIcon from "@/assets/livefoot-icon.png.asset.json";
 
 const searchSchema = z.object({
   redirect: z.string().optional(),
@@ -133,12 +134,14 @@ function AuthPage() {
     <div className="grid min-h-dvh place-items-center bg-background px-4 py-10">
       <div className="w-full max-w-md">
         <Link to="/" className="mb-8 flex items-center justify-center gap-2.5">
-          <div className="grid size-10 place-items-center rounded-xl bg-foreground text-background">
-            <span className="text-[13px] font-black italic tracking-tighter">LF</span>
-          </div>
-          <div className="text-lg font-bold tracking-tight">
-            Livefoot IA <span className="text-brand">AI</span>
-          </div>
+          <img
+            src={livefootIcon.url}
+            alt="Livefoot IA"
+            className="size-10 shrink-0 rounded-xl object-contain"
+            width={40}
+            height={40}
+          />
+          <div className="text-lg font-bold tracking-tight">Livefoot IA</div>
         </Link>
 
         {/* Bannière code parrain */}
