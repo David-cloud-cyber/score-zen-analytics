@@ -152,6 +152,97 @@ async function fetchHeadToHead(homeId: number, awayId: number) {
 }
 
 /**
+ * Récupère les cotes bookmakers en temps réel pour le prochain match entre
+ * les deux équipes (ou le match en cours).
+ * Retourne une chaîne formatée pour injection dans le prompt IA, ou null si
+ * aucune cote n'est disponible (match non répertorié ou quota API-Football atteint).
+ */
+async function fetchBookmakerOdds(homeId: number, awayId: number): Promise<string | null> {
+  try {
+    const { apiFootball } = await import("./apifootball.server");
+
+    // 1. Chercher le prochain fixture entre ces deux équipes
+    const upcoming = await apiFootball<
+      Array<{
+        fixture: { id: number; date: string; status: { short: string } };
+        teams: { home: { id: number }; away: { id: number } };
+      }>
+    >("/fixtures", { team: homeId, next: 10 }).catch(() => []);
+
+    const match = upcoming.find(
+      (f) =>
+        (f.teams.home.id === homeId && f.teams.away.id === awayId) ||
+        (f.teams.home.id === awayId && f.teams.away.id === homeId),
+    );
+
+    // Si aucun prochain match trouvé, essayer le dernier match (pour tester avec données historiques)
+    let fixtureId: number | null = match?.fixture?.id ?? null;
+    if (!fixtureId) {
+      const recent = await apiFootball<
+        Array<{ fixture: { id: number }; teams: { home: { id: number }; away: { id: number } } }>
+      >("/fixtures", { team: homeId, last: 10 }).catch(() => []);
+      const found = recent.find(
+        (f) =>
+          (f.teams.home.id === homeId && f.teams.away.id === awayId) ||
+          (f.teams.home.id === awayId && f.teams.away.id === homeId),
+      );
+      fixtureId = found?.fixture?.id ?? null;
+    }
+
+    if (!fixtureId) return null;
+
+    // 2. Récupérer les cotes 1X2 (bet id = 1 : "Match Winner")
+    const oddsRaw = await apiFootball<
+      Array<{
+        bookmakers: Array<{
+          name: string;
+          bets: Array<{
+            name: string;
+            values: Array<{ value: string; odd: string }>;
+          }>;
+        }>;
+      }>
+    >("/odds", { fixture: fixtureId, bet: 1 }).catch(() => []);
+
+    if (!oddsRaw.length || !oddsRaw[0]?.bookmakers?.length) return null;
+
+    // 3. Moyenner les cotes 1X2 sur tous les bookmakers disponibles
+    const matchWinnerBets = oddsRaw[0].bookmakers.flatMap((b) =>
+      b.bets.filter((bet) => bet.name === "Match Winner"),
+    );
+
+    const parse = (values: Array<{ value: string; odd: string }>, label: string) =>
+      values.filter((v) => v.value === label).map((v) => parseFloat(v.odd)).filter((n) => !isNaN(n) && n > 0);
+
+    const homeOdds = matchWinnerBets.flatMap((b) => parse(b.values, "Home"));
+    const drawOdds = matchWinnerBets.flatMap((b) => parse(b.values, "Draw"));
+    const awayOdds = matchWinnerBets.flatMap((b) => parse(b.values, "Away"));
+
+    if (!homeOdds.length && !drawOdds.length && !awayOdds.length) return null;
+
+    const avg = (arr: number[]) =>
+      arr.length ? (arr.reduce((a, b) => a + b, 0) / arr.length).toFixed(2) : "n/d";
+
+    // Convertir les cotes décimales en probabilités implicites (%)
+    const impliedProb = (odds: number[]) => {
+      if (!odds.length) return "n/d";
+      const avgOdd = odds.reduce((a, b) => a + b, 0) / odds.length;
+      return `${Math.round((1 / avgOdd) * 100)}%`;
+    };
+
+    const n = Math.max(homeOdds.length, drawOdds.length, awayOdds.length);
+    return (
+      `Cotes moyennes bookmakers (${n} source${n > 1 ? "s" : ""}) : ` +
+      `Domicile ${avg(homeOdds)} (${impliedProb(homeOdds)}) · ` +
+      `Nul ${avg(drawOdds)} (${impliedProb(drawOdds)}) · ` +
+      `Extérieur ${avg(awayOdds)} (${impliedProb(awayOdds)})`
+    );
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Routeur IA Hybride — priorité Gemini 2.5 Flash (Google AI Studio) puis DeepSeek R1 (OpenRouter).
  * Les clés sont lues via getConfig() : env var Cloudflare Worker en prod, table app_config Supabase en fallback.
  * Bascule silencieusement sans que l'utilisateur le sache.
@@ -308,12 +399,17 @@ export const runAnalysis = createServerFn({ method: "POST" })
       );
     }
 
-    // 2. Enrichissement : forme + H2H + blessures via API-Football.
+    // 2. Enrichissement parallèle : forme + H2H + blessures + cotes bookmakers.
     const [homeCtx, awayCtx] = await Promise.all([
       fetchTeamContext(data.home),
       fetchTeamContext(data.away),
     ]);
-    const h2h = homeCtx && awayCtx ? await fetchHeadToHead(homeCtx.id, awayCtx.id) : [];
+
+    // H2H + bookmaker odds en parallèle une fois les IDs connus
+    const [h2h, bookmakerOdds] = await Promise.all([
+      homeCtx && awayCtx ? fetchHeadToHead(homeCtx.id, awayCtx.id) : Promise.resolve([]),
+      homeCtx && awayCtx ? fetchBookmakerOdds(homeCtx.id, awayCtx.id) : Promise.resolve(null),
+    ]);
 
     const contextBlock = [
       homeCtx
@@ -335,16 +431,21 @@ export const runAnalysis = createServerFn({ method: "POST" })
           ].filter(Boolean).join("\n")
         : `## ${data.away} (extérieur)\nAucune donnée statistique disponible.`,
       h2h.length ? `## Confrontations directes récentes\n${h2h.join("\n")}` : `## Confrontations directes\nAucune donnée récente.`,
+      // Section bookmakers — présente seulement si les cotes sont disponibles
+      bookmakerOdds
+        ? `## Consensus du marché (bookmakers en temps réel)\n${bookmakerOdds}\nNote : les probabilités implicites incluent la marge bookmaker (~5-8%). Pour l'analyse pure, retraite cette marge.`
+        : `## Consensus du marché\nAucune cote disponible pour ce match (match non répertorié ou hors calendrier).`,
     ].join("\n\n");
 
     const systemPrompt =
       "Tu es un analyste football professionnel qui répond UNIQUEMENT en français sous format JSON strict.\n" +
-      "Tu utilises EXCLUSIVEMENT les données factuelles fournies dans le contexte (classement, forme globale, forme domicile/extérieur séparée, blessures, confrontations directes) — n'invente aucun résultat ni statistique.\n" +
+      "Tu utilises EXCLUSIVEMENT les données factuelles fournies dans le contexte (classement, forme globale, forme domicile/extérieur séparée, blessures, confrontations directes, cotes bookmakers) — n'invente aucun résultat ni statistique.\n" +
       "IMPORTANT : différencie bien la forme à domicile (équipe qui reçoit) de la forme à l'extérieur (équipe visiteuse) — c'est un facteur déterminant.\n" +
+      "IMPORTANT : si des cotes bookmakers sont fournies, utilise-les comme signal de calibration. Tes probabilités 1X2 doivent être cohérentes avec le consensus du marché sauf si les données statistiques justifient un écart. Mentionne l'alignement/écart avec le marché dans aiText.\n" +
       "Tu produis des probabilités 1X2 entières (0-100) qui SOMMENT EXACTEMENT à 100 et un score probable réaliste basé sur les données.\n" +
       "Tu proposes 5 marchés recommandés couvrant 1X2, Double Chance, BTTS, Over/Under 2.5, et un marché parmi Corners ou Cartons.\n" +
       "Confiance = 0-100 (jamais > 85 : garde toujours de l'humilité). Risque = bas | moyen | eleve.\n" +
-      "aiText = 3-4 phrases synthétisant le classement, la forme récente domicile/extérieur, les absents clés et la dynamique du match.\n" +
+      "aiText = 3-4 phrases synthétisant le classement, la forme récente domicile/extérieur, les absents clés, la dynamique du match et le positionnement par rapport aux cotes.\n" +
       "keyFactors = 3-5 puces courtes (facteurs déterminants les plus importants).\n" +
       "Reste factuel, prudent, ne pousse jamais aux paris.";
 
