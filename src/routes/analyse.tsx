@@ -96,7 +96,7 @@ function AnalysePage() {
     try {
       const result = await runFn({ data: { home: home.trim(), away: away.trim() } });
       setLive(result);
-      toast.success("Analyse IA générée — 3 crédits débités.");
+      toast.success("Analyse IA générée — 2 crédits débités.");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "L'analyse a échoué.");
     } finally {
@@ -121,7 +121,7 @@ function AnalysePage() {
             <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Sélection des Équipes</span>
           </div>
           <span className="rounded-full bg-surface px-2.5 py-1 text-[10px] font-bold text-muted-foreground">
-            Coût : 3 crédits
+            Coût : 2 crédits
           </span>
         </div>
 
