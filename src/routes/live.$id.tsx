@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useParams } from "@tanstack/react-router";
+import { createFileRoute, Link, useParams, useNavigate } from "@tanstack/react-router";
 import { useSuspenseQuery, queryOptions } from "@tanstack/react-query";
 import { ArrowLeft, MapPin, Shirt, User, AlertTriangle, RefreshCw, Sparkles, Activity, ShieldCheck, Trophy, ChevronRight } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
@@ -67,6 +67,7 @@ function LiveMatchPage() {
 function LiveMatchView({ m }: { m: RemoteMatchDetail }) {
   const isLive = m.status === "live" || m.status === "ht";
   const isFinished = m.status === "finished";
+  const navigate = useNavigate();
 
   return (
     <AppShell hideHeader>
@@ -134,16 +135,16 @@ function LiveMatchView({ m }: { m: RemoteMatchDetail }) {
 
             {/* Direct AI Prediction CTA Banner */}
             <div className="border-t border-background/10 bg-background/5 p-3 backdrop-blur-sm">
-              <Link
-                to="/analyse"
-                className="flex items-center justify-between rounded-2xl bg-brand px-4 py-2.5 text-xs font-black text-neutral-900 shadow-lg transition-transform hover:scale-[1.02] active:scale-[0.98]"
+              <button
+                onClick={() => navigate({ to: "/analyse", search: { home: m.home.name, away: m.away.name } })}
+                className="flex w-full items-center justify-between rounded-2xl bg-brand px-4 py-2.5 text-xs font-black text-neutral-900 shadow-lg transition-transform hover:scale-[1.02] active:scale-[0.98]"
               >
                 <div className="flex items-center gap-2">
                   <Sparkles className="size-4 animate-bounce" />
                   <span>Obtenir la prédiction IA pour ce match (2 crédits)</span>
                 </div>
                 <ChevronRight className="size-4" />
-              </Link>
+              </button>
             </div>
           </div>
         </div>

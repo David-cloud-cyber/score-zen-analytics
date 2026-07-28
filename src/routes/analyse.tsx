@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
 import { useState, useId, useRef, useEffect } from "react";
 import { Sparkles, ArrowLeftRight, X, Loader2, Lock, Info, Check, Search, Calendar, ShieldCheck, Trophy } from "lucide-react";
 import { AppShell, PageTitle } from "@/components/AppShell";
@@ -13,6 +13,10 @@ import { cn } from "@/lib/utils";
 import { buildRouteMeta } from "@/lib/seo";
 
 export const Route = createFileRoute("/analyse")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    home: typeof search.home === "string" ? search.home : "",
+    away: typeof search.away === "string" ? search.away : "",
+  }),
   head: () =>
     buildRouteMeta({
       path: "/analyse",
@@ -40,12 +44,14 @@ const POPULAR_TEAMS = [
 ];
 
 function AnalysePage() {
-  const [home, setHome] = useState("");
-  const [away, setAway] = useState("");
+  const { home: homeParam, away: awayParam } = useSearch({ from: "/analyse" });
+  const [home, setHome] = useState(homeParam ?? "");
+  const [away, setAway] = useState(awayParam ?? "");
   const [live, setLive] = useState<AnalysisResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadingStep, setLoadingStep] = useState("");
   const [swapping, setSwapping] = useState(false);
+  const autoLaunched = useRef(false);
 
   const runFn = useServerFn(runAnalysis);
   const { user, loading: sessionLoading } = useSession();
@@ -59,6 +65,17 @@ function AnalysePage() {
       navigate({ to: "/auth", search: { redirect: "/analyse" } });
     }
   }, [sessionLoading, user, navigate]);
+
+  // Auto-lancer l'analyse quand les équipes viennent de la page match
+  useEffect(() => {
+    if (autoLaunched.current) return;
+    if (sessionLoading || !user) return;
+    if (homeParam && awayParam) {
+      autoLaunched.current = true;
+      onSubmit();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionLoading, user, homeParam, awayParam]);
 
   // Swap animation handler
   const handleSwap = () => {
