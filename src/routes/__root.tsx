@@ -90,17 +90,21 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { property: "og:site_name", content: "LiveFoot AI" },
       { property: "og:type", content: "website" },
+      { property: "og:url", content: "https://www.livefoot.fun" },
       { name: "twitter:card", content: "summary_large_image" },
       { property: "og:title", content: "LiveFoot AI — Livescore & analyse football en temps réel" },
       { name: "twitter:title", content: "LiveFoot AI — Livescore & analyse football en temps réel" },
       { property: "og:description", content: "Scores en direct et analyses IA détaillées sur chaque match : probabilités, marchés, compositions et prédictions." },
       { name: "twitter:description", content: "Scores en direct et analyses IA détaillées sur chaque match : probabilités, marchés, compositions et prédictions." },
-      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/d554b2ca-26a9-4db6-8969-647d9a681379/id-preview-5fff50e2--f5749538-374b-48fc-94be-c38d0c9c32b6.lovable.app-1785068186017.png" },
-      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/d554b2ca-26a9-4db6-8969-647d9a681379/id-preview-5fff50e2--f5749538-374b-48fc-94be-c38d0c9c32b6.lovable.app-1785068186017.png" },
+      { property: "og:image", content: "https://www.livefoot.fun/logo.png" },
+      { name: "twitter:image", content: "https://www.livefoot.fun/logo.png" },
+      { name: "robots", content: "index, follow" },
+      { name: "googlebot", content: "index, follow" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+      { rel: "canonical", href: "https://www.livefoot.fun" },
       { rel: "preconnect", href: "https://media.api-sports.io", crossOrigin: "anonymous" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
@@ -117,9 +121,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
           "@context": "https://schema.org",
           "@type": "Organization",
           name: "LiveFoot AI",
-          url: "https://ball-predict-ace.lovable.app",
-          logo: "https://ball-predict-ace.lovable.app/favicon.ico",
-          description: "Livescore et analyses IA football en temps réel.",
+          url: "https://www.livefoot.fun",
+          logo: "https://www.livefoot.fun/logo.png",
+          description: "Scores en direct et analyses IA détaillées sur chaque match de football : probabilités, marchés, compositions et prédictions.",
+          sameAs: ["https://www.livefoot.fun"],
         }),
       },
       {
@@ -128,7 +133,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
           "@context": "https://schema.org",
           "@type": "WebSite",
           name: "LiveFoot AI",
-          url: "https://ball-predict-ace.lovable.app",
+          url: "https://www.livefoot.fun",
+          description: "Livescore et analyses IA football en temps réel.",
+          potentialAction: {
+            "@type": "SearchAction",
+            target: "https://www.livefoot.fun/?q={search_term_string}",
+            "query-input": "required name=search_term_string",
+          },
         }),
       },
     ],
@@ -141,7 +152,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="fr">
       <head>
         <HeadContent />
       </head>
