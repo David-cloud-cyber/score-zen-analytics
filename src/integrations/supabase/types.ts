@@ -44,6 +44,27 @@ export type Database = {
         }
         Relationships: []
       }
+      app_config: {
+        Row: {
+          description: string | null
+          key: string
+          updated_at: string
+          value: string
+        }
+        Insert: {
+          description?: string | null
+          key: string
+          updated_at?: string
+          value: string
+        }
+        Update: {
+          description?: string | null
+          key?: string
+          updated_at?: string
+          value?: string
+        }
+        Relationships: []
+      }
       credits_ledger: {
         Row: {
           amount: number
@@ -192,7 +213,15 @@ export type Database = {
           referred_by?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_referred_by_fkey"
+            columns: ["referred_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       subscriptions: {
         Row: {
@@ -275,7 +304,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "user"
-      credit_kind: "analysis" | "topup" | "bonus" | "refund" | "subscription"
+      credit_kind: "analysis" | "topup" | "bonus" | "refund"
       favorite_kind: "team" | "competition" | "match"
       plan_tier: "free" | "premium"
     }
@@ -406,7 +435,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "user"],
-      credit_kind: ["analysis", "topup", "bonus", "refund", "subscription"],
+      credit_kind: ["analysis", "topup", "bonus", "refund"],
       favorite_kind: ["team", "competition", "match"],
       plan_tier: ["free", "premium"],
     },
