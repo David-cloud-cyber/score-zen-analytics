@@ -71,11 +71,13 @@ function AuthPage() {
   async function handleGoogle() {
     setLoading(true);
     try {
+      const callbackUrl =
+        typeof window !== "undefined"
+          ? `${window.location.origin}/auth/callback`
+          : "https://www.livefoot.fun/auth/callback";
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
-        options: {
-          redirectTo: typeof window !== "undefined" ? window.location.origin : undefined,
-        },
+        options: { redirectTo: callbackUrl },
       });
       if (error) throw error;
     } catch (err) {
@@ -90,7 +92,7 @@ function AuthPage() {
       <div className="w-full max-w-md">
         <Link to="/" className="mb-8 flex items-center justify-center gap-2.5">
           <div className="grid size-10 place-items-center rounded-xl bg-foreground text-background">
-            <span className="text-[13px] font-black italic tracking-tighter">SZ</span>
+            <span className="text-[13px] font-black italic tracking-tighter">LF</span>
           </div>
           <div className="text-lg font-bold tracking-tight">
             Livefoot IA <span className="text-brand">AI</span>
