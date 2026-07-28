@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect, useRef } from "react";
 import { MessageCircle, Send, Users, Sparkles, Trophy, Flame, CheckCircle2, User, Radio, Award } from "lucide-react";
 import { toast } from "sonner";
@@ -42,12 +42,20 @@ const FEATURED_POLLS: MatchPoll[] = [];
 const LEADERBOARD: { rank: number; name: string; points: number; winRate: string; badge: string }[] = [];
 
 function CommunautePage() {
-  const { session } = useSession();
+  const { session, loading: sessionLoading } = useSession();
+  const navigate = useNavigate();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [userVotes, setUserVotes] = useState<Record<number, "home" | "draw" | "away">>({});
   const [polls, setPolls] = useState<MatchPoll[]>(FEATURED_POLLS);
   const chatEndRef = useRef<HTMLDivElement>(null);
+
+  // Rediriger vers /auth si non connecté (après chargement)
+  useEffect(() => {
+    if (!sessionLoading && !session) {
+      navigate({ to: "/auth", search: { redirect: "/communaute" } });
+    }
+  }, [sessionLoading, session, navigate]);
 
   // Auto-scroll to bottom of chat
   useEffect(() => {

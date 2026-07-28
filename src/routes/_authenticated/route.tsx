@@ -5,11 +5,13 @@ export const Route = createFileRoute("/_authenticated")({
   ssr: false,
   beforeLoad: async ({ location }) => {
     try {
-      const { data, error } = await supabase.auth.getUser();
-      if (error || !data?.user) {
+      // Lire la session depuis localStorage (rapide, sans réseau).
+      // autoRefreshToken: true garantit que le token est renouvelé si expiré.
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !sessionData.session?.user) {
         throw redirect({ to: "/auth", search: { redirect: location.pathname } });
       }
-      return { user: data.user };
+      return { user: sessionData.session.user };
     } catch (err) {
       if (err && typeof err === "object" && ("isRedirect" in err || "status" in err || "statusCode" in err)) {
         throw err;

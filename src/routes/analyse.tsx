@@ -48,10 +48,17 @@ function AnalysePage() {
   const [swapping, setSwapping] = useState(false);
 
   const runFn = useServerFn(runAnalysis);
-  const { user } = useSession();
+  const { user, loading: sessionLoading } = useSession();
   const navigate = useNavigate();
 
   const keyFactors = (live?.keyFactors ?? []) as string[];
+
+  // Rediriger vers /auth si l'utilisateur n'est pas connecté (après chargement)
+  useEffect(() => {
+    if (!sessionLoading && !user) {
+      navigate({ to: "/auth", search: { redirect: "/analyse" } });
+    }
+  }, [sessionLoading, user, navigate]);
 
   // Swap animation handler
   const handleSwap = () => {

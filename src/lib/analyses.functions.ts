@@ -59,6 +59,12 @@ function normalizeProbabilities(p: { home: number; draw: number; away: number })
   return { home, draw, away };
 }
 
+const seasonYear = ((): number => {
+  const d = new Date();
+  const m = d.getUTCMonth() + 1;
+  return m >= 7 ? d.getUTCFullYear() : d.getUTCFullYear() - 1;
+})();
+
 async function fetchTeamContext(teamName: string) {
   try {
     const { apiFootball } = await import("./apifootball.server");
@@ -69,7 +75,7 @@ async function fetchTeamContext(teamName: string) {
     const t = teamsRaw[0]?.team;
     if (!t) return null;
 
-    // Forme récente : 5 derniers matchs
+    // Forme récente : 10 derniers matchs pour séparer domicile / extérieur
     const fixtures = await apiFootball<
       Array<{
         fixture: { date: string };
@@ -77,30 +83,49 @@ async function fetchTeamContext(teamName: string) {
         teams: { home: { id: number; name: string }; away: { id: number; name: string } };
         goals: { home: number | null; away: number | null };
       }>
-    >("/fixtures", { team: t.id, last: 5 }).catch(() => []);
+    >("/fixtures", { team: t.id, last: 10 }).catch(() => []);
 
-    const form = fixtures.map((f) => {
+    const formAll: string[] = [];
+    const formHome: string[] = [];
+    const formAway: string[] = [];
+
+    for (const f of fixtures) {
       const isHome = f.teams.home.id === t.id;
       const gf = isHome ? f.goals.home : f.goals.away;
       const ga = isHome ? f.goals.away : f.goals.home;
       let r = "?";
       if (gf !== null && ga !== null) r = gf > ga ? "V" : gf === ga ? "N" : "D";
       const opp = isHome ? f.teams.away.name : f.teams.home.name;
-      return `${r} ${gf ?? "-"}-${ga ?? "-"} vs ${opp}`;
-    });
+      const entry = `${r} ${gf ?? "-"}-${ga ?? "-"} vs ${opp}`;
+      formAll.push(entry);
+      if (isHome) formHome.push(entry);
+      else formAway.push(entry);
+    }
 
     // Blessures (saison en cours)
-    const seasonYear = ((): number => {
-      const d = new Date();
-      const m = d.getUTCMonth() + 1;
-      return m >= 7 ? d.getUTCFullYear() : d.getUTCFullYear() - 1;
-    })();
     const injuries = await apiFootball<
       Array<{ player: { name: string; reason: string } }>
     >("/injuries", { team: t.id, season: seasonYear }).catch(() => []);
     const injuryNames = injuries.slice(0, 6).map((i) => `${i.player.name} (${i.player.reason})`);
 
-    return { id: t.id, name: t.name, form, injuries: injuryNames };
+    // Classement (pour évaluer la qualité de l'équipe dans sa ligue)
+    const standingsRaw = await apiFootball<
+      Array<{ league: { standings: Array<Array<{ rank: number; points: number; goalsDiff: number; form: string }>> } }>
+    >("/standings", { team: t.id, season: seasonYear }).catch(() => []);
+    const standing = standingsRaw[0]?.league?.standings?.[0]?.[0];
+    const rankInfo = standing
+      ? `Rang ${standing.rank} · ${standing.points} pts · diff buts ${standing.goalsDiff > 0 ? "+" : ""}${standing.goalsDiff} · forme officielle ${standing.form}`
+      : null;
+
+    return {
+      id: t.id,
+      name: t.name,
+      form: formAll.slice(0, 5),
+      formHome: formHome.slice(0, 5),
+      formAway: formAway.slice(0, 5),
+      injuries: injuryNames,
+      rankInfo,
+    };
   } catch {
     return null;
   }
@@ -292,22 +317,35 @@ export const runAnalysis = createServerFn({ method: "POST" })
 
     const contextBlock = [
       homeCtx
-        ? `## ${homeCtx.name} (domicile)\nForme (5 derniers) : ${homeCtx.form.join(" | ") || "n/d"}\nBlessures/absents : ${homeCtx.injuries.join(", ") || "aucune donnée"}`
+        ? [
+            `## ${homeCtx.name} (domicile)`,
+            homeCtx.rankInfo ? `Classement : ${homeCtx.rankInfo}` : null,
+            `Forme globale (5 derniers) : ${homeCtx.form.join(" | ") || "n/d"}`,
+            `Forme à DOMICILE (5 derniers) : ${homeCtx.formHome.join(" | ") || "n/d"}`,
+            `Blessures/absents : ${homeCtx.injuries.join(", ") || "aucune donnée"}`,
+          ].filter(Boolean).join("\n")
         : `## ${data.home} (domicile)\nAucune donnée statistique disponible.`,
       awayCtx
-        ? `## ${awayCtx.name} (extérieur)\nForme (5 derniers) : ${awayCtx.form.join(" | ") || "n/d"}\nBlessures/absents : ${awayCtx.injuries.join(", ") || "aucune donnée"}`
+        ? [
+            `## ${awayCtx.name} (extérieur)`,
+            awayCtx.rankInfo ? `Classement : ${awayCtx.rankInfo}` : null,
+            `Forme globale (5 derniers) : ${awayCtx.form.join(" | ") || "n/d"}`,
+            `Forme à l'EXTÉRIEUR (5 derniers) : ${awayCtx.formAway.join(" | ") || "n/d"}`,
+            `Blessures/absents : ${awayCtx.injuries.join(", ") || "aucune donnée"}`,
+          ].filter(Boolean).join("\n")
         : `## ${data.away} (extérieur)\nAucune donnée statistique disponible.`,
       h2h.length ? `## Confrontations directes récentes\n${h2h.join("\n")}` : `## Confrontations directes\nAucune donnée récente.`,
     ].join("\n\n");
 
     const systemPrompt =
       "Tu es un analyste football professionnel qui répond UNIQUEMENT en français sous format JSON strict.\n" +
-      "Tu utilises EXCLUSIVEMENT les données factuelles fournies dans le contexte (forme récente, blessures, confrontations directes) — n'invente aucun résultat ni statistique.\n" +
-      "Tu produis des probabilités 1X2 entières (0-100) qui SOMMENT à 100 et un score probable réaliste.\n" +
+      "Tu utilises EXCLUSIVEMENT les données factuelles fournies dans le contexte (classement, forme globale, forme domicile/extérieur séparée, blessures, confrontations directes) — n'invente aucun résultat ni statistique.\n" +
+      "IMPORTANT : différencie bien la forme à domicile (équipe qui reçoit) de la forme à l'extérieur (équipe visiteuse) — c'est un facteur déterminant.\n" +
+      "Tu produis des probabilités 1X2 entières (0-100) qui SOMMENT EXACTEMENT à 100 et un score probable réaliste basé sur les données.\n" +
       "Tu proposes 5 marchés recommandés couvrant 1X2, Double Chance, BTTS, Over/Under 2.5, et un marché parmi Corners ou Cartons.\n" +
       "Confiance = 0-100 (jamais > 85 : garde toujours de l'humilité). Risque = bas | moyen | eleve.\n" +
-      "aiText = 3-4 phrases synthétisant la forme, les absents et la dynamique du match.\n" +
-      "keyFactors = 3-5 puces courtes (facteurs déterminants).\n" +
+      "aiText = 3-4 phrases synthétisant le classement, la forme récente domicile/extérieur, les absents clés et la dynamique du match.\n" +
+      "keyFactors = 3-5 puces courtes (facteurs déterminants les plus importants).\n" +
       "Reste factuel, prudent, ne pousse jamais aux paris.";
 
     const userPrompt =
