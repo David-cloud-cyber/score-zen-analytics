@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Radio, Sparkles, Star, User, Bell, Coins, Search, Users } from "lucide-react";
+import { Radio, Sparkles, Star, User, Bell, Coins, Search, Users, Ticket } from "lucide-react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { SearchProvider, SmartSearchTrigger, useSearchDialog } from "@/components/SmartSearch";
