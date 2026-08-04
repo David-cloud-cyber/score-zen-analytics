@@ -18,6 +18,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AnalyseRouteImport } from './routes/analyse'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as CodesPromoIndexRouteImport } from './routes/codes-promo.index'
 import { Route as MatchIdRouteImport } from './routes/match.$id'
 import { Route as LiveIdRouteImport } from './routes/live.$id'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
@@ -69,6 +70,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CodesPromoIndexRoute = CodesPromoIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => CodesPromoRoute,
+} as any)
 const MatchIdRoute = MatchIdRouteImport.update({
   id: '/match/$id',
   path: '/match/$id',
@@ -104,7 +110,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/analyse': typeof AnalyseRoute
   '/auth': typeof AuthRouteWithChildren
-  '/codes-promo': typeof CodesPromoRoute
+  '/codes-promo': typeof CodesPromoRouteWithChildren
   '/communaute': typeof CommunauteRoute
   '/mentions-legales': typeof MentionsLegalesRoute
   '/premium': typeof PremiumRoute
@@ -114,13 +120,13 @@ export interface FileRoutesByFullPath {
   '/auth/callback': typeof AuthCallbackRoute
   '/live/$id': typeof LiveIdRoute
   '/match/$id': typeof MatchIdRoute
+  '/codes-promo/': typeof CodesPromoIndexRoute
   '/api/public/fapshi-webhook': typeof ApiPublicFapshiWebhookRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/analyse': typeof AnalyseRoute
   '/auth': typeof AuthRouteWithChildren
-  '/codes-promo': typeof CodesPromoRoute
   '/communaute': typeof CommunauteRoute
   '/mentions-legales': typeof MentionsLegalesRoute
   '/premium': typeof PremiumRoute
@@ -130,6 +136,7 @@ export interface FileRoutesByTo {
   '/auth/callback': typeof AuthCallbackRoute
   '/live/$id': typeof LiveIdRoute
   '/match/$id': typeof MatchIdRoute
+  '/codes-promo': typeof CodesPromoIndexRoute
   '/api/public/fapshi-webhook': typeof ApiPublicFapshiWebhookRoute
 }
 export interface FileRoutesById {
@@ -138,7 +145,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/analyse': typeof AnalyseRoute
   '/auth': typeof AuthRouteWithChildren
-  '/codes-promo': typeof CodesPromoRoute
+  '/codes-promo': typeof CodesPromoRouteWithChildren
   '/communaute': typeof CommunauteRoute
   '/mentions-legales': typeof MentionsLegalesRoute
   '/premium': typeof PremiumRoute
@@ -148,6 +155,7 @@ export interface FileRoutesById {
   '/auth/callback': typeof AuthCallbackRoute
   '/live/$id': typeof LiveIdRoute
   '/match/$id': typeof MatchIdRoute
+  '/codes-promo/': typeof CodesPromoIndexRoute
   '/api/public/fapshi-webhook': typeof ApiPublicFapshiWebhookRoute
 }
 export interface FileRouteTypes {
@@ -166,13 +174,13 @@ export interface FileRouteTypes {
     | '/auth/callback'
     | '/live/$id'
     | '/match/$id'
+    | '/codes-promo/'
     | '/api/public/fapshi-webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/analyse'
     | '/auth'
-    | '/codes-promo'
     | '/communaute'
     | '/mentions-legales'
     | '/premium'
@@ -182,6 +190,7 @@ export interface FileRouteTypes {
     | '/auth/callback'
     | '/live/$id'
     | '/match/$id'
+    | '/codes-promo'
     | '/api/public/fapshi-webhook'
   id:
     | '__root__'
@@ -199,6 +208,7 @@ export interface FileRouteTypes {
     | '/auth/callback'
     | '/live/$id'
     | '/match/$id'
+    | '/codes-promo/'
     | '/api/public/fapshi-webhook'
   fileRoutesById: FileRoutesById
 }
@@ -207,7 +217,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AnalyseRoute: typeof AnalyseRoute
   AuthRoute: typeof AuthRouteWithChildren
-  CodesPromoRoute: typeof CodesPromoRoute
+  CodesPromoRoute: typeof CodesPromoRouteWithChildren
   CommunauteRoute: typeof CommunauteRoute
   MentionsLegalesRoute: typeof MentionsLegalesRoute
   PremiumRoute: typeof PremiumRoute
@@ -282,6 +292,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/codes-promo/': {
+      id: '/codes-promo/'
+      path: '/'
+      fullPath: '/codes-promo/'
+      preLoaderRoute: typeof CodesPromoIndexRouteImport
+      parentRoute: typeof CodesPromoRoute
+    }
     '/match/$id': {
       id: '/match/$id'
       path: '/match/$id'
@@ -350,12 +367,24 @@ const AuthRouteChildren: AuthRouteChildren = {
 
 const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
 
+interface CodesPromoRouteChildren {
+  CodesPromoIndexRoute: typeof CodesPromoIndexRoute
+}
+
+const CodesPromoRouteChildren: CodesPromoRouteChildren = {
+  CodesPromoIndexRoute: CodesPromoIndexRoute,
+}
+
+const CodesPromoRouteWithChildren = CodesPromoRoute._addFileChildren(
+  CodesPromoRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AnalyseRoute: AnalyseRoute,
   AuthRoute: AuthRouteWithChildren,
-  CodesPromoRoute: CodesPromoRoute,
+  CodesPromoRoute: CodesPromoRouteWithChildren,
   CommunauteRoute: CommunauteRoute,
   MentionsLegalesRoute: MentionsLegalesRoute,
   PremiumRoute: PremiumRoute,
