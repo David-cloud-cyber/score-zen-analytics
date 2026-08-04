@@ -13,6 +13,7 @@ import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as PremiumRouteImport } from './routes/premium'
 import { Route as MentionsLegalesRouteImport } from './routes/mentions-legales'
 import { Route as CommunauteRouteImport } from './routes/communaute'
+import { Route as CodesPromoRouteImport } from './routes/codes-promo'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AnalyseRouteImport } from './routes/analyse'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
@@ -42,6 +43,11 @@ const MentionsLegalesRoute = MentionsLegalesRouteImport.update({
 const CommunauteRoute = CommunauteRouteImport.update({
   id: '/communaute',
   path: '/communaute',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CodesPromoRoute = CodesPromoRouteImport.update({
+  id: '/codes-promo',
+  path: '/codes-promo',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -98,6 +104,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/analyse': typeof AnalyseRoute
   '/auth': typeof AuthRouteWithChildren
+  '/codes-promo': typeof CodesPromoRoute
   '/communaute': typeof CommunauteRoute
   '/mentions-legales': typeof MentionsLegalesRoute
   '/premium': typeof PremiumRoute
@@ -113,6 +120,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/analyse': typeof AnalyseRoute
   '/auth': typeof AuthRouteWithChildren
+  '/codes-promo': typeof CodesPromoRoute
   '/communaute': typeof CommunauteRoute
   '/mentions-legales': typeof MentionsLegalesRoute
   '/premium': typeof PremiumRoute
@@ -130,6 +138,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/analyse': typeof AnalyseRoute
   '/auth': typeof AuthRouteWithChildren
+  '/codes-promo': typeof CodesPromoRoute
   '/communaute': typeof CommunauteRoute
   '/mentions-legales': typeof MentionsLegalesRoute
   '/premium': typeof PremiumRoute
@@ -147,6 +156,7 @@ export interface FileRouteTypes {
     | '/'
     | '/analyse'
     | '/auth'
+    | '/codes-promo'
     | '/communaute'
     | '/mentions-legales'
     | '/premium'
@@ -162,6 +172,7 @@ export interface FileRouteTypes {
     | '/'
     | '/analyse'
     | '/auth'
+    | '/codes-promo'
     | '/communaute'
     | '/mentions-legales'
     | '/premium'
@@ -178,6 +189,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/analyse'
     | '/auth'
+    | '/codes-promo'
     | '/communaute'
     | '/mentions-legales'
     | '/premium'
@@ -195,6 +207,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AnalyseRoute: typeof AnalyseRoute
   AuthRoute: typeof AuthRouteWithChildren
+  CodesPromoRoute: typeof CodesPromoRoute
   CommunauteRoute: typeof CommunauteRoute
   MentionsLegalesRoute: typeof MentionsLegalesRoute
   PremiumRoute: typeof PremiumRoute
@@ -232,6 +245,13 @@ declare module '@tanstack/react-router' {
       path: '/communaute'
       fullPath: '/communaute'
       preLoaderRoute: typeof CommunauteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/codes-promo': {
+      id: '/codes-promo'
+      path: '/codes-promo'
+      fullPath: '/codes-promo'
+      preLoaderRoute: typeof CodesPromoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -335,6 +355,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AnalyseRoute: AnalyseRoute,
   AuthRoute: AuthRouteWithChildren,
+  CodesPromoRoute: CodesPromoRoute,
   CommunauteRoute: CommunauteRoute,
   MentionsLegalesRoute: MentionsLegalesRoute,
   PremiumRoute: PremiumRoute,
