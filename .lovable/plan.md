@@ -1,52 +1,62 @@
-## LiveFoot AI — Frontend-only build
+# Codes promo bookmakers — hub + pages articles SEO
 
-Direction retenue : **Direct broadcast** (light Swiss-grid, typographie grotesque, accents brand `#10b981` et data `#3b82f6`). Aucune connexion Supabase, aucune API sportive, aucun modèle IA — uniquement UI premium mobile-first avec données fictives réalistes.
+Nouvel espace « Codes promo » : une page-liste de tous les codes partenaires, et pour chaque bookmaker une page-article longue, très optimisée SEO, avec le code, le bonus, la bannière affiliée et les CTA.
 
-### Design system
-- Tokens dans `src/styles.css` : `background` neutral-50, `foreground` neutral-900, `brand` #10b981, `accent` #3b82f6, `surface` neutral-100, `border` neutral-950/5, `alert` #ef4444. Radius généreux (16-24px). Police Inter (via `<link>` dans `__root.tsx`), variante display en tracking serré.
-- Container mobile `max-w-[420px]` centré, header sticky, bottom nav sticky (safe area).
-- Composants shadcn utilisés : Tabs, Card, Button, Input, Badge, Sheet, Avatar, Progress, ScrollArea, Tooltip.
+## Contenu au lancement
 
-### Routes (`src/routes/`)
-1. `index.tsx` → **Matchs du jour** : header (logo, crédits, notifs), tabs "En direct / À venir / Terminés", groupes par compétition (Ligue 1, PL, Liga, Serie A, UCL) avec cartes de match (blasons SVG mock, score, minute pulsée, xG mini). CTA flottant "Analyser 2 équipes".
-2. `match.$id.tsx` → **Fiche match** : hero score, tabs Stats / Timeline / Compositions / H2H / IA.
-   - Stats : barres comparatives (possession, tirs, xG, corners, cartons, passes réussies %).
-   - Timeline : événements minute par minute (buts, cartons, changements).
-   - Compositions : **terrain 2D SVG** avec joueurs positionnés, **heatmap joueur** au tap (mock overlay radial-gradient).
-   - H2H : 5 derniers face-à-face, form guide W/D/L pills.
-   - IA : donut probabilités 1X2, score probable, marchés (BTTS, O/U 2.5, Double Chance, Score exact, Buteurs, Corners, Cartons) chacun avec % confiance + badge risque + disclaimer.
-3. `analyse.tsx` → **Comparateur** : 2 inputs avec autocomplete mock (Real Madrid, Barcelona, PSG…), bouton "Lancer l'analyse" → panneau résultat identique au tab IA + chat conversationnel (bulles user/IA mockées, PromptInput bloqué avec disclaimer "Démo — pas d'appel IA").
-4. `favoris.tsx` → équipes/joueurs/compétitions favoris, alertes de buts toggles.
-5. `profil.tsx` → avatar, plan actuel (Free/Premium), crédits, historique d'analyses, paramètres notifications, **carte upsell Premium** (analyses illimitées, statistiques avancées, alertes premium).
-6. `_root` : head SEO FR ("LiveFoot AI — Livescore et analyses football en temps réel"), footer légal léger dans la home uniquement.
+**1win** — code `PREDAT`, bonus jusqu'à 130 000 FCFA, lien `https://lkfg.pro/a66a894d`, bannière `one-vv0931.com/?p=iezl`.
 
-### Composants clés (`src/components/`)
-- `AppShell` (header sticky + bottom nav 4 onglets : Matchs / Analyse / Favoris / Profil, actif = brand).
-- `MatchCard`, `LeagueGroup`, `LiveMinuteBadge`, `ScorePill`.
-- `StatBar` (barre comparative bicolore avec valeurs).
-- `WinProbabilityDonut` (SVG conic 3 segments + légende).
-- `MarketCard` (marché + confiance % + badge risque bas/moyen/élevé).
-- `PitchFormation` (SVG terrain vertical avec 11 pastilles joueurs + numéros ; tap = surbrillance + heatmap radial-gradient overlay).
-- `PlayerHeatmap` (SVG rect terrain + 6-8 radial-gradients pondérés).
-- `FormGuide` (5 pastilles V/N/D colorées).
-- `TimelineEvent`, `H2HRow`, `AiChatBubble`, `Disclaimer`.
-- `TeamCrest` (SVG mock : cercle + initiales couleur club).
+La structure est prévue pour ajouter Melbet, 1xBet, Betwinner, etc. plus tard : un seul objet à copier dans le fichier de contenu et la page + le sitemap se génèrent automatiquement.
 
-### Données fictives (`src/data/`)
-- `teams.ts` (30 clubs, couleurs, blasons initiales), `competitions.ts`, `matches.ts` (12 matchs live/à venir/terminés avec stats complètes), `players.ts` (compositions Real vs Barça + positions x/y), `analyses.ts` (predictions, marchés, texte IA préécrit FR).
+## Pages
 
-### Animations
-- Utilitaires Tailwind existants (`animate-fade-in`, `animate-scale-in`) + keyframe `pulse-dot` pour la minute live et `grow-bar` (transform scaleX) pour les barres au mount via `animation-delay` en cascade.
+### `/codes-promo` — le hub
+- Titre + intro SEO (200-300 mots, « meilleurs codes promo bookmakers 2026 »).
+- Grille de cartes bookmaker : logo/couleur, note sur 5, bonus principal, **code affiché avec bouton « Copier »** (feedback « Copié ! »), bouton « Voir l'offre » (lien affilié, `target=_blank`, `rel="sponsored noopener"`) et « Lire l'analyse » vers la page dédiée.
+- Tableau comparatif rapide (bonus / code / dépôt min / note).
+- Bloc FAQ courte + avertissement jeu responsable (18+, ANJ/ARJEL).
 
-### Détails techniques
-- Chaque route a son propre `head()` (title/description/og FR).
-- `set_preview_device_viewport` → mobile pour construire.
-- Aucun backend : tout est importé statiquement depuis `src/data/`.
-- Le placeholder `src/routes/index.tsx` est remplacé par la home Matchs.
-- Bottom nav utilise `<Link>` de `@tanstack/react-router` avec `activeProps`.
+### `/codes-promo/$slug` — l'article par bookmaker
+Article long (1 500+ mots) structuré comme les références envoyées :
+1. Hero : nom, note, code en gros avec copie, bonus, CTA + bannière affiliée.
+2. Sommaire cliquable (ancres).
+3. « Qu'est-ce que le code promo PREDAT ? »
+4. « Comment utiliser le code » — étapes numérotées d'inscription.
+5. « Détails du bonus de bienvenue » — tableau (montant max, dépôt min, wager, délai, sports éligibles).
+6. « Conditions générales du bonus » — liste.
+7. « Offres et promotions permanentes ».
+8. « Dépôts et retraits » — moyens de paiement mobile money Afrique.
+9. « Application mobile », « Service client », « Sécurité et licence ».
+10. « Avis LiveFoot AI » — points forts / points faibles.
+11. FAQ (6-8 questions).
+12. Bloc jeu responsable + CTA final.
 
-### Hors scope (explicitement reporté)
-- Supabase / auth / DB / RLS.
-- API football réelles.
-- Appels IA réels (le chat est visuel uniquement).
-- Paiements Premium (carte upsell purement UI).
+Chaque section provient de données typées, donc pas de HTML dupliqué entre bookmakers.
+
+## SEO
+
+- `head()` propre par page : title, description, og:*, twitter:*, canonical auto-référencé, og:image = bannière du bookmaker.
+- JSON-LD : `Article` + `FAQPage` + `BreadcrumbList` + `Review` (note/aggregateRating) sur chaque page bookmaker ; `ItemList` sur le hub.
+- Fil d'Ariane visible (Accueil › Codes promo › 1win).
+- Maillage interne : hub ↔ articles, et lien depuis le footer/sidebar.
+- Ajout de `/codes-promo` et de chaque `/codes-promo/$slug` dans `sitemap.xml` (généré depuis le fichier de contenu, donc jamais oublié).
+- Tous les liens sortants affiliés en `rel="sponsored noopener nofollow"` — conforme aux consignes Google, évite la pénalité.
+- Mise à jour de `public/llms.txt` avec les nouvelles pages.
+
+## Navigation
+
+- Entrée **« Codes promo »** (icône ticket) dans la sidebar desktop, sous « Communauté ».
+- Mobile : la barre du bas reste à 5 onglets inchangée ; accès via la recherche (SmartSearch) + un lien dans le footer de la page d'accueil et dans le menu Profil.
+
+## Détails techniques
+
+- `src/data/bookmakers.ts` : tableau typé `Bookmaker[]` (slug, nom, code, bonus, liens affilié/bannière, note, couleurs, sections, FAQ, tableau conditions). Contenu statique dans le code, rendu en SSR → indexation parfaite.
+- `src/routes/codes-promo.tsx` (layout `<Outlet/>` neutre) + `codes-promo.index.tsx` (hub) + `codes-promo.$slug.tsx` (article, `notFound()` si slug inconnu).
+- Composants : `PromoCodeCard`, `CopyCodeButton`, `BookmakerHero`, `BonusTable`, `PromoFaq`, `ResponsibleGamblingNotice`.
+- Uniquement des tokens sémantiques du design system (brand/warn/surface) → thème sombre géré d'office.
+- Aucune base de données, aucun appel API : 100 % statique.
+
+## Hors scope
+
+- Suivi de clics / statistiques d'affiliation (à ajouter plus tard si voulu, nécessite la base).
+- Interface admin d'édition des codes.
