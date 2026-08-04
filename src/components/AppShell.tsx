@@ -111,7 +111,7 @@ function DesktopSidebar({ pathname }: { pathname: string }) {
 
       <nav className="flex-1 px-3 py-4">
         <ul className="space-y-1">
-          {NAV.map((item) => {
+          {SIDEBAR_NAV.map((item) => {
             const active = item.match(pathname);
             const Icon = item.icon;
             return (
