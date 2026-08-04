@@ -1,6 +1,6 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
-import { BOOKMAKERS, getBookmaker } from "@/data/bookmakers";
+import { BOOKMAKERS, getBookmaker, type Bookmaker } from "@/data/bookmakers";
 import {
   AffiliateButton,
   AFF_REL,
@@ -113,7 +113,7 @@ function PromoNotFound() {
 }
 
 function BookmakerArticle() {
-  const { bookmaker: b } = Route.useLoaderData();
+  const { bookmaker: b } = Route.useLoaderData() as { bookmaker: Bookmaker };
 
   const toc = [
     { id: "quest-ce-que", label: `Le code ${b.code}` },
