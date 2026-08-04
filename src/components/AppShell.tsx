@@ -19,6 +19,19 @@ const NAV = [
   { to: "/profil", label: "Profil", icon: User, match: (p: string) => p.startsWith("/profil") },
 ] as const;
 
+/** Navigation desktop : identique à la nav mobile + l'onglet Codes promo. */
+const SIDEBAR_NAV = [
+  ...NAV.slice(0, 3),
+  {
+    to: "/codes-promo",
+    label: "Codes promo",
+    icon: Ticket,
+    match: (p: string) => p.startsWith("/codes-promo"),
+  },
+  ...NAV.slice(3),
+] as const;
+
+
 /** Popup de parrainage / upsell — monté au niveau AppShell pour être disponible partout. */
 function GlobalReferralPopup() {
   const { user } = useSession();
