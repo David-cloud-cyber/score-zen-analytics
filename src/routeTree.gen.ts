@@ -21,6 +21,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as CodesPromoIndexRouteImport } from './routes/codes-promo.index'
 import { Route as MatchIdRouteImport } from './routes/match.$id'
 import { Route as LiveIdRouteImport } from './routes/live.$id'
+import { Route as CodesPromoSlugRouteImport } from './routes/codes-promo.$slug'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as AuthenticatedProfilRouteImport } from './routes/_authenticated/profil'
 import { Route as AuthenticatedFavorisRouteImport } from './routes/_authenticated/favoris'
@@ -85,6 +86,11 @@ const LiveIdRoute = LiveIdRouteImport.update({
   path: '/live/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CodesPromoSlugRoute = CodesPromoSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => CodesPromoRoute,
+} as any)
 const AuthCallbackRoute = AuthCallbackRouteImport.update({
   id: '/callback',
   path: '/callback',
@@ -118,6 +124,7 @@ export interface FileRoutesByFullPath {
   '/favoris': typeof AuthenticatedFavorisRoute
   '/profil': typeof AuthenticatedProfilRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/codes-promo/$slug': typeof CodesPromoSlugRoute
   '/live/$id': typeof LiveIdRoute
   '/match/$id': typeof MatchIdRoute
   '/codes-promo/': typeof CodesPromoIndexRoute
@@ -134,6 +141,7 @@ export interface FileRoutesByTo {
   '/favoris': typeof AuthenticatedFavorisRoute
   '/profil': typeof AuthenticatedProfilRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/codes-promo/$slug': typeof CodesPromoSlugRoute
   '/live/$id': typeof LiveIdRoute
   '/match/$id': typeof MatchIdRoute
   '/codes-promo': typeof CodesPromoIndexRoute
@@ -153,6 +161,7 @@ export interface FileRoutesById {
   '/_authenticated/favoris': typeof AuthenticatedFavorisRoute
   '/_authenticated/profil': typeof AuthenticatedProfilRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/codes-promo/$slug': typeof CodesPromoSlugRoute
   '/live/$id': typeof LiveIdRoute
   '/match/$id': typeof MatchIdRoute
   '/codes-promo/': typeof CodesPromoIndexRoute
@@ -172,6 +181,7 @@ export interface FileRouteTypes {
     | '/favoris'
     | '/profil'
     | '/auth/callback'
+    | '/codes-promo/$slug'
     | '/live/$id'
     | '/match/$id'
     | '/codes-promo/'
@@ -188,6 +198,7 @@ export interface FileRouteTypes {
     | '/favoris'
     | '/profil'
     | '/auth/callback'
+    | '/codes-promo/$slug'
     | '/live/$id'
     | '/match/$id'
     | '/codes-promo'
@@ -206,6 +217,7 @@ export interface FileRouteTypes {
     | '/_authenticated/favoris'
     | '/_authenticated/profil'
     | '/auth/callback'
+    | '/codes-promo/$slug'
     | '/live/$id'
     | '/match/$id'
     | '/codes-promo/'
@@ -313,6 +325,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LiveIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/codes-promo/$slug': {
+      id: '/codes-promo/$slug'
+      path: '/$slug'
+      fullPath: '/codes-promo/$slug'
+      preLoaderRoute: typeof CodesPromoSlugRouteImport
+      parentRoute: typeof CodesPromoRoute
+    }
     '/auth/callback': {
       id: '/auth/callback'
       path: '/callback'
@@ -368,10 +387,12 @@ const AuthRouteChildren: AuthRouteChildren = {
 const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
 
 interface CodesPromoRouteChildren {
+  CodesPromoSlugRoute: typeof CodesPromoSlugRoute
   CodesPromoIndexRoute: typeof CodesPromoIndexRoute
 }
 
 const CodesPromoRouteChildren: CodesPromoRouteChildren = {
+  CodesPromoSlugRoute: CodesPromoSlugRoute,
   CodesPromoIndexRoute: CodesPromoIndexRoute,
 }
 
