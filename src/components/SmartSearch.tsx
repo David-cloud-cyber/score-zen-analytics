@@ -8,7 +8,7 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { Users, Sparkles, Star, User } from "lucide-react";
+import { Users, Sparkles, Star, User, Ticket } from "lucide-react";
 
 type Ctx = { open: boolean; setOpen: (v: boolean) => void };
 const SearchCtx = createContext<Ctx | null>(null);
