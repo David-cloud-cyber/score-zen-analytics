@@ -95,7 +95,7 @@ export const Route = createFileRoute("/codes-promo/$slug")({
     };
   },
   notFoundComponent: PromoNotFound,
-  component: BookmakerArticle;
+  component: BookmakerArticle,
 });
 
 function PromoNotFound() {
