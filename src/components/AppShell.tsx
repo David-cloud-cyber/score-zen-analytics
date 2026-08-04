@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Radio, Sparkles, Star, User, Bell, Coins, Search, Users } from "lucide-react";
+import { Radio, Sparkles, Star, User, Bell, Coins, Search, Users, Ticket } from "lucide-react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { SearchProvider, SmartSearchTrigger, useSearchDialog } from "@/components/SmartSearch";
@@ -18,6 +18,19 @@ const NAV = [
   { to: "/favoris", label: "Favoris", icon: Star, match: (p: string) => p.startsWith("/favoris") },
   { to: "/profil", label: "Profil", icon: User, match: (p: string) => p.startsWith("/profil") },
 ] as const;
+
+/** Navigation desktop : identique à la nav mobile + l'onglet Codes promo. */
+const SIDEBAR_NAV = [
+  ...NAV.slice(0, 3),
+  {
+    to: "/codes-promo",
+    label: "Codes promo",
+    icon: Ticket,
+    match: (p: string) => p.startsWith("/codes-promo"),
+  },
+  ...NAV.slice(3),
+] as const;
+
 
 /** Popup de parrainage / upsell — monté au niveau AppShell pour être disponible partout. */
 function GlobalReferralPopup() {
@@ -98,7 +111,7 @@ function DesktopSidebar({ pathname }: { pathname: string }) {
 
       <nav className="flex-1 px-3 py-4">
         <ul className="space-y-1">
-          {NAV.map((item) => {
+          {SIDEBAR_NAV.map((item) => {
             const active = item.match(pathname);
             const Icon = item.icon;
             return (

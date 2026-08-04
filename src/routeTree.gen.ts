@@ -13,12 +13,15 @@ import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as PremiumRouteImport } from './routes/premium'
 import { Route as MentionsLegalesRouteImport } from './routes/mentions-legales'
 import { Route as CommunauteRouteImport } from './routes/communaute'
+import { Route as CodesPromoRouteImport } from './routes/codes-promo'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AnalyseRouteImport } from './routes/analyse'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as CodesPromoIndexRouteImport } from './routes/codes-promo.index'
 import { Route as MatchIdRouteImport } from './routes/match.$id'
 import { Route as LiveIdRouteImport } from './routes/live.$id'
+import { Route as CodesPromoSlugRouteImport } from './routes/codes-promo.$slug'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as AuthenticatedProfilRouteImport } from './routes/_authenticated/profil'
 import { Route as AuthenticatedFavorisRouteImport } from './routes/_authenticated/favoris'
@@ -44,6 +47,11 @@ const CommunauteRoute = CommunauteRouteImport.update({
   path: '/communaute',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CodesPromoRoute = CodesPromoRouteImport.update({
+  id: '/codes-promo',
+  path: '/codes-promo',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
@@ -63,6 +71,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CodesPromoIndexRoute = CodesPromoIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => CodesPromoRoute,
+} as any)
 const MatchIdRoute = MatchIdRouteImport.update({
   id: '/match/$id',
   path: '/match/$id',
@@ -72,6 +85,11 @@ const LiveIdRoute = LiveIdRouteImport.update({
   id: '/live/$id',
   path: '/live/$id',
   getParentRoute: () => rootRouteImport,
+} as any)
+const CodesPromoSlugRoute = CodesPromoSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => CodesPromoRoute,
 } as any)
 const AuthCallbackRoute = AuthCallbackRouteImport.update({
   id: '/callback',
@@ -98,6 +116,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/analyse': typeof AnalyseRoute
   '/auth': typeof AuthRouteWithChildren
+  '/codes-promo': typeof CodesPromoRouteWithChildren
   '/communaute': typeof CommunauteRoute
   '/mentions-legales': typeof MentionsLegalesRoute
   '/premium': typeof PremiumRoute
@@ -105,8 +124,10 @@ export interface FileRoutesByFullPath {
   '/favoris': typeof AuthenticatedFavorisRoute
   '/profil': typeof AuthenticatedProfilRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/codes-promo/$slug': typeof CodesPromoSlugRoute
   '/live/$id': typeof LiveIdRoute
   '/match/$id': typeof MatchIdRoute
+  '/codes-promo/': typeof CodesPromoIndexRoute
   '/api/public/fapshi-webhook': typeof ApiPublicFapshiWebhookRoute
 }
 export interface FileRoutesByTo {
@@ -120,8 +141,10 @@ export interface FileRoutesByTo {
   '/favoris': typeof AuthenticatedFavorisRoute
   '/profil': typeof AuthenticatedProfilRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/codes-promo/$slug': typeof CodesPromoSlugRoute
   '/live/$id': typeof LiveIdRoute
   '/match/$id': typeof MatchIdRoute
+  '/codes-promo': typeof CodesPromoIndexRoute
   '/api/public/fapshi-webhook': typeof ApiPublicFapshiWebhookRoute
 }
 export interface FileRoutesById {
@@ -130,6 +153,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/analyse': typeof AnalyseRoute
   '/auth': typeof AuthRouteWithChildren
+  '/codes-promo': typeof CodesPromoRouteWithChildren
   '/communaute': typeof CommunauteRoute
   '/mentions-legales': typeof MentionsLegalesRoute
   '/premium': typeof PremiumRoute
@@ -137,8 +161,10 @@ export interface FileRoutesById {
   '/_authenticated/favoris': typeof AuthenticatedFavorisRoute
   '/_authenticated/profil': typeof AuthenticatedProfilRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/codes-promo/$slug': typeof CodesPromoSlugRoute
   '/live/$id': typeof LiveIdRoute
   '/match/$id': typeof MatchIdRoute
+  '/codes-promo/': typeof CodesPromoIndexRoute
   '/api/public/fapshi-webhook': typeof ApiPublicFapshiWebhookRoute
 }
 export interface FileRouteTypes {
@@ -147,6 +173,7 @@ export interface FileRouteTypes {
     | '/'
     | '/analyse'
     | '/auth'
+    | '/codes-promo'
     | '/communaute'
     | '/mentions-legales'
     | '/premium'
@@ -154,8 +181,10 @@ export interface FileRouteTypes {
     | '/favoris'
     | '/profil'
     | '/auth/callback'
+    | '/codes-promo/$slug'
     | '/live/$id'
     | '/match/$id'
+    | '/codes-promo/'
     | '/api/public/fapshi-webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -169,8 +198,10 @@ export interface FileRouteTypes {
     | '/favoris'
     | '/profil'
     | '/auth/callback'
+    | '/codes-promo/$slug'
     | '/live/$id'
     | '/match/$id'
+    | '/codes-promo'
     | '/api/public/fapshi-webhook'
   id:
     | '__root__'
@@ -178,6 +209,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/analyse'
     | '/auth'
+    | '/codes-promo'
     | '/communaute'
     | '/mentions-legales'
     | '/premium'
@@ -185,8 +217,10 @@ export interface FileRouteTypes {
     | '/_authenticated/favoris'
     | '/_authenticated/profil'
     | '/auth/callback'
+    | '/codes-promo/$slug'
     | '/live/$id'
     | '/match/$id'
+    | '/codes-promo/'
     | '/api/public/fapshi-webhook'
   fileRoutesById: FileRoutesById
 }
@@ -195,6 +229,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AnalyseRoute: typeof AnalyseRoute
   AuthRoute: typeof AuthRouteWithChildren
+  CodesPromoRoute: typeof CodesPromoRouteWithChildren
   CommunauteRoute: typeof CommunauteRoute
   MentionsLegalesRoute: typeof MentionsLegalesRoute
   PremiumRoute: typeof PremiumRoute
@@ -234,6 +269,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CommunauteRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/codes-promo': {
+      id: '/codes-promo'
+      path: '/codes-promo'
+      fullPath: '/codes-promo'
+      preLoaderRoute: typeof CodesPromoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth': {
       id: '/auth'
       path: '/auth'
@@ -262,6 +304,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/codes-promo/': {
+      id: '/codes-promo/'
+      path: '/'
+      fullPath: '/codes-promo/'
+      preLoaderRoute: typeof CodesPromoIndexRouteImport
+      parentRoute: typeof CodesPromoRoute
+    }
     '/match/$id': {
       id: '/match/$id'
       path: '/match/$id'
@@ -275,6 +324,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/live/$id'
       preLoaderRoute: typeof LiveIdRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/codes-promo/$slug': {
+      id: '/codes-promo/$slug'
+      path: '/$slug'
+      fullPath: '/codes-promo/$slug'
+      preLoaderRoute: typeof CodesPromoSlugRouteImport
+      parentRoute: typeof CodesPromoRoute
     }
     '/auth/callback': {
       id: '/auth/callback'
@@ -330,11 +386,26 @@ const AuthRouteChildren: AuthRouteChildren = {
 
 const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
 
+interface CodesPromoRouteChildren {
+  CodesPromoSlugRoute: typeof CodesPromoSlugRoute
+  CodesPromoIndexRoute: typeof CodesPromoIndexRoute
+}
+
+const CodesPromoRouteChildren: CodesPromoRouteChildren = {
+  CodesPromoSlugRoute: CodesPromoSlugRoute,
+  CodesPromoIndexRoute: CodesPromoIndexRoute,
+}
+
+const CodesPromoRouteWithChildren = CodesPromoRoute._addFileChildren(
+  CodesPromoRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AnalyseRoute: AnalyseRoute,
   AuthRoute: AuthRouteWithChildren,
+  CodesPromoRoute: CodesPromoRouteWithChildren,
   CommunauteRoute: CommunauteRoute,
   MentionsLegalesRoute: MentionsLegalesRoute,
   PremiumRoute: PremiumRoute,
@@ -346,13 +417,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

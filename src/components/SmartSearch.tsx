@@ -8,7 +8,7 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { Users, Sparkles, Star, User } from "lucide-react";
+import { Users, Sparkles, Star, User, Ticket } from "lucide-react";
 
 type Ctx = { open: boolean; setOpen: (v: boolean) => void };
 const SearchCtx = createContext<Ctx | null>(null);
@@ -60,6 +60,10 @@ export function SearchProvider({ children }: { children: ReactNode }) {
             <CommandItem onSelect={() => go("/communaute")}>
               <Users className="mr-2 size-4 text-data" aria-hidden />
               <span>Communauté</span>
+            </CommandItem>
+            <CommandItem onSelect={() => go("/codes-promo")}>
+              <Ticket className="mr-2 size-4 text-warn" aria-hidden />
+              <span>Codes promo bookmakers</span>
             </CommandItem>
             <CommandItem onSelect={() => go("/favoris")}>
               <Star className="mr-2 size-4 text-warn" aria-hidden />

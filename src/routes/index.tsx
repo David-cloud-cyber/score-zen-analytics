@@ -219,6 +219,24 @@ function HomePage() {
           </div>
         </Link>
       </div>
+
+      {/* Footer */}
+      <footer className="mt-10 space-y-3 border-t border-border/60 px-4 py-6 text-center lg:px-0">
+        <nav aria-label="Liens de bas de page" className="flex flex-wrap justify-center gap-x-4 gap-y-2 text-xs font-semibold">
+          <Link to="/codes-promo" className="text-brand hover:underline">
+            Codes promo bookmakers
+          </Link>
+          <Link to="/premium" className="text-muted-foreground hover:text-foreground">
+            Premium
+          </Link>
+          <Link to="/mentions-legales" className="text-muted-foreground hover:text-foreground">
+            Mentions légales
+          </Link>
+        </nav>
+        <p className="text-[11px] text-muted-foreground">
+          Analyses fournies à titre informatif. Paris interdits aux mineurs (18+).
+        </p>
+      </footer>
     </AppShell>
   );
 }
