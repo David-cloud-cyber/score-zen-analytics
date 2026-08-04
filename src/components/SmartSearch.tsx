@@ -61,6 +61,10 @@ export function SearchProvider({ children }: { children: ReactNode }) {
               <Users className="mr-2 size-4 text-data" aria-hidden />
               <span>Communauté</span>
             </CommandItem>
+            <CommandItem onSelect={() => go("/codes-promo")}>
+              <Ticket className="mr-2 size-4 text-warn" aria-hidden />
+              <span>Codes promo bookmakers</span>
+            </CommandItem>
             <CommandItem onSelect={() => go("/favoris")}>
               <Star className="mr-2 size-4 text-warn" aria-hidden />
               <span>Mes favoris</span>
