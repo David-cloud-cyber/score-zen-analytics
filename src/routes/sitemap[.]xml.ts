@@ -21,6 +21,13 @@ export const Route = createFileRoute("/sitemap.xml")({
           { path: "/analyse", changefreq: "weekly", priority: "0.9" },
           { path: "/communaute", changefreq: "daily", priority: "0.8" },
           { path: "/mentions-legales", changefreq: "yearly", priority: "0.3" },
+          { path: "/premium", changefreq: "monthly", priority: "0.7" },
+          { path: "/codes-promo", changefreq: "weekly", priority: "0.9" },
+          ...BOOKMAKERS.map((b) => ({
+            path: `/codes-promo/${b.slug}`,
+            changefreq: "weekly" as const,
+            priority: "0.8",
+          })),
         ];
 
         const urls = entries.map((e) =>
