@@ -1,6 +1,6 @@
-import { createFileRoute, notFound } from "@tanstack/react-router";
+import { createFileRoute, notFound, Link } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
-import { BOOKMAKERS, getBookmaker, type Bookmaker } from "@/data/bookmakers";
+import { BOOKMAKERS, getBookmaker, type Bookmaker, type Section } from "@/data/bookmakers";
 import {
   AffiliateButton,
   AFF_REL,
@@ -12,7 +12,7 @@ import {
   ResponsibleGamblingNotice,
 } from "@/components/promo/PromoUI";
 import { buildRouteMeta } from "@/lib/seo";
-import { Check, X } from "lucide-react";
+import { Check, X, Sparkles, ArrowRight, BadgeCheck } from "lucide-react";
 
 const SITE = "https://www.livefoot.fun";
 
@@ -42,6 +42,14 @@ export const Route = createFileRoute("/codes-promo/$slug")({
     });
     return {
       ...base,
+      meta: [
+        ...base.meta,
+        { name: "robots", content: "index, follow, max-image-preview:large, max-snippet:-1" },
+        { name: "author", content: "Livefoot IA" },
+        { property: "article:published_time", content: `${b.updatedAt}T00:00:00Z` },
+        { property: "article:modified_time", content: `${b.updatedAt}T00:00:00Z` },
+        { property: "article:section", content: "Codes promo bookmakers" },
+      ],
       scripts: [
         {
           type: "application/ld+json",
@@ -51,10 +59,20 @@ export const Route = createFileRoute("/codes-promo/$slug")({
             headline: b.seoTitle,
             description: b.seoDescription,
             image: b.bannerUrl ? [b.bannerUrl] : undefined,
+            datePublished: b.updatedAt,
             dateModified: b.updatedAt,
+            inLanguage: "fr",
             mainEntityOfPage: url,
-            author: { "@type": "Organization", name: "Livefoot IA" },
-            publisher: { "@type": "Organization", name: "Livefoot IA" },
+            keywords: [
+              `code promo ${b.name}`,
+              `code promo ${b.name} ${b.code}`,
+              `bonus ${b.name}`,
+              `${b.name} Afrique`,
+              `${b.name} Cameroun`,
+              `paris sportifs FCFA`,
+            ].join(", "),
+            author: { "@type": "Organization", name: "Livefoot IA", url: SITE },
+            publisher: { "@type": "Organization", name: "Livefoot IA", url: SITE },
           }),
         },
         {
@@ -62,9 +80,32 @@ export const Route = createFileRoute("/codes-promo/$slug")({
           children: JSON.stringify({
             "@context": "https://schema.org",
             "@type": "Review",
-            itemReviewed: { "@type": "Organization", name: b.name, url: b.affiliateUrl },
+            name: `Avis sur le code promo ${b.name} ${b.code}`,
+            itemReviewed: {
+              "@type": "Organization",
+              name: b.name,
+              url: b.affiliateUrl,
+              aggregateRating: {
+                "@type": "AggregateRating",
+                ratingValue: b.rating,
+                bestRating: 5,
+                ratingCount: b.reviewCount,
+              },
+            },
             reviewRating: { "@type": "Rating", ratingValue: b.rating, bestRating: 5 },
+            positiveNotes: { "@type": "ItemList", itemListElement: b.pros.map((p, i) => ({ "@type": "ListItem", position: i + 1, name: p })) },
+            negativeNotes: { "@type": "ItemList", itemListElement: b.cons.map((p, i) => ({ "@type": "ListItem", position: i + 1, name: p })) },
             author: { "@type": "Organization", name: "Livefoot IA" },
+          }),
+        },
+        {
+          type: "application/ld+json",
+          children: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "HowTo",
+            name: `Comment utiliser le code promo ${b.name} ${b.code}`,
+            description: `Étapes d'inscription sur ${b.name} avec le code promo ${b.code} pour activer le bonus de bienvenue.`,
+            step: b.steps.map((s, i) => ({ "@type": "HowToStep", position: i + 1, text: s })),
           }),
         },
         {
@@ -112,20 +153,102 @@ function PromoNotFound() {
   );
 }
 
+/** Encart CTA vers le comparateur IA — placé aux moments clés de l'article. */
+function AnalyseCta({ title, text, label }: { title: string; text: string; label: string }) {
+  return (
+    <aside className="rounded-2xl border border-brand/30 bg-brand/5 p-5">
+      <div className="flex items-start gap-3">
+        <span className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-xl bg-brand/15 text-brand">
+          <Sparkles className="size-4" aria-hidden />
+        </span>
+        <div className="space-y-2">
+          <p className="text-sm font-black">{title}</p>
+          <p className="text-sm leading-relaxed text-muted-foreground">{text}</p>
+          <Link
+            to="/analyse"
+            search={{ home: "", away: "" }}
+            className="inline-flex items-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-sm font-black text-brand-foreground transition-transform hover:scale-[1.02] active:scale-95"
+          >
+            {label}
+            <ArrowRight className="size-4" aria-hidden />
+          </Link>
+        </div>
+      </div>
+    </aside>
+  );
+}
+
+function BulletList({ items }: { items: string[] }) {
+  return (
+    <ul className="space-y-1.5">
+      {items.map((it) => (
+        <li key={it} className="flex gap-2 text-sm leading-relaxed text-muted-foreground">
+          <span className="mt-2 size-1.5 shrink-0 rounded-full bg-brand" aria-hidden />
+          {it}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function SectionBlock({ s }: { s: Section }) {
+  return (
+    <section id={s.id} className="scroll-mt-24 space-y-4">
+      <h2 className="border-l-4 border-brand pl-3 text-xl font-black leading-tight tracking-tight lg:text-2xl">
+        {s.title}
+      </h2>
+      {s.paragraphs.map((p, i) => (
+        <p key={i} className="text-[15px] leading-relaxed text-muted-foreground">
+          {p}
+        </p>
+      ))}
+      {s.bullets && <BulletList items={s.bullets} />}
+      {s.sub?.map((sub) => (
+        <div key={sub.id} id={sub.id} className="scroll-mt-24 space-y-2 border-t border-border/50 pt-4">
+          <h3 className="text-base font-black tracking-tight">{sub.title}</h3>
+          {sub.paragraphs.map((p, i) => (
+            <p key={i} className="text-[15px] leading-relaxed text-muted-foreground">
+              {p}
+            </p>
+          ))}
+          {sub.bullets && <BulletList items={sub.bullets} />}
+        </div>
+      ))}
+      {s.cta && <AnalyseCta {...s.cta} />}
+    </section>
+  );
+}
+
 function BookmakerArticle() {
   const { bookmaker: b } = Route.useLoaderData() as { bookmaker: Bookmaker };
 
-  const toc = [
-    { id: "quest-ce-que", label: `Le code ${b.code}` },
-    { id: "comment-utiliser", label: "Comment l'utiliser" },
-    { id: "details-bonus", label: "Détails du bonus" },
-    { id: "conditions", label: "Conditions" },
-    ...b.sections.filter((s) => s.id !== "quest-ce-que").map((s) => ({ id: s.id, label: s.title })),
-    { id: "faq", label: "FAQ" },
-  ];
+  const readingMinutes = Math.max(
+    6,
+    Math.round(
+      (b.intro.join(" ").split(" ").length +
+        b.sections.reduce(
+          (n, s) =>
+            n +
+            s.paragraphs.join(" ").split(" ").length +
+            (s.sub?.reduce((m, x) => m + x.paragraphs.join(" ").split(" ").length, 0) ?? 0),
+          0,
+        )) /
+        200,
+    ),
+  );
 
-  const otherSections = b.sections.filter((s) => s.id !== "quest-ce-que");
-  const whatIs = b.sections.find((s) => s.id === "quest-ce-que");
+  const toc: { id: string; label: string; children?: { id: string; label: string }[] }[] = [
+    { id: "comment-utiliser", label: `Comment utiliser le code ${b.code}` },
+    { id: "details-bonus", label: "Détails du bonus" },
+    { id: "conditions", label: "Conditions générales" },
+    ...b.sections.map((s) => ({
+      id: s.id,
+      label: s.title,
+      children: s.sub?.map((x) => ({ id: x.id, label: x.title })),
+    })),
+    { id: "avis-pros-cons", label: "Points forts et limites" },
+    { id: "faq", label: "Foire aux questions" },
+  ];
 
   return (
     <AppShell>
@@ -160,6 +283,14 @@ function BookmakerArticle() {
           <div className="flex flex-wrap items-center gap-3">
             <CopyCodeButton code={b.code} size="lg" />
             <AffiliateButton href={b.affiliateUrl}>Récupérer le bonus</AffiliateButton>
+            <Link
+              to="/analyse"
+              search={{ home: "", away: "" }}
+              className="inline-flex items-center gap-2 rounded-xl border border-brand/40 px-4 py-3 text-sm font-black text-brand transition-colors hover:bg-brand/10"
+            >
+              <Sparkles className="size-4" aria-hidden />
+              Analyser un match
+            </Link>
           </div>
 
           {b.bannerUrl && (
@@ -174,13 +305,31 @@ function BookmakerArticle() {
           )}
 
           <p className="text-[11px] text-muted-foreground">
-            Dernière vérification : {new Date(b.updatedAt).toLocaleDateString("fr-FR")} · Licence {b.licence} · Contenu
-            sponsorisé, 18+
+            Dernière vérification : {new Date(b.updatedAt).toLocaleDateString("fr-FR")} · Licence {b.licence} ·{" "}
+            {readingMinutes} min de lecture · Contenu sponsorisé, 18+
           </p>
         </header>
 
+        {/* À retenir */}
+        {b.keyTakeaways.length > 0 && (
+          <section aria-label="L'essentiel" className="rounded-2xl border border-border/70 bg-surface/40 p-5">
+            <h2 className="mb-3 flex items-center gap-2 text-sm font-black uppercase tracking-widest text-muted-foreground">
+              <BadgeCheck className="size-4 text-brand" aria-hidden />
+              L'essentiel en 30 secondes
+            </h2>
+            <ul className="space-y-2">
+              {b.keyTakeaways.map((k) => (
+                <li key={k} className="flex gap-2 text-sm leading-relaxed">
+                  <Check className="mt-0.5 size-4 shrink-0 text-brand" aria-hidden />
+                  {k}
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
         {b.intro.map((p, i) => (
-          <p key={i} className="text-sm leading-relaxed text-muted-foreground">
+          <p key={i} className="text-[15px] leading-relaxed text-muted-foreground">
             {p}
           </p>
         ))}
@@ -188,32 +337,31 @@ function BookmakerArticle() {
         {/* Sommaire */}
         <nav aria-label="Sommaire" className="rounded-2xl border border-border/70 p-4">
           <h2 className="mb-2 text-xs font-black uppercase tracking-widest text-muted-foreground">Sommaire</h2>
-          <ul className="grid gap-1.5 sm:grid-cols-2">
+          <ol className="space-y-2">
             {toc.map((t) => (
               <li key={t.id}>
-                <a href={`#${t.id}`} className="text-sm font-semibold text-brand hover:underline">
+                <a href={`#${t.id}`} className="text-sm font-bold text-brand hover:underline">
                   {t.label}
                 </a>
+                {t.children && t.children.length > 0 && (
+                  <ul className="mt-1 space-y-0.5 border-l border-border/60 pl-3">
+                    {t.children.map((c) => (
+                      <li key={c.id}>
+                        <a href={`#${c.id}`} className="text-[13px] text-muted-foreground hover:text-foreground">
+                          {c.label}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </li>
             ))}
-          </ul>
+          </ol>
         </nav>
 
-        {whatIs && (
-          <section id={whatIs.id} className="space-y-3 scroll-mt-24">
-            <h2 className="text-xl font-black tracking-tight">{whatIs.title}</h2>
-            {whatIs.paragraphs.map((p, i) => (
-              <p key={i} className="text-sm leading-relaxed text-muted-foreground">
-                {p}
-              </p>
-            ))}
-            {whatIs.bullets && <BulletList items={whatIs.bullets} />}
-          </section>
-        )}
-
-        <section id="comment-utiliser" className="space-y-3 scroll-mt-24">
-          <h2 className="text-xl font-black tracking-tight">
-            Comment utiliser le code promo {b.code} sur {b.name}
+        <section id="comment-utiliser" className="scroll-mt-24 space-y-3">
+          <h2 className="border-l-4 border-brand pl-3 text-xl font-black tracking-tight lg:text-2xl">
+            Comment utiliser le code promo {b.code} sur {b.name} : étape par étape
           </h2>
           <ol className="space-y-2">
             {b.steps.map((s, i) => (
@@ -225,33 +373,33 @@ function BookmakerArticle() {
               </li>
             ))}
           </ol>
+          <div className="flex flex-wrap items-center gap-3 pt-1">
+            <CopyCodeButton code={b.code} />
+            <AffiliateButton href={b.affiliateUrl}>Créer mon compte {b.name}</AffiliateButton>
+          </div>
         </section>
 
-        <section id="details-bonus" className="space-y-3 scroll-mt-24">
-          <h2 className="text-xl font-black tracking-tight">Détails du bonus de bienvenue</h2>
+        <section id="details-bonus" className="scroll-mt-24 space-y-3">
+          <h2 className="border-l-4 border-brand pl-3 text-xl font-black tracking-tight lg:text-2xl">
+            Détails du bonus de bienvenue {b.name}
+          </h2>
           <BonusTable rows={b.bonusTable} />
         </section>
 
-        <section id="conditions" className="space-y-3 scroll-mt-24">
-          <h2 className="text-xl font-black tracking-tight">Conditions générales du bonus</h2>
+        <section id="conditions" className="scroll-mt-24 space-y-3">
+          <h2 className="border-l-4 border-brand pl-3 text-xl font-black tracking-tight lg:text-2xl">
+            Conditions générales du bonus
+          </h2>
           <BulletList items={b.terms} />
         </section>
 
-        {otherSections.map((s) => (
-          <section key={s.id} id={s.id} className="space-y-3 scroll-mt-24">
-            <h2 className="text-xl font-black tracking-tight">{s.title}</h2>
-            {s.paragraphs.map((p, i) => (
-              <p key={i} className="text-sm leading-relaxed text-muted-foreground">
-                {p}
-              </p>
-            ))}
-            {s.bullets && <BulletList items={s.bullets} />}
-          </section>
+        {b.sections.map((s) => (
+          <SectionBlock key={s.id} s={s} />
         ))}
 
-        <section className="grid gap-3 sm:grid-cols-2" aria-label="Points forts et points faibles">
+        <section id="avis-pros-cons" className="grid scroll-mt-24 gap-3 sm:grid-cols-2" aria-label="Points forts et points faibles">
           <div className="rounded-2xl border border-brand/30 bg-brand/5 p-4">
-            <h3 className="mb-2 text-sm font-black text-brand">Points forts</h3>
+            <h2 className="mb-2 text-sm font-black text-brand">Points forts</h2>
             <ul className="space-y-1.5">
               {b.pros.map((p) => (
                 <li key={p} className="flex gap-2 text-sm">
@@ -262,7 +410,7 @@ function BookmakerArticle() {
             </ul>
           </div>
           <div className="rounded-2xl border border-border/70 bg-surface/40 p-4">
-            <h3 className="mb-2 text-sm font-black text-muted-foreground">Points faibles</h3>
+            <h2 className="mb-2 text-sm font-black text-muted-foreground">Points faibles</h2>
             <ul className="space-y-1.5">
               {b.cons.map((p) => (
                 <li key={p} className="flex gap-2 text-sm">
@@ -274,16 +422,29 @@ function BookmakerArticle() {
           </div>
         </section>
 
-        <section id="faq" className="space-y-3 scroll-mt-24">
-          <h2 className="text-xl font-black tracking-tight">FAQ — code promo {b.name}</h2>
+        <section id="faq" className="scroll-mt-24 space-y-3">
+          <h2 className="border-l-4 border-brand pl-3 text-xl font-black tracking-tight lg:text-2xl">
+            Foire aux questions (FAQ) sur le code promo {b.name} en Afrique
+          </h2>
           <PromoFaq items={b.faq} />
         </section>
 
         <div className="space-y-3 rounded-3xl border border-border/70 bg-surface/50 p-5 text-center">
           <p className="text-base font-black">Prêt à activer votre bonus {b.name} ?</p>
+          <p className="text-sm text-muted-foreground">
+            Copiez le code, ouvrez votre compte, puis analysez vos premières affiches avec notre IA.
+          </p>
           <div className="flex flex-wrap items-center justify-center gap-3">
             <CopyCodeButton code={b.code} />
             <AffiliateButton href={b.affiliateUrl}>S'inscrire avec {b.code}</AffiliateButton>
+            <Link
+              to="/analyse"
+              search={{ home: "", away: "" }}
+              className="inline-flex items-center gap-2 rounded-xl border border-brand/40 px-4 py-3 text-sm font-black text-brand transition-colors hover:bg-brand/10"
+            >
+              <Sparkles className="size-4" aria-hidden />
+              Analyser un match
+            </Link>
           </div>
         </div>
 
@@ -298,18 +459,5 @@ function BookmakerArticle() {
         )}
       </article>
     </AppShell>
-  );
-}
-
-function BulletList({ items }: { items: string[] }) {
-  return (
-    <ul className="space-y-1.5">
-      {items.map((it) => (
-        <li key={it} className="flex gap-2 text-sm leading-relaxed text-muted-foreground">
-          <span className="mt-2 size-1.5 shrink-0 rounded-full bg-brand" aria-hidden />
-          {it}
-        </li>
-      ))}
-    </ul>
   );
 }
