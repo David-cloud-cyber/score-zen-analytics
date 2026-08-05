@@ -166,7 +166,7 @@ function AnalyseCta({ title, text, label }: { title: string; text: string; label
           <p className="text-sm leading-relaxed text-muted-foreground">{text}</p>
           <Link
             to="/analyse"
-            search={{}}
+            search={{ home: "", away: "" }}
             className="inline-flex items-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-sm font-black text-brand-foreground transition-transform hover:scale-[1.02] active:scale-95"
           >
             {label}
@@ -285,7 +285,7 @@ function BookmakerArticle() {
             <AffiliateButton href={b.affiliateUrl}>Récupérer le bonus</AffiliateButton>
             <Link
               to="/analyse"
-              search={{}}
+              search={{ home: "", away: "" }}
               className="inline-flex items-center gap-2 rounded-xl border border-brand/40 px-4 py-3 text-sm font-black text-brand transition-colors hover:bg-brand/10"
             >
               <Sparkles className="size-4" aria-hidden />
@@ -439,7 +439,7 @@ function BookmakerArticle() {
             <AffiliateButton href={b.affiliateUrl}>S'inscrire avec {b.code}</AffiliateButton>
             <Link
               to="/analyse"
-              search={{}}
+              search={{ home: "", away: "" }}
               className="inline-flex items-center gap-2 rounded-xl border border-brand/40 px-4 py-3 text-sm font-black text-brand transition-colors hover:bg-brand/10"
             >
               <Sparkles className="size-4" aria-hidden />
