@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useMemo, useState } from "react";
 import { AppShell, PageTitle } from "@/components/AppShell";
-import { BOOKMAKERS } from "@/data/bookmakers";
+import { BOOKMAKERS, availableBonusTypes, type BonusType } from "@/data/bookmakers";
 import {
   Breadcrumb,
   PromoCodeCard,
@@ -8,6 +9,7 @@ import {
   ResponsibleGamblingNotice,
   CopyCodeButton,
 } from "@/components/promo/PromoUI";
+import { cn } from "@/lib/utils";
 import { buildRouteMeta } from "@/lib/seo";
 
 const SITE = "https://www.livefoot.fun";
@@ -78,6 +80,88 @@ export const Route = createFileRoute("/codes-promo/")({
   component: PromoHub,
 });
 
+/** Filtres par bookmaker et par type de bonus. */
+function PromoFilters() {
+  const [bookmaker, setBookmaker] = useState<string>("all");
+  const [bonusType, setBonusType] = useState<BonusType | "all">("all");
+  const types = availableBonusTypes();
+
+  const list = useMemo(
+    () =>
+      BOOKMAKERS.filter(
+        (b) =>
+          (bookmaker === "all" || b.slug === bookmaker) &&
+          (bonusType === "all" || b.bonusTypes.includes(bonusType)),
+      ),
+    [bookmaker, bonusType],
+  );
+
+  return (
+    <section className="space-y-4" aria-label="Liste des codes promo">
+      <div className="space-y-3 rounded-2xl border border-border/70 bg-surface/40 p-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <label htmlFor="filtre-bookmaker" className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">
+            Bookmaker
+          </label>
+          <select
+            id="filtre-bookmaker"
+            value={bookmaker}
+            onChange={(e) => setBookmaker(e.target.value)}
+            className="rounded-xl border border-border bg-background px-3 py-2 text-sm font-bold"
+          >
+            <option value="all">Tous les bookmakers</option>
+            {BOOKMAKERS.map((b) => (
+              <option key={b.slug} value={b.slug}>
+                {b.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="space-y-2">
+          <span className="block text-[11px] font-black uppercase tracking-widest text-muted-foreground">
+            Type de bonus
+          </span>
+          <div className="flex flex-wrap gap-2">
+            {(["all", ...types] as const).map((t) => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => setBonusType(t as BonusType | "all")}
+                aria-pressed={bonusType === t}
+                className={cn(
+                  "rounded-full border px-3 py-1.5 text-xs font-bold transition-colors",
+                  bonusType === t
+                    ? "border-brand bg-brand text-brand-foreground"
+                    : "border-border text-muted-foreground hover:bg-surface",
+                )}
+              >
+                {t === "all" ? "Tous les bonus" : t}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <p aria-live="polite" className="text-xs text-muted-foreground">
+        {list.length} code{list.length > 1 ? "s" : ""} promo affiché{list.length > 1 ? "s" : ""}
+      </p>
+
+      {list.length === 0 ? (
+        <p className="rounded-2xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+          Aucun code promo ne correspond à ces filtres.
+        </p>
+      ) : (
+        <div className="grid gap-4 lg:grid-cols-2">
+          {list.map((b) => (
+            <PromoCodeCard key={b.slug} b={b} />
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
 function PromoHub() {
   return (
     <AppShell>
@@ -107,11 +191,7 @@ function PromoHub() {
           </p>
         </div>
 
-        <section className="grid gap-4 lg:grid-cols-2" aria-label="Liste des codes promo">
-          {BOOKMAKERS.map((b) => (
-            <PromoCodeCard key={b.slug} b={b} />
-          ))}
-        </section>
+        <PromoFilters />
 
         <section className="space-y-3">
           <h2 className="text-lg font-black tracking-tight">Comparatif rapide</h2>

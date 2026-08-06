@@ -1,3 +1,4 @@
+import { BONUS_TYPES } from "./bookmaker-template";
 /**
  * Contenu statique des pages « Codes promo » partenaires.
  *
@@ -5,53 +6,15 @@
  * La page hub, la page article et le sitemap se mettent à jour automatiquement.
  */
 
-export type BonusRow = { label: string; value: string };
-export type FaqItem = { q: string; a: string };
-export type SubSection = { id: string; title: string; paragraphs: string[]; bullets?: string[] };
-export type Section = {
-  id: string;
-  title: string;
-  paragraphs: string[];
-  bullets?: string[];
-  sub?: SubSection[];
-  /** Encart d'appel à l'action vers l'analyse IA, affiché en fin de section. */
-  cta?: { title: string; text: string; label: string };
-  /** Tableau comparatif optionnel rendu après les paragraphes. */
-  table?: { head: string[]; rows: string[][] };
-};
+import { defineBookmaker } from "./bookmaker-template";
+import { BETWINNER } from "./bookmakers/betwinner";
+import type { Bookmaker, BonusType } from "./bookmaker-template";
 
-export type Bookmaker = {
-  slug: string;
-  name: string;
-  code: string;
-  affiliateUrl: string;
-  bannerUrl?: string;
-  bannerLinkUrl?: string;
-  rating: number; // /5
-  reviewCount: number;
-  accent: string; // couleur de marque (hex, usage décoratif uniquement)
-  tagline: string;
-  bonusHeadline: string;
-  bonusShort: string;
-  minDeposit: string;
-  licence: string;
-  updatedAt: string; // ISO date — dernière vérification éditoriale
-  seoTitle: string;
-  seoDescription: string;
-  /** Points clés affichés en encart « À retenir » sous le hero. */
-  keyTakeaways: string[];
-  intro: string[];
-  steps: string[];
-  bonusTable: BonusRow[];
-  terms: string[];
-  sections: Section[];
-  pros: string[];
-  cons: string[];
-  faq: FaqItem[];
-};
+export { BONUS_TYPES, defineBookmaker } from "./bookmaker-template";
+export type { Bookmaker, BonusType, BonusRow, FaqItem, Section, SubSection } from "./bookmaker-template";
 
 export const BOOKMAKERS: Bookmaker[] = [
-  {
+  defineBookmaker({
     slug: "1win",
     name: "1win",
     code: "PREDAT",
@@ -67,6 +30,7 @@ export const BOOKMAKERS: Bookmaker[] = [
     bonusShort: "+500 % répartis sur les 4 premiers dépôts",
     minDeposit: "1 000 FCFA",
     licence: "Curaçao",
+    bonusTypes: ["Bonus de bienvenue", "Bonus sur dépôt", "Bonus multi/combiné", "Bonus casino"],
     updatedAt: "2026-08-05",
     seoTitle: "Code promo 1win PREDAT : 130 000 FCFA de bonus (août 2026)",
     seoDescription:
@@ -311,7 +275,7 @@ export const BOOKMAKERS: Bookmaker[] = [
         ],
         cta: {
           title: "Sécurisez vos premiers combinés",
-          text: "Avant de placer les combinés qui débloquent votre bonus, passez chaque affiche au comparateur IA de LiveFoot : probabilités, forme des équipes et valeur des cotes en quelques secondes.",
+          text: "Avant de placer les combinés qui débloquent votre bonus, passez chaque affiche au moteur de prédictions IA de LiveFoot : probabilités, forme des équipes et valeur des cotes en quelques secondes.",
           label: "Lancer une analyse IA",
         },
       },
@@ -490,7 +454,7 @@ export const BOOKMAKERS: Bookmaker[] = [
         ],
         cta: {
           title: "Faites analyser votre ticket par l'IA",
-          text: "Entrez les équipes de votre combiné dans le comparateur LiveFoot : vous obtenez les probabilités de victoire, la forme récente et les marchés les plus cohérents avant de valider votre mise.",
+          text: "Entrez les équipes de votre combiné dans le moteur de prédictions LiveFoot : vous obtenez les probabilités de victoire, la forme récente et les marchés les plus cohérents avant de valider votre mise.",
           label: "Analyser mon match",
         },
       },
@@ -567,14 +531,14 @@ export const BOOKMAKERS: Bookmaker[] = [
             id: "ameliorer-analyses",
             title: "Conseils pour améliorer ses analyses",
             paragraphs: [
-              "Appuyez-vous sur des données plutôt que sur des impressions : xG sur les cinq derniers matchs, performance domicile/extérieur, blessures, enjeu du match. C'est exactement ce que le comparateur IA de LiveFoot agrège automatiquement pour vous.",
+              "Appuyez-vous sur des données plutôt que sur des impressions : xG sur les cinq derniers matchs, performance domicile/extérieur, blessures, enjeu du match. C'est exactement ce que le moteur de prédictions IA de LiveFoot agrège automatiquement pour vous.",
             ],
           },
         ],
         cta: {
           title: "Analysez votre prochaine affiche en 10 secondes",
           text: "Sélectionnez deux équipes et obtenez probabilités de victoire, forme récente, confrontations directes et marchés recommandés — puis placez votre pari sur 1win avec le code PREDAT.",
-          label: "Ouvrir le comparateur IA",
+          label: "Ouvrir le moteur de prédictions IA",
         },
       },
       {
@@ -834,9 +798,27 @@ export const BOOKMAKERS: Bookmaker[] = [
         a: "Oui, totalement. PREDAT est gratuit et n'engendre aucun frais. LiveFoot AI perçoit une commission d'affiliation de la part du bookmaker, sans aucun impact sur vos cotes ni sur votre bonus.",
       },
     ],
-  },
+  }),
+  BETWINNER,
 ];
 
 export function getBookmaker(slug: string): Bookmaker | undefined {
   return BOOKMAKERS.find((b) => b.slug === slug);
+}
+
+/** Maillage interne : alternatives proposées sur une page bookmaker. */
+export function getRelatedBookmakers(slug: string, limit = 3): Bookmaker[] {
+  const current = getBookmaker(slug);
+  return BOOKMAKERS.filter((b) => b.slug !== slug)
+    .sort((a, b) => {
+      const shared = (x: Bookmaker) =>
+        current ? x.bonusTypes.filter((t) => current.bonusTypes.includes(t)).length : 0;
+      return shared(b) - shared(a) || b.rating - a.rating;
+    })
+    .slice(0, limit);
+}
+
+/** Types de bonus réellement présents dans le catalogue (pour les filtres). */
+export function availableBonusTypes(): BonusType[] {
+  return (BONUS_TYPES as readonly BonusType[]).filter((t) => BOOKMAKERS.some((b) => b.bonusTypes.includes(t)));
 }

@@ -8,6 +8,8 @@ import { getFixtures } from "@/lib/football.functions";
 import { buildRouteMeta } from "@/lib/seo";
 import { cn } from "@/lib/utils";
 import { PageSkeleton } from "@/components/PageSkeleton";
+import { track } from "@/lib/analytics";
+
 
 const fixturesQuery = (mode: "today" | "live") =>
   queryOptions({
@@ -155,12 +157,15 @@ function HomePage() {
 
           <Link
             to="/analyse"
+            search={{ home: "", away: "" }}
+            onClick={() => track("cta_click", { location: "home_desktop_card" })}
             className="hidden overflow-hidden rounded-3xl bg-brand/10 p-6 ring-1 ring-brand/20 transition-all hover:bg-brand/15 lg:flex lg:flex-col lg:justify-between"
           >
             <div>
               <div className="mb-3 inline-flex items-center gap-1.5 rounded-full bg-brand/20 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-brand">
-                <Sparkles className="size-3" /> Comparateur
+                <Sparkles className="size-3" /> Prédictions
               </div>
+
               <h3 className="text-xl font-black leading-tight tracking-tight">
                 Analysez deux équipes de votre choix
               </h3>
@@ -208,10 +213,13 @@ function HomePage() {
       <div className="mt-8 px-4 lg:hidden">
         <Link
           to="/analyse"
+          search={{ home: "", away: "" }}
+          onClick={() => track("cta_click", { location: "home_mobile_cta" })}
           className="flex items-center justify-between rounded-2xl bg-brand/10 p-4 ring-1 ring-brand/20 transition-transform active:scale-[0.99]"
         >
           <div>
-            <div className="text-[10px] font-black uppercase tracking-widest text-brand">Comparateur</div>
+            <div className="text-[10px] font-black uppercase tracking-widest text-brand">Prédictions</div>
+
             <div className="mt-1 text-sm font-bold">Analyser deux équipes de votre choix</div>
           </div>
           <div className="grid size-10 place-items-center rounded-full bg-brand text-brand-foreground">
