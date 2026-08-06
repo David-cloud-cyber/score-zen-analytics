@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { Check, Copy, ExternalLink, Star, ShieldAlert, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Bookmaker } from "@/data/bookmakers";
+import { track } from "@/lib/analytics";
 
 export const AFF_REL = "sponsored noopener noreferrer nofollow";
 
@@ -12,6 +13,7 @@ export function CopyCodeButton({ code, size = "md" }: { code: string; size?: "sm
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(code);
+      track("promo_code_copy", { location: code });
       setCopied(true);
       setTimeout(() => setCopied(false), 1800);
     } catch {
@@ -69,6 +71,7 @@ export function AffiliateButton({
       href={href}
       target="_blank"
       rel={AFF_REL}
+      onClick={() => track("promo_affiliate_click", { location: href })}
       className={cn(
         "inline-flex items-center justify-center gap-2 rounded-xl bg-brand px-5 py-3 text-sm font-black text-brand-foreground transition-transform hover:scale-[1.02] active:scale-95",
         className,
@@ -106,6 +109,7 @@ export function PromoCodeCard({ b }: { b: Bookmaker }) {
       <div className="space-y-3 p-4">
         <p className="text-lg font-black leading-tight">{b.bonusHeadline}</p>
         <p className="text-xs text-muted-foreground">{b.tagline}</p>
+        <BonusTypeBadges types={b.bonusTypes} />
 
         <div className="flex flex-wrap items-center gap-2">
           <CopyCodeButton code={b.code} />
