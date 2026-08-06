@@ -60,6 +60,11 @@ function AnalysePage() {
 
   const keyFactors = (live?.keyFactors ?? []) as string[];
 
+  // Conversion : arrivée sur la page d'analyse (attribuée au dernier CTA cliqué)
+  useEffect(() => {
+    track("analyse_view", { source: lastCtaSource() ?? "direct" });
+  }, []);
+
   // Rediriger vers /auth si l'utilisateur n'est pas connecté (après chargement)
   useEffect(() => {
     if (!sessionLoading && !user) {
@@ -96,6 +101,7 @@ function AnalysePage() {
       toast.error("Renseignez les deux équipes.");
       return;
     }
+    track("analyse_run", { source: lastCtaSource() ?? "direct" });
     setLoading(true);
     setLoadingStep("Extraction des données H2H & formes récentes...");
     

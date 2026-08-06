@@ -9,6 +9,7 @@ LiveFoot AI est une application web française qui combine un livescore complet 
 - [Matchs du jour](/): scores en direct et matchs à venir, filtrables par statut et par compétition.
 - [Prédictions IA](/analyse): analyse IA sur mesure — entrez deux équipes, obtenez probabilités, score probable et marchés recommandés.
 - [Codes promo bookmakers](/codes-promo): codes partenaires vérifiés, bonus de bienvenue en FCFA, conditions et comparatif.
+- [Code promo Betwinner BALL10](/codes-promo/betwinner): guide complet du bonus Betwinner jusqu'à 130 000 FCFA, inscription, conditions de mise, Mobile Money et avis.
 - [Code promo 1win PREDAT](/codes-promo/1win): guide complet du bonus 1win jusqu'à 130 000 FCFA, inscription, conditions, retraits Mobile Money et avis.
 - [Communauté](/communaute): discussions par match et par compétition, pronostics et débats tactiques.
 - [Premium](/premium): abonnement, packs de crédits et tarifs en FCFA.
