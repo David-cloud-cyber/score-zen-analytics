@@ -41,9 +41,9 @@ export const Route = createFileRoute("/codes-promo/")({
   head: () => {
     const base = buildRouteMeta({
       path: "/codes-promo",
-      title: "Codes promo bookmakers 2026 : bonus vérifiés en FCFA",
+      title: "Codes promo bookmakers 2026 : 1win PREDAT, Betwinner BALL10",
       description:
-        "Tous nos codes promo partenaires vérifiés : bonus de bienvenue, conditions, dépôt minimum et avis détaillé pour chaque bookmaker accepté en Afrique francophone.",
+        "Codes promo bookmakers vérifiés en août 2026 : 1win PREDAT et Betwinner BALL10, jusqu'à 130 000 FCFA de bonus. Conditions, dépôt minimum, Mobile Money et avis détaillé.",
     });
     return {
       ...base,
@@ -60,6 +60,17 @@ export const Route = createFileRoute("/codes-promo/")({
               name: `Code promo ${b.name} ${b.code}`,
               url: `${SITE}/codes-promo/${b.slug}`,
             })),
+          }),
+        },
+        {
+          type: "application/ld+json",
+          children: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "BreadcrumbList",
+            itemListElement: [
+              { "@type": "ListItem", position: 1, name: "Accueil", item: SITE },
+              { "@type": "ListItem", position: 2, name: "Codes promo", item: `${SITE}/codes-promo` },
+            ],
           }),
         },
         {
