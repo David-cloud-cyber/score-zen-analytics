@@ -1,6 +1,6 @@
 import { createFileRoute, notFound, Link } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
-import { BOOKMAKERS, getBookmaker, type Bookmaker, type Section } from "@/data/bookmakers";
+import { BOOKMAKERS, getBookmaker, getRelatedBookmakers, type Bookmaker, type Section } from "@/data/bookmakers";
 import {
   AffiliateButton,
   AFF_REL,
@@ -10,9 +10,12 @@ import {
   PromoFaq,
   RatingStars,
   ResponsibleGamblingNotice,
+  RelatedBookmakers,
+  SectionTable,
 } from "@/components/promo/PromoUI";
+import { track, useCtaImpression } from "@/lib/analytics";
 import { buildRouteMeta } from "@/lib/seo";
-import { Check, X, Sparkles, ArrowRight, BadgeCheck } from "lucide-react";
+import { Check, X, Sparkles, ArrowRight, BadgeCheck, ChevronDown } from "lucide-react";
 
 const SITE = "https://www.livefoot.fun";
 
@@ -153,10 +156,11 @@ function PromoNotFound() {
   );
 }
 
-/** Encart CTA vers le comparateur IA — placé aux moments clés de l'article. */
-function AnalyseCta({ title, text, label }: { title: string; text: string; label: string }) {
+/** Encart CTA vers les prédictions IA — placé aux moments clés de l'article. */
+function AnalyseCta({ title, text, label, location }: { title: string; text: string; label: string; location: string }) {
+  const ref = useCtaImpression<HTMLElement>(location);
   return (
-    <aside className="rounded-2xl border border-brand/30 bg-brand/5 p-5">
+    <aside ref={ref} className="rounded-2xl border border-brand/30 bg-brand/5 p-5">
       <div className="flex items-start gap-3">
         <span className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-xl bg-brand/15 text-brand">
           <Sparkles className="size-4" aria-hidden />
@@ -167,6 +171,7 @@ function AnalyseCta({ title, text, label }: { title: string; text: string; label
           <Link
             to="/analyse"
             search={{ home: "", away: "" }}
+            onClick={() => track("cta_click", { location })}
             className="inline-flex items-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-sm font-black text-brand-foreground transition-transform hover:scale-[1.02] active:scale-95"
           >
             {label}
@@ -203,6 +208,7 @@ function SectionBlock({ s }: { s: Section }) {
         </p>
       ))}
       {s.bullets && <BulletList items={s.bullets} />}
+      {s.table && <SectionTable head={s.table.head} rows={s.table.rows} />}
       {s.sub?.map((sub) => (
         <div key={sub.id} id={sub.id} className="scroll-mt-24 space-y-2 border-t border-border/50 pt-4">
           <h3 className="text-base font-black tracking-tight">{sub.title}</h3>
@@ -214,7 +220,7 @@ function SectionBlock({ s }: { s: Section }) {
           {sub.bullets && <BulletList items={sub.bullets} />}
         </div>
       ))}
-      {s.cta && <AnalyseCta {...s.cta} />}
+      {s.cta && <AnalyseCta {...s.cta} location={`article_${s.id}`} />}
     </section>
   );
 }
@@ -286,6 +292,7 @@ function BookmakerArticle() {
             <Link
               to="/analyse"
               search={{ home: "", away: "" }}
+              onClick={() => track("cta_click", { location: `promo_${b.slug}_hero` })}
               className="inline-flex items-center gap-2 rounded-xl border border-brand/40 px-4 py-3 text-sm font-black text-brand transition-colors hover:bg-brand/10"
             >
               <Sparkles className="size-4" aria-hidden />
@@ -335,9 +342,17 @@ function BookmakerArticle() {
         ))}
 
         {/* Sommaire */}
-        <nav aria-label="Sommaire" className="rounded-2xl border border-border/70 p-4">
-          <h2 className="mb-2 text-xs font-black uppercase tracking-widest text-muted-foreground">Sommaire</h2>
-          <ol className="space-y-2">
+        <details open className="group rounded-2xl border border-border/70 p-4">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 marker:hidden">
+            <span className="text-xs font-black uppercase tracking-widest text-muted-foreground">Sommaire</span>
+            <span className="flex items-center gap-1 text-[11px] font-bold text-brand">
+              <span className="group-open:hidden">Afficher</span>
+              <span className="hidden group-open:inline">Masquer</span>
+              <ChevronDown className="size-4 transition-transform group-open:rotate-180" aria-hidden />
+            </span>
+          </summary>
+          <nav aria-label="Sommaire">
+          <ol className="mt-3 space-y-2">
             {toc.map((t) => (
               <li key={t.id}>
                 <a href={`#${t.id}`} className="text-sm font-bold text-brand hover:underline">
@@ -357,7 +372,8 @@ function BookmakerArticle() {
               </li>
             ))}
           </ol>
-        </nav>
+          </nav>
+        </details>
 
         <section id="comment-utiliser" className="scroll-mt-24 space-y-3">
           <h2 className="border-l-4 border-brand pl-3 text-xl font-black tracking-tight lg:text-2xl">
@@ -429,6 +445,8 @@ function BookmakerArticle() {
           <PromoFaq items={b.faq} />
         </section>
 
+        <RelatedBookmakers items={getRelatedBookmakers(b.slug)} />
+
         <div className="space-y-3 rounded-3xl border border-border/70 bg-surface/50 p-5 text-center">
           <p className="text-base font-black">Prêt à activer votre bonus {b.name} ?</p>
           <p className="text-sm text-muted-foreground">
@@ -440,6 +458,7 @@ function BookmakerArticle() {
             <Link
               to="/analyse"
               search={{ home: "", away: "" }}
+              onClick={() => track("cta_click", { location: `promo_${b.slug}_final` })}
               className="inline-flex items-center gap-2 rounded-xl border border-brand/40 px-4 py-3 text-sm font-black text-brand transition-colors hover:bg-brand/10"
             >
               <Sparkles className="size-4" aria-hidden />

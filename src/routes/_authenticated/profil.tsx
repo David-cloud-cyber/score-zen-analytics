@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 
 const CREDIT_RULES = [
   { cost: 3, label: "Analyse IA d'un match", desc: "Probabilités 1X2, score probable et 5 marchés recommandés" },
-  { cost: 3, label: "Comparateur personnalisé", desc: "Analyse avancée de deux équipes de votre choix" },
+  { cost: 3, label: "Prédiction personnalisée", desc: "Analyse avancée de deux équipes de votre choix" },
   { cost: 0, label: "Livescore & statistiques", desc: "Toujours gratuit — mises à jour temps réel" },
 ];
 

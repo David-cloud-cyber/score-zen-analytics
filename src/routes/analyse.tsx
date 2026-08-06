@@ -11,6 +11,7 @@ import { useSession } from "@/hooks/use-session";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { buildRouteMeta } from "@/lib/seo";
+import { track, lastCtaSource } from "@/lib/analytics";
 
 export const Route = createFileRoute("/analyse")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -20,7 +21,7 @@ export const Route = createFileRoute("/analyse")({
   head: () =>
     buildRouteMeta({
       path: "/analyse",
-      title: "Comparateur d'équipes & Prédictions IA",
+      title: "Prédictions IA & analyse d'équipes",
       description:
         "Analysez n'importe quelle rencontre : entrez deux équipes et obtenez une prédiction IA complète (probabilités, marchés, score).",
     }),
@@ -59,6 +60,11 @@ function AnalysePage() {
 
   const keyFactors = (live?.keyFactors ?? []) as string[];
 
+  // Conversion : arrivée sur la page d'analyse (attribuée au dernier CTA cliqué)
+  useEffect(() => {
+    track("analyse_view", { source: lastCtaSource() ?? "direct" });
+  }, []);
+
   // Rediriger vers /auth si l'utilisateur n'est pas connecté (après chargement)
   useEffect(() => {
     if (!sessionLoading && !user) {
@@ -95,6 +101,7 @@ function AnalysePage() {
       toast.error("Renseignez les deux équipes.");
       return;
     }
+    track("analyse_run", { source: lastCtaSource() ?? "direct" });
     setLoading(true);
     setLoadingStep("Extraction des données H2H & formes récentes...");
     
@@ -126,7 +133,7 @@ function AnalysePage() {
 
   return (
     <AppShell>
-      <PageTitle eyebrow="Comparateur IA" title="Analyse de Match sur Mesure" />
+      <PageTitle eyebrow="Prédictions IA" title="Analyse de Match sur Mesure" />
 
       {/* Main Team Selector Container */}
       <div className="mx-4 rounded-3xl bg-card p-5 shadow-lg ring-1 ring-black/5 dark:ring-white/5 lg:mx-0">

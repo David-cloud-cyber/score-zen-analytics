@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { Check, Copy, ExternalLink, Star, ShieldAlert, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Bookmaker } from "@/data/bookmakers";
+import { track } from "@/lib/analytics";
 
 export const AFF_REL = "sponsored noopener noreferrer nofollow";
 
@@ -12,6 +13,7 @@ export function CopyCodeButton({ code, size = "md" }: { code: string; size?: "sm
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(code);
+      track("promo_code_copy", { location: code });
       setCopied(true);
       setTimeout(() => setCopied(false), 1800);
     } catch {
@@ -69,6 +71,7 @@ export function AffiliateButton({
       href={href}
       target="_blank"
       rel={AFF_REL}
+      onClick={() => track("promo_affiliate_click", { location: href })}
       className={cn(
         "inline-flex items-center justify-center gap-2 rounded-xl bg-brand px-5 py-3 text-sm font-black text-brand-foreground transition-transform hover:scale-[1.02] active:scale-95",
         className,
@@ -106,6 +109,7 @@ export function PromoCodeCard({ b }: { b: Bookmaker }) {
       <div className="space-y-3 p-4">
         <p className="text-lg font-black leading-tight">{b.bonusHeadline}</p>
         <p className="text-xs text-muted-foreground">{b.tagline}</p>
+        <BonusTypeBadges types={b.bonusTypes} />
 
         <div className="flex flex-wrap items-center gap-2">
           <CopyCodeButton code={b.code} />
@@ -198,5 +202,85 @@ export function Breadcrumb({ items }: { items: { label: string; to?: string }[] 
         </span>
       ))}
     </nav>
+  );
+}
+
+/** Tableau générique d'une section d'article. */
+export function SectionTable({ head, rows }: { head: string[]; rows: string[][] }) {
+  return (
+    <div className="overflow-x-auto rounded-2xl border border-border/70">
+      <table className="w-full min-w-[420px] text-sm">
+        <thead className="bg-surface/70 text-[11px] uppercase tracking-wider text-muted-foreground">
+          <tr>
+            {head.map((h) => (
+              <th key={h} scope="col" className="px-4 py-3 text-left">
+                {h}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r) => (
+            <tr key={r.join("|")} className="border-t border-border/60">
+              {r.map((c, i) => (
+                <td key={i} className={cn("px-4 py-3", i === 0 && "font-bold")}>
+                  {c}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+/** Maillage interne : alternatives / codes similaires en fin d'article. */
+export function RelatedBookmakers({ items, title }: { items: Bookmaker[]; title?: string }) {
+  if (items.length === 0) return null;
+  return (
+    <section aria-label="Codes promo similaires" className="space-y-3">
+      <h2 className="border-l-4 border-brand pl-3 text-xl font-black tracking-tight lg:text-2xl">
+        {title ?? "Meilleures alternatives : codes promo similaires"}
+      </h2>
+      <div className="grid gap-3 sm:grid-cols-2">
+        {items.map((b) => (
+          <Link
+            key={b.slug}
+            to="/codes-promo/$slug"
+            params={{ slug: b.slug }}
+            className="flex items-center gap-3 rounded-2xl border border-border/70 bg-surface/40 p-4 transition-colors hover:bg-surface"
+          >
+            <span
+              className="grid size-11 shrink-0 place-items-center rounded-xl text-xs font-black text-white"
+              style={{ backgroundColor: b.accent }}
+              aria-hidden
+            >
+              {b.name.slice(0, 2).toUpperCase()}
+            </span>
+            <span className="min-w-0">
+              <span className="block text-sm font-black">
+                Code promo {b.name} : {b.code}
+              </span>
+              <span className="block truncate text-xs text-muted-foreground">{b.bonusHeadline}</span>
+            </span>
+            <ChevronRight className="ml-auto size-4 shrink-0 text-muted-foreground" aria-hidden />
+          </Link>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/** Étiquettes de types de bonus (filtres + cartes). */
+export function BonusTypeBadges({ types }: { types: string[] }) {
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {types.map((t) => (
+        <span key={t} className="rounded-full bg-surface px-2 py-0.5 text-[10px] font-bold text-muted-foreground">
+          {t}
+        </span>
+      ))}
+    </div>
   );
 }
