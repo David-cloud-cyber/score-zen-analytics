@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 420" role="img" aria-labelledby="title desc">
+  <title id="title">1WIN PREDAT - bonus jusqu'a 130 000 FCFA</title>
+  <desc id="desc">Banniere partenaire LiveFoot pour le code promo 1WIN PREDAT.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#050b1a" />
+      <stop offset="0.52" stop-color="#082b68" />
+      <stop offset="1" stop-color="#087dff" />
+    </linearGradient>
+    <linearGradient id="cyan" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#b8f5ff" />
+      <stop offset="0.45" stop-color="#47d7ff" />
+      <stop offset="1" stop-color="#1387ff" />
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fff0a0" />
+      <stop offset="0.5" stop-color="#ffc52f" />
+      <stop offset="1" stop-color="#f28b19" />
+    </linearGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="18" result="blur" />
+      <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+    </filter>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#00102f" flood-opacity="0.42" />
+    </filter>
+  </defs>
+  <rect width="1200" height="420" rx="32" fill="url(#bg)" />
+  <circle cx="1010" cy="70" r="180" fill="#39d8ff" opacity="0.16" filter="url(#glow)" />
+  <circle cx="1110" cy="360" r="190" fill="#001338" opacity="0.46" />
+  <path d="M720 0h190L685 420H495z" fill="#fff" opacity="0.08" />
+  <path d="M820 0h22L710 420h-22z" fill="#8eeaff" opacity="0.28" />
+  <g fill="none" stroke="#8eeaff" stroke-opacity="0.24">
+    <circle cx="1002" cy="213" r="126" stroke-width="2" />
+    <circle cx="1002" cy="213" r="98" stroke-width="1" />
+    <path d="M876 213h252M1002 87v252" />
+  </g>
+  <g font-family="Inter,Arial,sans-serif">
+    <rect x="64" y="48" width="242" height="36" rx="18" fill="#fff" fill-opacity="0.13" stroke="#8eeaff" stroke-opacity="0.42" />
+    <text x="86" y="72" fill="#d9faff" font-size="17" font-weight="800" letter-spacing="2.5">LIVEFOOT  /  PARTENAIRE</text>
+    <text x="68" y="184" fill="#fff" font-size="92" font-weight="950" letter-spacing="-4">1WIN</text>
+    <text x="70" y="227" fill="#a5edff" font-size="25" font-weight="800" letter-spacing="4">PLAY SMARTER</text>
+    <rect x="70" y="250" width="228" height="58" rx="29" fill="url(#gold)" filter="url(#shadow)" />
+    <text x="106" y="287" fill="#07152f" font-size="29" font-weight="950" letter-spacing="3">PREDAT</text>
+    <text x="70" y="352" fill="#fff" font-size="39" font-weight="900">Jusqu'a 130 000 FCFA*</text>
+    <text x="72" y="387" fill="#d9faff" font-size="16" font-weight="650">+500 % repartis sur les 4 premiers depots  |  18+</text>
+  </g>
+  <g transform="translate(1002 213)" filter="url(#shadow)">
+    <circle r="76" fill="#061735" stroke="url(#cyan)" stroke-width="7" />
+    <path d="M-37 15V-26h18v25c0 16 6 23 19 23s19-7 19-23v-25h18v41c0 27-14 42-37 42S-37 42-37 15Z" fill="#fff" />
+    <path d="M-26-45h52" stroke="#ffc52f" stroke-width="7" stroke-linecap="round" />
+    <circle cx="-42" cy="-47" r="5" fill="#47d7ff" />
+    <circle cx="42" cy="-47" r="5" fill="#47d7ff" />
+  </g>
+</svg>
