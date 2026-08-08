@@ -8,9 +8,10 @@ import {
   PromoFaq,
   ResponsibleGamblingNotice,
   CopyCodeButton,
+  AnswerBox,
 } from "@/components/promo/PromoUI";
 import { cn } from "@/lib/utils";
-import { buildRouteMeta } from "@/lib/seo";
+import { buildRouteMeta, qaSchema, SPEAKABLE, ORG } from "@/lib/seo";
 
 const SITE = "https://www.livefoot.fun";
 
@@ -37,6 +38,9 @@ const HUB_FAQ = [
   },
 ];
 
+const HUB_ANSWER =
+  "Les codes promo bookmakers vérifiés par LiveFoot AI en 2026 sont PREDAT pour 1win et BALL10 pour Betwinner. Chacun débloque un bonus de bienvenue allant jusqu'à 130 000 FCFA. Le code se saisit obligatoirement pendant l'inscription, le dépôt se fait en Mobile Money (Orange Money, MTN, Moov, Wave) et l'offre est réservée aux nouveaux joueurs majeurs.";
+
 export const Route = createFileRoute("/codes-promo/")({
   head: () => {
     const base = buildRouteMeta({
@@ -48,6 +52,28 @@ export const Route = createFileRoute("/codes-promo/")({
     return {
       ...base,
       scripts: [
+        {
+          type: "application/ld+json",
+          children: JSON.stringify(
+            qaSchema({
+              path: "/codes-promo",
+              question: "Quels sont les meilleurs codes promo bookmakers en 2026 ?",
+              answer: HUB_ANSWER,
+            }),
+          ),
+        },
+        {
+          type: "application/ld+json",
+          children: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "CollectionPage",
+            name: "Codes promo bookmakers",
+            url: `${SITE}/codes-promo`,
+            inLanguage: "fr",
+            publisher: ORG,
+            speakable: SPEAKABLE,
+          }),
+        },
         {
           type: "application/ld+json",
           children: JSON.stringify({
@@ -182,6 +208,11 @@ function PromoHub() {
         </div>
 
         <PageTitle eyebrow="Partenaires" title="Codes promo bookmakers" />
+
+        <AnswerBox
+          question="Quels sont les meilleurs codes promo bookmakers en 2026 ?"
+          answer={HUB_ANSWER}
+        />
 
         <div className="space-y-3 text-sm leading-relaxed text-muted-foreground">
           <p>

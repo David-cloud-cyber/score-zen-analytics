@@ -10,21 +10,78 @@ import { runAnalysis, type AnalysisResult } from "@/lib/analyses.functions";
 import { useSession } from "@/hooks/use-session";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { buildRouteMeta } from "@/lib/seo";
+import { buildRouteMeta, qaSchema, faqSchema, SPEAKABLE, ORG } from "@/lib/seo";
 import { track, lastCtaSource } from "@/lib/analytics";
+
+const ANALYSE_ANSWER =
+  "Pour obtenir une prédiction IA sur un match de football avec LiveFoot AI, saisissez l'équipe à domicile et l'équipe à l'extérieur, puis lancez l'analyse. L'IA croise la forme récente, les confrontations directes, les blessures et le classement, puis renvoie les probabilités 1X2, le score le plus probable et les marchés recommandés avec un niveau de confiance. Une analyse coûte 3 crédits.";
+
+const ANALYSE_FAQ = [
+  {
+    q: "Comment fonctionne la prédiction IA de LiveFoot ?",
+    a: "L'IA agrège les données officielles du match (forme sur les 5 derniers matchs, confrontations directes, blessures, classement, statistiques offensives et défensives) puis calcule des probabilités 1X2, un score probable et des marchés recommandés assortis d'un indice de confiance.",
+  },
+  {
+    q: "Les prédictions IA sont-elles fiables à 100 % ?",
+    a: "Non. Aucune prédiction sportive n'est certaine. Les analyses de LiveFoot AI sont statistiques et informatives : elles aident à comprendre un rapport de force, mais ne garantissent aucun résultat ni aucun gain.",
+  },
+  {
+    q: "Combien coûte une analyse ?",
+    a: "Une analyse consomme 3 crédits. Chaque nouveau compte reçoit 5 crédits offerts ; les abonnés Premium disposent de 100 crédits par mois et peuvent acheter des packs supplémentaires.",
+  },
+  {
+    q: "Puis-je analyser n'importe quel match ?",
+    a: "Oui, toute rencontre couverte par nos données football : Ligue 1, Premier League, Liga, Serie A, Bundesliga, Ligue des champions, ainsi que de nombreuses compétitions africaines et internationales.",
+  },
+];
 
 export const Route = createFileRoute("/analyse")({
   validateSearch: (search: Record<string, unknown>) => ({
     home: typeof search.home === "string" ? search.home : "",
     away: typeof search.away === "string" ? search.away : "",
   }),
-  head: () =>
-    buildRouteMeta({
+  head: () => {
+    const base = buildRouteMeta({
       path: "/analyse",
       title: "Prédictions IA & analyse d'équipes",
       description:
         "Analysez n'importe quelle rencontre : entrez deux équipes et obtenez une prédiction IA complète (probabilités, marchés, score).",
-    }),
+    });
+    return {
+      ...base,
+      scripts: [
+        {
+          type: "application/ld+json",
+          children: JSON.stringify(
+            qaSchema({
+              path: "/analyse",
+              question: "Comment obtenir une prédiction IA sur un match de football ?",
+              answer: ANALYSE_ANSWER,
+            }),
+          ),
+        },
+        {
+          type: "application/ld+json",
+          children: JSON.stringify(faqSchema(ANALYSE_FAQ)),
+        },
+        {
+          type: "application/ld+json",
+          children: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "WebApplication",
+            name: "Prédictions IA LiveFoot",
+            applicationCategory: "SportsApplication",
+            operatingSystem: "Web",
+            inLanguage: "fr",
+            url: "https://www.livefoot.fun/analyse",
+            publisher: ORG,
+            speakable: SPEAKABLE,
+            offers: { "@type": "Offer", price: "0", priceCurrency: "XAF" },
+          }),
+        },
+      ],
+    };
+  },
   component: AnalysePage,
 });
 
