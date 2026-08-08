@@ -22,6 +22,7 @@ required = [
 # Secrets (set via: wrangler secret put SECRET_NAME)
 # APIFOOTBALL_KEY  ← wrangler secret put APIFOOTBALL_KEY
 
+# Production secrets are managed in Cloudflare Workers settings.
 [[routes]]
 pattern = "www.livefoot.fun/*"
 zone_name = "livefoot.fun"
