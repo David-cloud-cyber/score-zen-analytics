@@ -1,6 +1,5 @@
-// Logique serveur de créditation et souscription après paiement Fapshi.
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { paymentStatus } from "./fapshi.server";
+import { paymentStatus, type FapshiTransaction } from "./fapshi.server";
 import { findPremiumPlan } from "./pricing";
 
 export type PaymentOutcome = {
@@ -10,147 +9,125 @@ export type PaymentOutcome = {
   balance?: number;
 };
 
-/**
- * Traite et valide un paiement Fapshi (Pack de crédits OU Abonnement Premium).
- * Idempotent et sécurisé.
- */
-export async function settlePaymentOrSubscription(transId: string): Promise<PaymentOutcome> {
-  const tx = await paymentStatus(transId);
+type PaymentRecord = {
+  id: string;
+  user_id: string;
+  credits: number;
+  amount_xaf: number;
+  status: string;
+  credited_at: string | null;
+};
 
-  // 1. Chercher si c'est un abonnement
-  const { data: sub } = await supabaseAdmin
+type SubscriptionRecord = {
+  id: string;
+  user_id: string;
+  plan_id: string;
+  amount_xaf: number;
+  status: string;
+};
+
+export async function settlePaymentOrSubscription(transId: string, expectedUserId?: string): Promise<PaymentOutcome> {
+  const subQuery = supabaseAdmin
     .from("subscriptions")
-    .select("id, user_id, plan_id, amount_xaf, status, current_period_end, external_id")
-    .eq("trans_id", transId)
-    .maybeSingle();
+    .select("id, user_id, plan_id, amount_xaf, status")
+    .eq("trans_id", transId);
+  if (expectedUserId) subQuery.eq("user_id", expectedUserId);
+  const { data: sub, error: subError } = await subQuery.maybeSingle();
+  if (subError) throw new Error("Impossible de lire la souscription.");
 
-  if (sub) {
-    return await settleSubscriptionRecord(sub, tx);
-  }
+  if (sub) return settleSubscriptionRecord(sub as SubscriptionRecord, await paymentStatus(transId));
 
-  // 2. Sinon, chercher dans payments (pack)
-  const { data: payment } = await supabaseAdmin
+  const paymentQuery = supabaseAdmin
     .from("payments")
-    .select("id, user_id, credits, amount_xaf, status, credited_at, external_id")
-    .eq("trans_id", transId)
-    .maybeSingle();
+    .select("id, user_id, credits, amount_xaf, status, credited_at")
+    .eq("trans_id", transId);
+  if (expectedUserId) paymentQuery.eq("user_id", expectedUserId);
+  const { data: payment, error: paymentError } = await paymentQuery.maybeSingle();
+  if (paymentError) throw new Error("Impossible de lire le paiement.");
 
-  if (payment) {
-    return await settlePackPaymentRecord(payment, tx);
-  }
+  if (payment) return settlePackPaymentRecord(payment as PaymentRecord, await paymentStatus(transId));
 
-  return { status: tx.status, credited: false };
+  return { status: "UNKNOWN", credited: false };
 }
 
 export async function settlePayment(transId: string): Promise<PaymentOutcome> {
-  return await settlePaymentOrSubscription(transId);
+  return settlePaymentOrSubscription(transId);
 }
 
-async function settleSubscriptionRecord(sub: any, tx: any): Promise<PaymentOutcome> {
+async function settleSubscriptionRecord(sub: SubscriptionRecord, tx: FapshiTransaction): Promise<PaymentOutcome> {
   if (tx.status !== "SUCCESSFUL") {
     if (sub.status !== tx.status) {
-      await supabaseAdmin.from("subscriptions").update({ status: tx.status }).eq("id", sub.id);
+      const { error } = await supabaseAdmin.from("subscriptions").update({ status: tx.status }).eq("id", sub.id);
+      if (error) throw new Error("Impossible de mettre à jour la souscription.");
     }
     return { status: tx.status, credited: false };
   }
 
   if (Number(tx.amount) < sub.amount_xaf) {
-    await supabaseAdmin.from("subscriptions").update({ status: "UNDERPAID" }).eq("id", sub.id);
+    const { error } = await supabaseAdmin.from("subscriptions").update({ status: "UNDERPAID" }).eq("id", sub.id);
+    if (error) throw new Error("Impossible de signaler le paiement sous-payé.");
     return { status: "UNDERPAID", credited: false };
   }
 
-  if (sub.status === "ACTIVE") {
-    return { status: "SUCCESSFUL", credited: false, credits: 100 };
-  }
+  if (sub.status === "ACTIVE") return { status: "SUCCESSFUL", credited: false, credits: 100 };
+
+  const plan = findPremiumPlan(sub.plan_id);
+  if (!plan) throw new Error("Plan d'abonnement introuvable.");
 
   const now = new Date();
-  const plan = findPremiumPlan(sub.plan_id);
   const periodEnd = new Date(now);
+  if (plan.interval === "year") periodEnd.setFullYear(periodEnd.getFullYear() + 1);
+  else periodEnd.setMonth(periodEnd.getMonth() + 1);
 
-  if (plan?.interval === "year") {
-    periodEnd.setFullYear(periodEnd.getFullYear() + 1);
-  } else {
-    periodEnd.setMonth(periodEnd.getMonth() + 1);
-  }
-
-  // Idempotency lock on status update
-  const { data: locked } = await supabaseAdmin
-    .from("subscriptions")
-    .update({
-      status: "ACTIVE",
-      current_period_start: now.toISOString(),
-      current_period_end: periodEnd.toISOString(),
-    })
-    .eq("id", sub.id)
-    .neq("status", "ACTIVE")
-    .select("id")
-    .maybeSingle();
-
-  if (!locked) return { status: "SUCCESSFUL", credited: false, credits: 100 };
-
-  // Mettre le profil à jour : Plan Premium, date d'expiration et réinitialiser le solde à 100 crédits (non cumulable)
-  await supabaseAdmin
-    .from("profiles")
-    .update({
-      plan: "premium",
-      premium_until: periodEnd.toISOString(),
-      credits: 100,
-    })
-    .eq("id", sub.user_id);
-
-  await supabaseAdmin.from("credits_ledger").insert({
-    user_id: sub.user_id,
-    kind: "subscription",
-    amount: 100,
-    balance_after: 100,
-    label: `Abonnement ${plan?.name ?? "Premium"} (100 crédits)`,
+  const { data, error } = await supabaseAdmin.rpc("activate_subscription", {
+    p_subscription_id: sub.id,
+    p_user_id: sub.user_id,
+    p_period_start: now.toISOString(),
+    p_period_end: periodEnd.toISOString(),
+    p_plan_id: plan.name,
   });
-
-  return { status: "SUCCESSFUL", credited: true, credits: 100, balance: 100 };
+  if (error) {
+    console.error("Subscription settlement failed:", error.message);
+    throw new Error("Impossible d'activer l'abonnement.");
+  }
+  const row = data?.[0];
+  return {
+    status: "SUCCESSFUL",
+    credited: Boolean(row?.activated),
+    credits: 100,
+    balance: row?.new_balance ?? 100,
+  };
 }
 
-async function settlePackPaymentRecord(payment: any, tx: any): Promise<PaymentOutcome> {
+async function settlePackPaymentRecord(payment: PaymentRecord, tx: FapshiTransaction): Promise<PaymentOutcome> {
   if (tx.status !== "SUCCESSFUL") {
     if (payment.status !== tx.status) {
-      await supabaseAdmin.from("payments").update({ status: tx.status }).eq("id", payment.id);
+      const { error } = await supabaseAdmin.from("payments").update({ status: tx.status }).eq("id", payment.id);
+      if (error) throw new Error("Impossible de mettre à jour le paiement.");
     }
     return { status: tx.status, credited: false };
   }
 
   if (Number(tx.amount) < payment.amount_xaf) {
-    await supabaseAdmin.from("payments").update({ status: "UNDERPAID" }).eq("id", payment.id);
+    const { error } = await supabaseAdmin.from("payments").update({ status: "UNDERPAID" }).eq("id", payment.id);
+    if (error) throw new Error("Impossible de signaler le paiement sous-payé.");
     return { status: "UNDERPAID", credited: false };
   }
 
-  if (payment.credited_at) {
-    return { status: "SUCCESSFUL", credited: false, credits: payment.credits };
-  }
-
-  const { data: locked } = await supabaseAdmin
-    .from("payments")
-    .update({ status: "SUCCESSFUL", credited_at: new Date().toISOString() })
-    .eq("id", payment.id)
-    .is("credited_at", null)
-    .select("id")
-    .maybeSingle();
-
-  if (!locked) return { status: "SUCCESSFUL", credited: false, credits: payment.credits };
-
-  const { data: profile } = await supabaseAdmin
-    .from("profiles")
-    .select("credits")
-    .eq("id", payment.user_id)
-    .maybeSingle();
-
-  const newBalance = (profile?.credits ?? 0) + payment.credits;
-  await supabaseAdmin.from("profiles").update({ credits: newBalance }).eq("id", payment.user_id);
-  await supabaseAdmin.from("credits_ledger").insert({
-    user_id: payment.user_id,
-    kind: "topup",
-    amount: payment.credits,
-    balance_after: newBalance,
-    label: `Recharge ${payment.credits} crédits (${payment.amount_xaf} FCFA)`,
+  const { data, error } = await supabaseAdmin.rpc("credit_payment", {
+    p_payment_id: payment.id,
+    p_user_id: payment.user_id,
+    p_credits: payment.credits,
   });
-
-  return { status: "SUCCESSFUL", credited: true, credits: payment.credits, balance: newBalance };
+  if (error) {
+    console.error("Payment settlement failed:", error.message);
+    throw new Error("Impossible de créditer le paiement.");
+  }
+  const row = data?.[0];
+  return {
+    status: "SUCCESSFUL",
+    credited: Boolean(row?.credited),
+    credits: payment.credits,
+    balance: row?.new_balance,
+  };
 }

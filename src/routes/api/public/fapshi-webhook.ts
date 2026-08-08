@@ -7,10 +7,9 @@ export const Route = createFileRoute("/api/public/fapshi-webhook")({
     handlers: {
       POST: async ({ request }) => {
         const expected = process.env.FAPSHI_WEBHOOK_SECRET;
-        if (expected) {
-          const got = request.headers.get("x-wh-secret");
-          if (got !== expected) return new Response("Invalid secret", { status: 401 });
-        }
+        if (!expected) return new Response("Webhook not configured", { status: 503 });
+        const got = request.headers.get("x-wh-secret");
+        if (!got || got !== expected) return new Response("Invalid secret", { status: 401 });
 
         let payload: { transId?: string };
         try {
@@ -18,8 +17,8 @@ export const Route = createFileRoute("/api/public/fapshi-webhook")({
         } catch {
           return new Response("Invalid JSON", { status: 400 });
         }
-        const transId = payload?.transId;
-        if (!transId || typeof transId !== "string") {
+        const transId = payload?.transId?.trim();
+        if (!transId || transId.length > 120) {
           return new Response("Missing transId", { status: 400 });
         }
 

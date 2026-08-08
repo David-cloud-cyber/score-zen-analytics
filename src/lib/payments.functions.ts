@@ -4,13 +4,24 @@ import { z } from "zod";
 
 const packCheckoutInput = z.object({
   packId: z.string().min(1).max(40),
-  origin: z.string().url().optional(),
 });
 
 const subCheckoutInput = z.object({
   planId: z.enum(["premium_monthly", "premium_yearly"]),
-  origin: z.string().url().optional(),
 });
+
+function appOrigin() {
+  const value = process.env.PUBLIC_APP_URL ?? "https://www.livefoot.fun";
+  const url = new URL(value);
+  if (url.protocol !== "https:" || !["www.livefoot.fun", "livefoot.fun"].includes(url.hostname)) {
+    throw new Error("Invalid payment configuration.");
+  }
+  return url.origin;
+}
+
+function createExternalId(prefix: "sub" | "pk") {
+  return `${prefix}_${crypto.randomUUID().replaceAll("-", "")}`;
+}
 
 /** Crée un lien de souscription Fapshi pour l'Abonnement Premium. */
 export const createSubscriptionCheckout = createServerFn({ method: "POST" })
@@ -24,14 +35,14 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
     const { initiatePay } = await import("./fapshi.server");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const externalId = `sub_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+    const externalId = createExternalId("sub");
 
     const res = await initiatePay({
       amount: plan.priceXaf,
       email: context.claims?.email as string | undefined,
       userId: context.userId.replace(/-/g, ""),
       externalId,
-      redirectUrl: data.origin ? `${data.origin.replace(/\/+$/, "")}/profil` : undefined,
+      redirectUrl: `${appOrigin()}/profil`,
       message: `Abonnement ${plan.name} Livefoot IA`,
     });
 
@@ -79,14 +90,14 @@ export const createTopupCheckout = createServerFn({ method: "POST" })
 
     const { initiatePay } = await import("./fapshi.server");
 
-    const externalId = `pk_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+    const externalId = createExternalId("pk");
 
     const res = await initiatePay({
       amount: pack.priceXaf,
       email: context.claims?.email as string | undefined,
       userId: context.userId.replace(/-/g, ""),
       externalId,
-      redirectUrl: data.origin ? `${data.origin.replace(/\/+$/, "")}/profil` : undefined,
+      redirectUrl: `${appOrigin()}/profil`,
       message: `Recharge ${pack.credits} crédits Livefoot IA`,
     });
 
@@ -110,10 +121,10 @@ export const createTopupCheckout = createServerFn({ method: "POST" })
 /** Vérifie manuellement un paiement ou souscription (retour depuis Fapshi) et crédite si payé. */
 export const verifyTopup = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) => z.object({ transId: z.string().min(1).max(120) }).parse(data))
+  .inputValidator((data: unknown) => z.object({ transId: z.string().trim().min(1).max(120) }).parse(data))
   .handler(async ({ data, context }) => {
     const { settlePaymentOrSubscription } = await import("./payments.server");
-    return await settlePaymentOrSubscription(data.transId);
+    return await settlePaymentOrSubscription(data.transId, context.userId);
   });
 
 /** Historique des recharges et souscriptions de l'utilisateur. */

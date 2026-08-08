@@ -301,6 +301,44 @@ export type Database = {
         }
         Returns: boolean
       }
+      consume_analysis_credit: {
+        Args: {
+          p_user_id: string
+          p_cost: number
+          p_home_team: string
+          p_away_team: string
+          p_match_id: string | null
+          p_result: Json
+        }
+        Returns: {
+          analysis_id: string
+          new_balance: number
+        }[]
+      }
+      credit_payment: {
+        Args: {
+          p_payment_id: string
+          p_user_id: string
+          p_credits: number
+        }
+        Returns: {
+          credited: boolean
+          new_balance: number
+        }[]
+      }
+      activate_subscription: {
+        Args: {
+          p_subscription_id: string
+          p_user_id: string
+          p_period_start: string
+          p_period_end: string
+          p_plan_id: string
+        }
+        Returns: {
+          activated: boolean
+          new_balance: number
+        }[]
+      }
     }
     Enums: {
       app_role: "admin" | "user"

@@ -48,7 +48,7 @@ function PremiumPage() {
     setBusyPlan(plan.id);
     try {
       const res = await subCheckoutFn({
-        data: { planId: plan.id, origin: typeof window !== "undefined" ? window.location.origin : undefined },
+        data: { planId: plan.id },
       });
       toast.success(`Souscription à ${plan.name} initiée !`);
       window.location.href = res.link;
@@ -73,7 +73,7 @@ function PremiumPage() {
 
     try {
       const res = await topupCheckoutFn({
-        data: { packId, origin: typeof window !== "undefined" ? window.location.origin : undefined },
+        data: { packId },
       });
       window.location.href = res.link;
     } catch (err) {

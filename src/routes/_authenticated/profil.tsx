@@ -80,7 +80,7 @@ function ProfilPage() {
     setBusyPack(pack.id);
     try {
       const res = await checkoutFn({
-        data: { packId: pack.id, origin: typeof window !== "undefined" ? window.location.origin : undefined },
+        data: { packId: pack.id },
       });
       setShowTopup(false);
       setFlash(`Paiement de ${formatXaf(res.amountXaf)} initié — finalisez sur Fapshi.`);

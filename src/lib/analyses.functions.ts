@@ -11,6 +11,32 @@ type CacheEntry = { at: number; result: AnalysisResult };
 const analysisCache = new Map<string, CacheEntry>();
 const CACHE_TTL_MS = 30 * 60_000;
 
+async function consumeAnalysisCredit(params: {
+  userId: string;
+  home: string;
+  away: string;
+  matchId?: string;
+  result: AnalysisResult;
+}) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data, error } = await supabaseAdmin.rpc("consume_analysis_credit", {
+    p_user_id: params.userId,
+    p_cost: ANALYSIS_COST,
+    p_home_team: params.home,
+    p_away_team: params.away,
+    p_match_id: params.matchId ?? null,
+    p_result: params.result,
+  });
+  if (error) {
+    if (error.message.includes("INSUFFICIENT_CREDITS")) {
+      throw new Error(`CrÃ©dits insuffisants (${ANALYSIS_COST} requis).`);
+    }
+    console.error("Analysis credit transaction failed:", error.message);
+    throw new Error("Impossible d'enregistrer le dÃ©bit de l'analyse.");
+  }
+  return data?.[0] ?? null;
+}
+
 const inputSchema = z.object({
   home: z.string().min(2).max(80),
   away: z.string().min(2).max(80),
@@ -353,11 +379,7 @@ export const runAnalysis = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => inputSchema.parse(data))
   .handler(async ({ data, context }): Promise<AnalysisResult> => {
     // 0. Cache-hit ?
-    const cacheKey = `${data.home.toLowerCase().trim()}::${data.away.toLowerCase().trim()}`;
-    const cached = analysisCache.get(cacheKey);
-    if (cached && Date.now() - cached.at < CACHE_TTL_MS) {
-      return cached.result;
-    }
+    const cacheKey = `${data.home.toLowerCase().trim()}::${data.away.toLowerCase().trim()}::${data.matchId ?? ""}`;
 
     // 1. Crédits + profil.
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -400,6 +422,18 @@ export const runAnalysis = createServerFn({ method: "POST" })
     }
 
     // 2. Enrichissement parallèle : forme + H2H + blessures + cotes bookmakers.
+    const cached = analysisCache.get(cacheKey);
+    if (cached && Date.now() - cached.at < CACHE_TTL_MS) {
+      await consumeAnalysisCredit({
+        userId: context.userId,
+        home: data.home,
+        away: data.away,
+        matchId: data.matchId,
+        result: cached.result,
+      });
+      return cached.result;
+    }
+
     const [homeCtx, awayCtx] = await Promise.all([
       fetchTeamContext(data.home),
       fetchTeamContext(data.away),
@@ -461,21 +495,12 @@ export const runAnalysis = createServerFn({ method: "POST" })
     result = { ...result, probabilities: normalizeProbabilities(result.probabilities) };
 
     // 4. Débit + log.
-    const newBalance = profile.credits - ANALYSIS_COST;
-    await supabaseAdmin.from("profiles").update({ credits: newBalance }).eq("id", context.userId);
-    await supabaseAdmin.from("credits_ledger").insert({
-      user_id: context.userId,
-      kind: "analysis",
-      amount: -ANALYSIS_COST,
-      balance_after: newBalance,
-      label: `Analyse ${data.home} vs ${data.away}`,
-    });
-    await supabaseAdmin.from("ai_analyses").insert({
-      user_id: context.userId,
-      home_team: data.home,
-      away_team: data.away,
-      match_id: data.matchId ?? null,
-      result: result as never,
+    await consumeAnalysisCredit({
+      userId: context.userId,
+      home: data.home,
+      away: data.away,
+      matchId: data.matchId,
+      result,
     });
 
     // 5. Cache.
