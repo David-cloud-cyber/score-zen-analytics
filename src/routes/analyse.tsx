@@ -371,6 +371,26 @@ function AnalysePage() {
           </>
         )}
 
+        {/* AEO/GEO — réponse directe + FAQ citables par les moteurs de réponse */}
+        <section aria-label="Réponse rapide" className="rounded-2xl border-l-4 border-brand bg-brand/5 p-5">
+          <h2 className="mb-2 text-sm font-black uppercase tracking-widest text-brand">
+            Comment obtenir une prédiction IA sur un match ?
+          </h2>
+          <p data-answer className="text-[15px] font-medium leading-relaxed text-foreground">
+            {ANALYSE_ANSWER}
+          </p>
+        </section>
+
+        <section aria-label="Questions fréquentes" className="space-y-2">
+          <h2 className="text-lg font-black tracking-tight">Questions fréquentes</h2>
+          {ANALYSE_FAQ.map((f) => (
+            <details key={f.q} className="rounded-2xl border border-border/70 bg-surface/40 p-4">
+              <summary className="cursor-pointer text-sm font-black">{f.q}</summary>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{f.a}</p>
+            </details>
+          ))}
+        </section>
+
         <Disclaimer className="pt-2" />
       </div>
     </AppShell>
