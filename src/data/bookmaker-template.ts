@@ -76,12 +76,15 @@ export type Bookmaker = {
   pros: string[];
   cons: string[];
   faq: FaqItem[];
+  /** Pays couverts par les pages SEO générées automatiquement. */
+  countryPageSlugs?: string[];
 };
 
 /** Valide/normalise un bookmaker et applique les valeurs par défaut du modèle. */
 export function defineBookmaker(input: Bookmaker): Bookmaker {
   return {
     ...input,
+    countryPageSlugs: input.countryPageSlugs ?? ["cameroun", "cote-ivoire", "senegal"],
     bonusTypes: input.bonusTypes.length ? input.bonusTypes : ["Bonus de bienvenue"],
     seoTitle: input.seoTitle || `Code promo ${input.name} ${input.code} : ${input.bonusHeadline}`,
     seoDescription:

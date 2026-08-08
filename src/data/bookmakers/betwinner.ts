@@ -9,8 +9,6 @@ export const BETWINNER = defineBookmaker({
   logoUrl: "https://betwinner.com/favicon.ico",
   bannerUrl: betwinnerBanner,
   bannerLinkUrl: "https://bwredir.com/1jmi",
-  rating: 4.5,
-  reviewCount: 328,
   accent: "#0e7a3c",
   tagline: "Bonus de bienvenue jusqu'à 130 000 FCFA avec le code BALL10",
   bonusHeadline: "Jusqu'à 130 000 FCFA de bonus",

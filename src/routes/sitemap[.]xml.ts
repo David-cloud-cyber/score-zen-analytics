@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import type {} from "@tanstack/react-start";
 import { BOOKMAKERS } from "@/data/bookmakers";
+import { SEO_COUNTRIES } from "@/data/country-seo";
 
 const BASE_URL = "https://www.livefoot.fun";
 
@@ -36,6 +37,22 @@ export const Route = createFileRoute("/sitemap.xml")({
             changefreq: "weekly" as const,
             priority: "0.8",
           })),
+          ...SEO_COUNTRIES.map((country) => ({
+            path: `/codes-promo/${country.slug}`,
+            lastmod: latestBookmakerUpdate,
+            changefreq: "weekly" as const,
+            priority: "0.8",
+          })),
+          ...BOOKMAKERS.flatMap((bookmaker) =>
+            SEO_COUNTRIES
+              .filter((country) => bookmaker.countryPageSlugs?.includes(country.slug))
+              .map((country) => ({
+                path: `/codes-promo/${bookmaker.slug}/${country.slug}`,
+                lastmod: bookmaker.updatedAt,
+                changefreq: "weekly" as const,
+                priority: "0.7",
+              })),
+          ),
         ];
 
         const urls = entries.map((e) =>

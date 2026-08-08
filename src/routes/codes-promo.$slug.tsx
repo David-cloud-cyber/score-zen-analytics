@@ -1,6 +1,7 @@
 import { createFileRoute, notFound, Link } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
 import { BOOKMAKERS, getBookmaker, getRelatedBookmakers, type Bookmaker, type Section } from "@/data/bookmakers";
+import { SEO_COUNTRIES } from "@/data/country-seo";
 import {
   AffiliateButton,
   AFF_REL,
@@ -564,6 +565,24 @@ function BookmakerArticle() {
             </Link>
           </div>
         </div>
+
+        <section className="space-y-3" aria-label={`Code promo ${b.name} par pays`}>
+          <h2 className="text-xl font-black tracking-tight">Code promo {b.name} par pays</h2>
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            Consultez la devise, les paiements et les conditions à vérifier dans votre zone avant de vous inscrire.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {SEO_COUNTRIES.filter((country) => b.countryPageSlugs?.includes(country.slug)).map((country) => (
+              <a
+                key={country.slug}
+                href={`/codes-promo/${b.slug}/${country.slug}`}
+                className="rounded-xl border border-border px-3 py-2 text-xs font-bold transition-colors hover:bg-surface"
+              >
+                {b.name} au {country.name}
+              </a>
+            ))}
+          </div>
+        </section>
 
         <ResponsibleGamblingNotice />
 

@@ -23,8 +23,6 @@ export const BOOKMAKERS: Bookmaker[] = [
     logoUrl: "https://1win.com/favicon.ico",
     bannerUrl: "/1win-predat-banner.svg",
     bannerLinkUrl: "https://one-vv0931.com/?p=iezl",
-    rating: 4.6,
-    reviewCount: 412,
     accent: "#0b7cff",
     tagline: "Bonus de bienvenue jusqu'à 130 000 FCFA sur les 4 premiers dépôts",
     bonusHeadline: "Jusqu'à 130 000 FCFA de bonus",
@@ -714,7 +712,7 @@ export const BOOKMAKERS: Bookmaker[] = [
         id: "verdict",
         title: "Verdict final sur le code promo 1win PREDAT en Afrique",
         paragraphs: [
-          "Note LiveFoot AI : 4,6 / 5. 1win combine le bonus le plus élevé du marché et une intégration Mobile Money réellement fonctionnelle, ce qui reste rare sur ce segment.",
+          "Notre verdict éditorial : 1win propose une offre très visible et une intégration Mobile Money intéressante, mais les conditions de déblocage doivent être lues avant tout dépôt.",
         ],
         sub: [
           {

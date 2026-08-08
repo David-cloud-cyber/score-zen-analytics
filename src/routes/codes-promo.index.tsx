@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { AppShell, PageTitle } from "@/components/AppShell";
 import { BOOKMAKERS, availableBonusTypes, type BonusType } from "@/data/bookmakers";
+import { SEO_COUNTRIES } from "@/data/country-seo";
 import {
   Breadcrumb,
   PromoCodeCard,
@@ -12,6 +13,7 @@ import {
 } from "@/components/promo/PromoUI";
 import { cn } from "@/lib/utils";
 import { buildRouteMeta, qaSchema, SPEAKABLE, ORG } from "@/lib/seo";
+import { ArrowRight, Sparkles } from "lucide-react";
 
 const SITE = "https://www.livefoot.fun";
 
@@ -213,6 +215,29 @@ function PromoHub() {
           question="Quels sont les meilleurs codes promo bookmakers en 2026 ?"
           answer={HUB_ANSWER}
         />
+
+        <section className="rounded-2xl border border-brand/30 bg-brand/5 p-5">
+          <div className="flex items-start gap-3">
+            <Sparkles className="mt-0.5 size-5 shrink-0 text-brand" aria-hidden />
+            <div className="space-y-2">
+              <h2 className="text-base font-black">Choisissez votre pays</h2>
+              <p className="text-sm leading-relaxed text-muted-foreground">
+                Consultez les conditions, la devise et les moyens de paiement à vérifier pour votre zone avant de vous inscrire.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {SEO_COUNTRIES.map((country) => (
+                  <a
+                    key={country.slug}
+                    href={`/codes-promo/${country.slug}`}
+                    className="inline-flex items-center gap-1 rounded-xl border border-brand/30 px-3 py-2 text-xs font-black text-brand transition-colors hover:bg-brand/10"
+                  >
+                    {country.name} <ArrowRight className="size-3.5" aria-hidden />
+                  </a>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
 
         <div className="space-y-3 text-sm leading-relaxed text-muted-foreground">
           <p>
