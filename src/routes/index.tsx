@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { useSuspenseQuery, queryOptions } from "@tanstack/react-query";
+import { useQuery, queryOptions } from "@tanstack/react-query";
 import { Sparkles, ChevronRight, Loader2, AlertTriangle, RefreshCw } from "lucide-react";
 import { AppShell, PageTitle } from "@/components/AppShell";
 import { RemoteMatchCard } from "@/components/RemoteMatchCard";
@@ -90,7 +90,7 @@ const FILTERS = [
 ] as const;
 
 function HomePage() {
-  const { data: fixtures, isFetching } = useSuspenseQuery(fixturesQuery("today"));
+  const { data: fixtures = [], isFetching, isError, refetch } = useQuery(fixturesQuery("today"));
   const hasLive = fixtures.some((m) => m.status === "live" || m.status === "ht");
   const [filter, setFilter] = useState<(typeof FILTERS)[number]["id"]>(hasLive ? "live" : "upcoming");
 
@@ -209,7 +209,19 @@ function HomePage() {
 
       {/* Grouped matches */}
       <div className="mt-8 space-y-6 px-4 lg:px-0">
-        {grouped.length === 0 && (
+        {isError ? (
+          <div className="rounded-2xl border border-alert/30 bg-alert/5 p-6 text-center text-sm text-muted-foreground">
+            Les scores du jour sont momentanément indisponibles. Vous pouvez consulter les analyses et les guides
+            pendant la prochaine actualisation.
+            <button
+              type="button"
+              onClick={() => void refetch()}
+              className="mt-3 block mx-auto text-xs font-black text-brand hover:underline"
+            >
+              Réessayer
+            </button>
+          </div>
+        ) : grouped.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
             {filter === "live"
               ? "Aucun match en direct pour le moment."
@@ -217,7 +229,7 @@ function HomePage() {
                 ? "Aucun match à venir aujourd'hui."
                 : "Aucun match terminé aujourd'hui."}
           </div>
-        )}
+        ) : null}
         {grouped.map((g) => (
           <section key={g.name}>
             <div className="mb-3 flex items-center justify-between">
