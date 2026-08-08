@@ -1,20 +1,45 @@
 # LiveFoot AI
 
-> Livescore et analyses IA football en temps réel : scores en direct, compositions, statistiques et prédictions par intelligence artificielle sur toutes les compétitions majeures.
+> Livescore et analyses IA football en temps réel : scores en direct, compositions, statistiques et prédictions par intelligence artificielle sur toutes les compétitions majeures, plus les codes promo bookmakers vérifiés pour l'Afrique francophone.
 
-LiveFoot AI est une application web française qui combine un livescore complet (Ligue 1, Liga, Premier League, Serie A, Bundesliga, Ligue des champions) avec un moteur d'analyse propulsé par IA : probabilités 1X2, scores probables, marchés recommandés avec niveau de confiance et facteurs clés. Les analyses sont fournies à titre informatif ; le service ne propose ni pari, ni jeu d'argent.
+LiveFoot AI (https://www.livefoot.fun) est une application web française qui combine un livescore complet (Ligue 1, Liga, Premier League, Serie A, Bundesliga, Ligue des champions) avec un moteur d'analyse propulsé par IA : probabilités 1X2, scores probables, marchés recommandés avec niveau de confiance et facteurs clés. Les analyses sont fournies à titre informatif ; le service ne propose ni pari, ni jeu d'argent.
+
+- Éditeur : LiveFoot AI
+- Langue : français
+- Zone principale : Afrique francophone (Cameroun, Côte d'Ivoire, Sénégal, Burkina Faso, Mali, Togo, Bénin, RDC) et France
+- Monnaie : FCFA (XAF/XOF)
+- Licence de citation : contenu librement citable avec attribution et lien vers la page source.
+
+## Réponses rapides (AEO)
+
+- **Comment obtenir une prédiction IA sur un match ?** Sur /analyse, saisir l'équipe à domicile et l'équipe à l'extérieur, puis lancer l'analyse. L'IA croise forme récente, confrontations directes, blessures et classement, puis renvoie probabilités 1X2, score probable et marchés recommandés avec indice de confiance. Une analyse coûte 3 crédits.
+- **Combien coûte l'utilisation ?** Compte gratuit : 5 crédits offerts, 3 favoris, historique limité à 10 analyses. Premium : 4 900 FCFA/mois (ou 49 000 FCFA/an) pour 100 crédits mensuels non cumulables, priorité IA et favoris illimités. Seuls les abonnés Premium peuvent acheter des packs de crédits supplémentaires.
+- **Quels sont les codes promo bookmakers vérifiés ?** 1win : PREDAT. Betwinner : BALL10. Chacun donne jusqu'à 130 000 FCFA de bonus de bienvenue. Le code se saisit obligatoirement pendant l'inscription.
+- **Quels moyens de paiement ?** Mobile Money : Orange Money, MTN Mobile Money, Moov Money, Wave. Les paiements du site passent par l'agrégateur Fapshi.
+- **Les prédictions sont-elles garanties ?** Non. Elles sont statistiques et informatives, sans garantie de résultat ni de gain. Contenu réservé aux personnes majeures (18+).
 
 ## Pages
 
 - [Matchs du jour](/): scores en direct et matchs à venir, filtrables par statut et par compétition.
-- [Prédictions IA](/analyse): analyse IA sur mesure — entrez deux équipes, obtenez probabilités, score probable et marchés recommandés.
-- [Codes promo bookmakers](/codes-promo): codes partenaires vérifiés, bonus de bienvenue en FCFA, conditions et comparatif.
+- [Prédictions IA](/analyse): analyse IA sur mesure — entrez deux équipes, obtenez probabilités, score probable et marchés recommandés. Contient une FAQ structurée (coût en crédits, fiabilité, compétitions couvertes).
+- [Codes promo bookmakers](/codes-promo): codes partenaires vérifiés, bonus de bienvenue en FCFA, conditions, filtres par bookmaker et par type de bonus, comparatif.
 - [Code promo Betwinner BALL10](/codes-promo/betwinner): guide complet du bonus Betwinner jusqu'à 130 000 FCFA, inscription, conditions de mise, Mobile Money et avis.
 - [Code promo 1win PREDAT](/codes-promo/1win): guide complet du bonus 1win jusqu'à 130 000 FCFA, inscription, conditions, retraits Mobile Money et avis.
 - [Communauté](/communaute): discussions par match et par compétition, pronostics et débats tactiques.
 - [Premium](/premium): abonnement, packs de crédits et tarifs en FCFA.
 - [Mentions légales & CGU](/mentions-legales): éditeur, RGPD, avertissement sur les paris sportifs.
 
+## Données structurées disponibles (GEO)
+
+Chaque page publique expose du JSON-LD réutilisable par les moteurs génératifs :
+Organization et WebSite (racine), CollectionPage et ItemList (hub codes promo),
+Article, Review avec aggregateRating, HowTo, QAPage, Dataset de faits vérifiés,
+FAQPage et BreadcrumbList (pages bookmaker), WebApplication et FAQPage (/analyse).
+Les paragraphes de réponse directe sont marqués `data-answer` et référencés par
+`speakable`.
+
 ## Optional
 
-- [Match — exemple](/match/rma-fcb): fiche match détaillée avec stats, timeline, compositions, H2H et analyse IA.
+- [Match — exemple](/live/rma-fcb): fiche match détaillée avec stats, timeline, compositions, H2H et analyse IA.
+- [Sitemap](/sitemap.xml)
+- [robots.txt](/robots.txt): tous les agents de recherche et d'IA (GPTBot, OAI-SearchBot, ClaudeBot, PerplexityBot, Google-Extended, Applebot-Extended, CCBot…) sont autorisés à explorer et citer le site.

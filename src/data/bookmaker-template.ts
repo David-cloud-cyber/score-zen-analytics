@@ -58,6 +58,13 @@ export type Bookmaker = {
   seoDescription: string;
   /** Points clés affichés en encart « À retenir » sous le hero. */
   keyTakeaways: string[];
+  /**
+   * AEO/GEO — réponse directe de 40 à 60 mots à la question principale.
+   * Affichée juste sous le H1 et exposée en JSON-LD `QAPage` + `speakable`
+   * pour être citée par Google AI Overviews, ChatGPT, Perplexity, Gemini.
+   * Générée automatiquement si absente.
+   */
+  directAnswer?: string;
   intro: string[];
   steps: string[];
   bonusTable: BonusRow[];
@@ -77,5 +84,8 @@ export function defineBookmaker(input: Bookmaker): Bookmaker {
     seoDescription:
       input.seoDescription ||
       `Code promo ${input.name} ${input.code} vérifié : ${input.bonusHeadline}. Inscription, conditions, Mobile Money et avis complet.`,
+    directAnswer:
+      input.directAnswer ||
+      `Le code promo ${input.name} est ${input.code}. Il se saisit pendant l'inscription, dans le champ « code promo », et débloque ${input.bonusHeadline.toLowerCase()} à partir de ${input.minDeposit} de dépôt. Le code est gratuit, valable pour les nouveaux joueurs d'Afrique francophone et compatible Mobile Money (Orange Money, MTN, Moov, Wave).`,
   };
 }

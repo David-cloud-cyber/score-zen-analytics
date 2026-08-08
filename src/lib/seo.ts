@@ -37,3 +37,86 @@ export function buildRouteMeta(input: RouteMetaInput) {
     links: [{ rel: "canonical", href: url }],
   };
 }
+
+/* ------------------------------------------------------------------ */
+/* AEO / GEO — helpers de données structurées                          */
+/* ------------------------------------------------------------------ */
+
+export const ORG = {
+  "@type": "Organization",
+  name: SITE_NAME,
+  url: SITE,
+  logo: `${SITE}/logo.png`,
+} as const;
+
+/**
+ * Bloc « speakable » : indique aux assistants vocaux et moteurs de réponse
+ * quelles parties de la page contiennent la réponse directe.
+ */
+export const SPEAKABLE = {
+  "@type": "SpeakableSpecification",
+  cssSelector: ["h1", "[data-answer]", "[data-key-takeaways]"],
+} as const;
+
+/** FAQPage — utilisé par les extraits enrichis et les moteurs de réponse. */
+export function faqSchema(items: { q: string; a: string }[]) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    inLanguage: "fr",
+    mainEntity: items.map((f) => ({
+      "@type": "Question",
+      name: f.q,
+      acceptedAnswer: { "@type": "Answer", text: f.a },
+    })),
+  };
+}
+
+/**
+ * QAPage — une question principale et sa réponse courte factuelle.
+ * C'est le format que les moteurs génératifs citent le plus volontiers.
+ */
+export function qaSchema(input: {
+  path: string;
+  question: string;
+  answer: string;
+  dateModified?: string;
+}) {
+  const url = `${SITE}${input.path.startsWith("/") ? input.path : `/${input.path}`}`;
+  return {
+    "@context": "https://schema.org",
+    "@type": "QAPage",
+    inLanguage: "fr",
+    mainEntity: {
+      "@type": "Question",
+      name: input.question,
+      text: input.question,
+      answerCount: 1,
+      dateCreated: input.dateModified,
+      author: ORG,
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: input.answer,
+        url,
+        author: ORG,
+      },
+    },
+  };
+}
+
+/** Bloc de faits vérifiables (GEO) : liste clé/valeur citable par une IA. */
+export function factsSchema(input: { name: string; url: string; facts: { label: string; value: string }[] }) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "Dataset",
+    name: input.name,
+    url: input.url,
+    creator: ORG,
+    inLanguage: "fr",
+    variableMeasured: input.facts.map((f) => ({
+      "@type": "PropertyValue",
+      name: f.label,
+      value: f.value,
+    })),
+  };
+}
