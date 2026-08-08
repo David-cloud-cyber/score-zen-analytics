@@ -8,6 +8,7 @@ import { BONUS_TYPES } from "./bookmaker-template";
 
 import { defineBookmaker } from "./bookmaker-template";
 import { BETWINNER } from "./bookmakers/betwinner";
+import { MELBET } from "./bookmakers/melbet";
 import type { Bookmaker, BonusType } from "./bookmaker-template";
 
 export { BONUS_TYPES, defineBookmaker } from "./bookmaker-template";
@@ -803,6 +804,7 @@ export const BOOKMAKERS: Bookmaker[] = [
     ],
   }),
   BETWINNER,
+  MELBET,
 ];
 
 export function getBookmaker(slug: string): Bookmaker | undefined {
@@ -816,7 +818,7 @@ export function getRelatedBookmakers(slug: string, limit = 3): Bookmaker[] {
     .sort((a, b) => {
       const shared = (x: Bookmaker) =>
         current ? x.bonusTypes.filter((t) => current.bonusTypes.includes(t)).length : 0;
-      return shared(b) - shared(a) || b.rating - a.rating;
+      return shared(b) - shared(a) || (b.rating ?? 0) - (a.rating ?? 0);
     })
     .slice(0, limit);
 }

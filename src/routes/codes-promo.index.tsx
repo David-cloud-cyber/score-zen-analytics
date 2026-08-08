@@ -257,7 +257,7 @@ function PromoHub() {
                     </td>
                     <td className="px-4 py-3">{b.bonusHeadline}</td>
                     <td className="px-4 py-3 tabular-nums">{b.minDeposit}</td>
-                    <td className="px-4 py-3 font-bold tabular-nums">{b.rating.toFixed(1)}/5</td>
+                    <td className="px-4 py-3 font-bold tabular-nums">{b.rating ? `${b.rating.toFixed(1)}/5` : "À vérifier"}</td>
                   </tr>
                 ))}
               </tbody>

@@ -126,7 +126,11 @@ export function PromoCodeCard({ b }: { b: Bookmaker }) {
           </div>
           <div>
             <h3 className="text-base font-black leading-tight">{b.name}</h3>
-            <RatingStars rating={b.rating} count={b.reviewCount} />
+            {b.rating && b.reviewCount ? (
+              <RatingStars rating={b.rating} count={b.reviewCount} />
+            ) : (
+              <span className="text-[11px] text-muted-foreground">Offre à vérifier</span>
+            )}
           </div>
         </div>
         <span className="rounded-full bg-warn/15 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-warn">

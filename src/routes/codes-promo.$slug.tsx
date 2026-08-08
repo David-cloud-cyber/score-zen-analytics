@@ -49,6 +49,31 @@ export const Route = createFileRoute("/codes-promo/$slug")({
       image: b.bannerUrl,
       type: "article",
     });
+    const reviewScript = b.rating && b.reviewCount
+      ? {
+          type: "application/ld+json",
+          children: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Review",
+            name: `Avis sur le code promo ${b.name} ${b.code}`,
+            itemReviewed: {
+              "@type": "Organization",
+              name: b.name,
+              url: b.affiliateUrl,
+              aggregateRating: {
+                "@type": "AggregateRating",
+                ratingValue: b.rating,
+                bestRating: 5,
+                ratingCount: b.reviewCount,
+              },
+            },
+            reviewRating: { "@type": "Rating", ratingValue: b.rating, bestRating: 5 },
+            positiveNotes: { "@type": "ItemList", itemListElement: b.pros.map((p, i) => ({ "@type": "ListItem", position: i + 1, name: p })) },
+            negativeNotes: { "@type": "ItemList", itemListElement: b.cons.map((p, i) => ({ "@type": "ListItem", position: i + 1, name: p })) },
+            author: { "@type": "Organization", name: "Livefoot IA" },
+          }),
+        }
+      : null;
     return {
       ...base,
       meta: [
@@ -93,29 +118,7 @@ export const Route = createFileRoute("/codes-promo/$slug")({
             speakable: SPEAKABLE,
           }),
         },
-        {
-          type: "application/ld+json",
-          children: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "Review",
-            name: `Avis sur le code promo ${b.name} ${b.code}`,
-            itemReviewed: {
-              "@type": "Organization",
-              name: b.name,
-              url: b.affiliateUrl,
-              aggregateRating: {
-                "@type": "AggregateRating",
-                ratingValue: b.rating,
-                bestRating: 5,
-                ratingCount: b.reviewCount,
-              },
-            },
-            reviewRating: { "@type": "Rating", ratingValue: b.rating, bestRating: 5 },
-            positiveNotes: { "@type": "ItemList", itemListElement: b.pros.map((p, i) => ({ "@type": "ListItem", position: i + 1, name: p })) },
-            negativeNotes: { "@type": "ItemList", itemListElement: b.cons.map((p, i) => ({ "@type": "ListItem", position: i + 1, name: p })) },
-            author: { "@type": "Organization", name: "Livefoot IA" },
-          }),
-        },
+        ...(reviewScript ? [reviewScript] : []),
         {
           type: "application/ld+json",
           children: JSON.stringify({
@@ -160,7 +163,7 @@ export const Route = createFileRoute("/codes-promo/$slug")({
                 { label: "Bonus de bienvenue", value: b.bonusHeadline },
                 { label: "Dépôt minimum", value: b.minDeposit },
                 { label: "Licence", value: b.licence },
-                { label: "Note éditoriale", value: `${b.rating}/5` },
+                ...(b.rating && b.reviewCount ? [{ label: "Note éditoriale", value: `${b.rating}/5` }] : []),
                 { label: "Dernière vérification", value: b.updatedAt },
                 ...b.bonusTable.map((r) => ({ label: r.label, value: r.value })),
               ],
@@ -361,7 +364,11 @@ function BookmakerArticle() {
               <h1 className="text-[26px] font-black leading-tight tracking-tight lg:text-4xl">
                 Code promo {b.name} : {b.code}
               </h1>
-              <RatingStars rating={b.rating} count={b.reviewCount} />
+              {b.rating && b.reviewCount ? (
+                <RatingStars rating={b.rating} count={b.reviewCount} />
+              ) : (
+                <span className="text-[11px] text-muted-foreground">Note non publiée : offre à vérifier</span>
+              )}
             </div>
           </div>
 

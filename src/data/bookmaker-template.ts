@@ -45,8 +45,9 @@ export type Bookmaker = {
   logoUrl?: string;
   bannerUrl?: string;
   bannerLinkUrl?: string;
-  rating: number; // /5
-  reviewCount: number;
+  /** Note et volume d'avis uniquement quand ils sont réellement documentés. */
+  rating?: number; // /5
+  reviewCount?: number;
   accent: string; // couleur de marque (hex, usage décoratif uniquement)
   tagline: string;
   bonusHeadline: string;
