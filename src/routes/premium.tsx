@@ -112,6 +112,22 @@ function PremiumPage() {
         </div>
       </div>
 
+      <div className="mt-4 px-4 lg:px-0">
+        <Link
+          to="/premium/tableau-de-bord"
+          className="flex items-center justify-between gap-3 rounded-2xl border border-brand/30 bg-brand/5 p-4 transition-colors hover:bg-brand/10"
+        >
+          <span className="flex items-center gap-3">
+            <span className="grid size-9 place-items-center rounded-xl bg-brand/15 text-brand"><Sparkles className="size-4" /></span>
+            <span>
+              <span className="block text-sm font-black">Premium Intelligence Hub</span>
+              <span className="block text-xs text-muted-foreground">Radar value, alertes intelligentes et scorecard personnel</span>
+            </span>
+          </span>
+          <ArrowRight className="size-4 shrink-0 text-brand" aria-hidden />
+        </Link>
+      </div>
+
       {/* Subscription Plans */}
       <section className="mt-8 px-4 lg:px-0">
         <div className="mb-4 text-center">

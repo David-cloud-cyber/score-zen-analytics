@@ -2,9 +2,11 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Bell, Star, Crown, Lock, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { AppShell, PageTitle } from "@/components/AppShell";
 import { getMyBalance } from "@/lib/analyses.functions";
+import { getMyPremiumFavorites, togglePremiumFavorite } from "@/lib/premium-hub.functions";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/favoris")({
@@ -39,25 +41,39 @@ function FavorisPage() {
 
   const isPremium = profile?.plan === "premium";
 
-  // Demo local state for favorites
-  const [favoriteTeams, setFavoriteTeams] = useState<Array<{ id: number; name: string; country: string }>>([
-    { id: 541, name: "Real Madrid", country: "Espagne" },
-    { id: 529, name: "FC Barcelone", country: "Espagne" },
-    { id: 85, name: "Paris Saint-Germain", country: "France" },
-  ]);
+  const getFavorites = useServerFn(getMyPremiumFavorites);
+  const toggleFavorite = useServerFn(togglePremiumFavorite);
+  const favoritesQuery = useQuery({
+    queryKey: ["me", "favorites"],
+    queryFn: () => getFavorites(),
+  });
+  const favoriteTeams = (favoritesQuery.data ?? [])
+    .filter((favorite) => favorite.kind === "team")
+    .map((favorite) => ({
+      id: favorite.id,
+      refId: favorite.refId,
+      name: favorite.label ?? favorite.refId,
+      notify: favorite.notify,
+    }));
 
-  const handleAddFavorite = (teamName: string) => {
-    if (!isPremium && favoriteTeams.length >= 3) {
-      toast.error("Limite atteinte : Les comptes gratuits sont limités à 3 favoris. Passez Premium pour des favoris illimités !");
-      return;
+  const handleAddFavorite = async (teamName: string) => {
+    try {
+      await toggleFavorite({ data: { kind: "team", refId: teamName, label: teamName, notify: true } });
+      await favoritesQuery.refetch();
+      toast.success(`${teamName} ajouté à vos favoris.`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Impossible d'ajouter ce favori.");
     }
-    setFavoriteTeams([...favoriteTeams, { id: Date.now(), name: teamName, country: "Europe" }]);
-    toast.success(`${teamName} ajouté à vos favoris.`);
   };
 
-  const handleRemoveFavorite = (id: number) => {
-    setFavoriteTeams(favoriteTeams.filter((t) => t.id !== id));
-    toast.info("Favori retiré.");
+  const handleRemoveFavorite = async (team: { refId: string; name: string }) => {
+    try {
+      await toggleFavorite({ data: { kind: "team", refId: team.refId, label: team.name, notify: true } });
+      await favoritesQuery.refetch();
+      toast.info("Favori retiré.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Impossible de retirer ce favori.");
+    }
   };
 
   return (
@@ -133,11 +149,11 @@ function FavorisPage() {
                       </div>
                       <div>
                         <div className="text-sm font-bold">{team.name}</div>
-                        <div className="text-[11px] text-muted-foreground">{team.country}</div>
+                        <div className="text-[11px] text-muted-foreground">Alertes {team.notify ? "activées" : "désactivées"}</div>
                       </div>
                     </div>
                     <button
-                      onClick={() => handleRemoveFavorite(team.id)}
+                      onClick={() => handleRemoveFavorite(team)}
                       className="grid size-8 place-items-center rounded-full bg-surface text-muted-foreground hover:text-alert ring-1 ring-black/5 dark:ring-white/10"
                       aria-label="Supprimer"
                     >

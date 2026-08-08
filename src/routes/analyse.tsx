@@ -36,9 +36,10 @@ const ANALYSE_FAQ = [
 ];
 
 export const Route = createFileRoute("/analyse")({
-  validateSearch: (search: Record<string, unknown>) => ({
+  validateSearch: (search: Record<string, unknown>): { home: string; away: string; matchId?: string } => ({
     home: typeof search.home === "string" ? search.home : "",
     away: typeof search.away === "string" ? search.away : "",
+    ...(typeof search.matchId === "string" && search.matchId.length > 0 ? { matchId: search.matchId } : {}),
   }),
   head: () => {
     const base = buildRouteMeta({
@@ -102,7 +103,7 @@ const POPULAR_TEAMS = [
 ];
 
 function AnalysePage() {
-  const { home: homeParam, away: awayParam } = useSearch({ from: "/analyse" });
+  const { home: homeParam, away: awayParam, matchId: matchIdParam } = useSearch({ from: "/analyse" });
   const [home, setHome] = useState(homeParam ?? "");
   const [away, setAway] = useState(awayParam ?? "");
   const [live, setLive] = useState<AnalysisResult | null>(null);
@@ -175,7 +176,7 @@ function AnalysePage() {
     }, 1200);
 
     try {
-      const result = await runFn({ data: { home: home.trim(), away: away.trim() } });
+      const result = await runFn({ data: { home: home.trim(), away: away.trim(), matchId: matchIdParam || undefined } });
       setLive(result);
       toast.success("Analyse IA générée — 3 crédits débités.");
     } catch (err) {
