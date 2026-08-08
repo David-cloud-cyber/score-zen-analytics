@@ -12,9 +12,10 @@ import {
   ResponsibleGamblingNotice,
   RelatedBookmakers,
   SectionTable,
+  AnswerBox,
 } from "@/components/promo/PromoUI";
 import { track, useCtaImpression } from "@/lib/analytics";
-import { buildRouteMeta } from "@/lib/seo";
+import { buildRouteMeta, qaSchema, factsSchema, SPEAKABLE, ORG } from "@/lib/seo";
 import { Check, X, Sparkles, ArrowRight, BadgeCheck, ChevronDown } from "lucide-react";
 
 const SITE = "https://www.livefoot.fun";
@@ -74,8 +75,14 @@ export const Route = createFileRoute("/codes-promo/$slug")({
               `${b.name} Cameroun`,
               `paris sportifs FCFA`,
             ].join(", "),
-            author: { "@type": "Organization", name: "Livefoot IA", url: SITE },
-            publisher: { "@type": "Organization", name: "Livefoot IA", url: SITE },
+            author: ORG,
+            publisher: ORG,
+            isPartOf: { "@type": "WebSite", name: "Livefoot IA", url: SITE },
+            about: [
+              { "@type": "Thing", name: `Code promo ${b.name}` },
+              { "@type": "Thing", name: "Paris sportifs en Afrique francophone" },
+            ],
+            speakable: SPEAKABLE,
           }),
         },
         {
@@ -122,6 +129,35 @@ export const Route = createFileRoute("/codes-promo/$slug")({
               acceptedAnswer: { "@type": "Answer", text: f.a },
             })),
           }),
+        },
+        {
+          type: "application/ld+json",
+          children: JSON.stringify(
+            qaSchema({
+              path: `/codes-promo/${b.slug}`,
+              question: `Quel est le code promo ${b.name} en 2026 ?`,
+              answer: b.directAnswer!,
+              dateModified: b.updatedAt,
+            }),
+          ),
+        },
+        {
+          type: "application/ld+json",
+          children: JSON.stringify(
+            factsSchema({
+              name: `Faits vérifiés — code promo ${b.name} ${b.code}`,
+              url,
+              facts: [
+                { label: "Code promo", value: b.code },
+                { label: "Bonus de bienvenue", value: b.bonusHeadline },
+                { label: "Dépôt minimum", value: b.minDeposit },
+                { label: "Licence", value: b.licence },
+                { label: "Note éditoriale", value: `${b.rating}/5` },
+                { label: "Dernière vérification", value: b.updatedAt },
+                ...b.bonusTable.map((r) => ({ label: r.label, value: r.value })),
+              ],
+            }),
+          ),
         },
         {
           type: "application/ld+json",
@@ -317,9 +353,14 @@ function BookmakerArticle() {
           </p>
         </header>
 
+        {/* Réponse directe — AEO/GEO */}
+        {b.directAnswer && (
+          <AnswerBox question={`Quel est le code promo ${b.name} en 2026 ?`} answer={b.directAnswer} />
+        )}
+
         {/* À retenir */}
         {b.keyTakeaways.length > 0 && (
-          <section aria-label="L'essentiel" className="rounded-2xl border border-border/70 bg-surface/40 p-5">
+          <section data-key-takeaways aria-label="L'essentiel" className="rounded-2xl border border-border/70 bg-surface/40 p-5">
             <h2 className="mb-3 flex items-center gap-2 text-sm font-black uppercase tracking-widest text-muted-foreground">
               <BadgeCheck className="size-4 text-brand" aria-hidden />
               L'essentiel en 30 secondes
