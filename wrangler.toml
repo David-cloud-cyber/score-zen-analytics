@@ -27,5 +27,9 @@ required = [
 pattern = "www.livefoot.fun/*"
 zone_name = "livefoot.fun"
 
+[[routes]]
+pattern = "livefoot.fun/*"
+zone_name = "livefoot.fun"
+
 [assets]
 directory = "./dist/client"
