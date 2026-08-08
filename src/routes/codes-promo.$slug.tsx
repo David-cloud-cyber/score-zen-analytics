@@ -13,6 +13,7 @@ import {
   RelatedBookmakers,
   SectionTable,
   AnswerBox,
+  HighlightText,
 } from "@/components/promo/PromoUI";
 import { track, useCtaImpression } from "@/lib/analytics";
 import { buildRouteMeta, qaSchema, factsSchema, SPEAKABLE, ORG } from "@/lib/seo";
@@ -37,6 +38,10 @@ export const Route = createFileRoute("/codes-promo/$slug")({
       });
     }
     const url = `${SITE}/codes-promo/${b.slug}`;
+    const wordCount = [b.intro.join(" "), ...b.sections.map((section) => [
+      section.paragraphs.join(" "),
+      ...(section.sub?.map((sub) => sub.paragraphs.join(" ")) ?? []),
+    ].join(" "))].join(" ").trim().split(/\s+/).length;
     const base = buildRouteMeta({
       path: `/codes-promo/${b.slug}`,
       title: b.seoTitle,
@@ -65,6 +70,8 @@ export const Route = createFileRoute("/codes-promo/$slug")({
             image: b.bannerUrl ? [b.bannerUrl] : undefined,
             datePublished: b.updatedAt,
             dateModified: b.updatedAt,
+            wordCount,
+            timeRequired: `PT${Math.max(6, Math.round(wordCount / 200))}M`,
             inLanguage: "fr",
             mainEntityOfPage: url,
             keywords: [
@@ -77,6 +84,7 @@ export const Route = createFileRoute("/codes-promo/$slug")({
             ].join(", "),
             author: ORG,
             publisher: ORG,
+            copyrightHolder: ORG,
             isPartOf: { "@type": "WebSite", name: "Livefoot IA", url: SITE },
             about: [
               { "@type": "Thing", name: `Code promo ${b.name}` },
@@ -225,7 +233,7 @@ function BulletList({ items }: { items: string[] }) {
       {items.map((it) => (
         <li key={it} className="flex gap-2 text-sm leading-relaxed text-muted-foreground">
           <span className="mt-2 size-1.5 shrink-0 rounded-full bg-brand" aria-hidden />
-          {it}
+          <HighlightText text={it} />
         </li>
       ))}
     </ul>
@@ -240,7 +248,7 @@ function SectionBlock({ s }: { s: Section }) {
       </h2>
       {s.paragraphs.map((p, i) => (
         <p key={i} className="text-[15px] leading-relaxed text-muted-foreground">
-          {p}
+          <HighlightText text={p} />
         </p>
       ))}
       {s.bullets && <BulletList items={s.bullets} />}
@@ -250,7 +258,7 @@ function SectionBlock({ s }: { s: Section }) {
           <h3 className="text-base font-black tracking-tight">{sub.title}</h3>
           {sub.paragraphs.map((p, i) => (
             <p key={i} className="text-[15px] leading-relaxed text-muted-foreground">
-              {p}
+              <HighlightText text={p} />
             </p>
           ))}
           {sub.bullets && <BulletList items={sub.bullets} />}
@@ -305,11 +313,20 @@ function BookmakerArticle() {
         <header className="space-y-4 rounded-3xl border border-border/70 bg-surface/50 p-5">
           <div className="flex items-center gap-3">
             <div
-              className="grid size-14 place-items-center rounded-2xl text-base font-black text-white"
+              className="relative grid size-14 shrink-0 place-items-center overflow-hidden rounded-2xl text-base font-black text-white"
               style={{ backgroundColor: b.accent }}
-              aria-hidden
             >
-              {b.name.slice(0, 2).toUpperCase()}
+              <span aria-hidden>{b.name.slice(0, 2).toUpperCase()}</span>
+              {b.logoUrl && (
+                <img
+                  src={b.logoUrl}
+                  alt={`Logo ${b.name}`}
+                  className="absolute inset-1 size-12 rounded-xl object-contain"
+                  onError={(event) => {
+                    event.currentTarget.style.display = "none";
+                  }}
+                />
+              )}
             </div>
             <div>
               <h1 className="text-[26px] font-black leading-tight tracking-tight lg:text-4xl">
@@ -378,7 +395,7 @@ function BookmakerArticle() {
 
         {b.intro.map((p, i) => (
           <p key={i} className="text-[15px] leading-relaxed text-muted-foreground">
-            {p}
+            <HighlightText text={p} />
           </p>
         ))}
 
@@ -461,7 +478,7 @@ function BookmakerArticle() {
               {b.pros.map((p) => (
                 <li key={p} className="flex gap-2 text-sm">
                   <Check className="mt-0.5 size-4 shrink-0 text-brand" aria-hidden />
-                  {p}
+                  <HighlightText text={p} />
                 </li>
               ))}
             </ul>
@@ -472,7 +489,7 @@ function BookmakerArticle() {
               {b.cons.map((p) => (
                 <li key={p} className="flex gap-2 text-sm">
                   <X className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
-                  {p}
+                  <HighlightText text={p} />
                 </li>
               ))}
             </ul>

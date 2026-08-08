@@ -269,7 +269,7 @@ async function fetchBookmakerOdds(homeId: number, awayId: number): Promise<strin
 }
 
 /**
- * Routeur IA Hybride — priorité Gemini 2.5 Flash (Google AI Studio) puis DeepSeek R1 (OpenRouter).
+ * Routeur IA hybride — fournisseur principal puis relais sécurisé.
  * Les clés sont lues via getConfig() : env var Cloudflare Worker en prod, table app_config Supabase en fallback.
  * Bascule silencieusement sans que l'utilisateur le sache.
  */
@@ -280,7 +280,7 @@ async function callSmartAIRouter(systemPrompt: string, userPrompt: string): Prom
     getConfig("OPENROUTER_API_KEY"),
   ]);
 
-  // 1. Google AI Studio — Gemini 2.5 Flash (quota gratuit : 15 req/min, 1 M tokens/jour)
+  // 1. Fournisseur principal — quota et format JSON strict.
   if (geminiKey) {
     try {
       const res = await fetch(
@@ -306,14 +306,14 @@ async function callSmartAIRouter(systemPrompt: string, userPrompt: string): Prom
       const status = res.status;
       if (status !== 429 && status !== 503) {
         const body = await res.text().catch(() => "");
-        console.warn(`Gemini 2.5 Flash HTTP ${status}:`, body.slice(0, 200));
+        console.warn(`Provider principal HTTP ${status}:`, body.slice(0, 200));
       }
     } catch (err) {
-      console.warn("Gemini 2.5 Flash failover:", err instanceof Error ? err.message : err);
+      console.warn("Provider principal indisponible:", err instanceof Error ? err.message : err);
     }
   }
 
-  // 2. OpenRouter — DeepSeek R1 :free (raisonnement puissant, quota ~200 req/jour)
+  // 2. Relais OpenRouter — modèle gratuit de secours.
   if (openRouterKey) {
     try {
       const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
@@ -472,16 +472,14 @@ export const runAnalysis = createServerFn({ method: "POST" })
     ].join("\n\n");
 
     const systemPrompt =
-      "Tu es un analyste football professionnel qui répond UNIQUEMENT en français sous format JSON strict.\n" +
-      "Tu utilises EXCLUSIVEMENT les données factuelles fournies dans le contexte (classement, forme globale, forme domicile/extérieur séparée, blessures, confrontations directes, cotes bookmakers) — n'invente aucun résultat ni statistique.\n" +
-      "IMPORTANT : différencie bien la forme à domicile (équipe qui reçoit) de la forme à l'extérieur (équipe visiteuse) — c'est un facteur déterminant.\n" +
-      "IMPORTANT : si des cotes bookmakers sont fournies, utilise-les comme signal de calibration. Tes probabilités 1X2 doivent être cohérentes avec le consensus du marché sauf si les données statistiques justifient un écart. Mentionne l'alignement/écart avec le marché dans aiText.\n" +
-      "Tu produis des probabilités 1X2 entières (0-100) qui SOMMENT EXACTEMENT à 100 et un score probable réaliste basé sur les données.\n" +
-      "Tu proposes 5 marchés recommandés couvrant 1X2, Double Chance, BTTS, Over/Under 2.5, et un marché parmi Corners ou Cartons.\n" +
-      "Confiance = 0-100 (jamais > 85 : garde toujours de l'humilité). Risque = bas | moyen | eleve.\n" +
-      "aiText = 3-4 phrases synthétisant le classement, la forme récente domicile/extérieur, les absents clés, la dynamique du match et le positionnement par rapport aux cotes.\n" +
-      "keyFactors = 3-5 puces courtes (facteurs déterminants les plus importants).\n" +
-      "Reste factuel, prudent, ne pousse jamais aux paris.";
+      "Tu es l'analyste statistique football de LiveFoot. Réponds uniquement en français et uniquement avec un objet JSON valide, sans markdown, sans préambule et sans nom de fournisseur ou de modèle.\n" +
+      "Règle absolue : utilise exclusivement les données présentes dans le contexte. N'invente jamais un classement, une blessure, un résultat, une cote ou une source. Si une donnée manque, écris clairement qu'elle est indisponible et baisse la confiance.\n" +
+      "Méthode : croise séparément la force globale, la forme récente, la forme à domicile de l'équipe qui reçoit, la forme à l'extérieur de l'équipe visiteuse, les absences, les confrontations directes et le marché. Donne davantage de poids aux données récentes et comparables, sans surinterpréter un échantillon court.\n" +
+      "Calibration : lorsque des cotes sont disponibles, convertis-les en probabilités implicites, tiens compte de la marge et utilise-les comme ancre de marché. Explique tout écart important dans aiText. Sans cotes, ne prétends pas qu'il existe un consensus.\n" +
+      "Probabilités : home, draw et away sont des nombres entiers compris entre 0 et 100 et leur somme doit être exactement 100. Le score probable doit rester plausible et cohérent avec le niveau de buts attendu.\n" +
+      "Marchés : retourne 5 objets maximum couvrant 1X2 ou Double Chance, BTTS, Over/Under 2.5 et, seulement si les données le permettent, corners ou cartons. Une recommandation n'est jamais une garantie de gain.\n" +
+      "Confiance : nombre entre 0 et 85. Risque : exactement bas, moyen ou eleve. La confiance baisse si les équipes sont mal identifiées, si l'historique est faible ou si des données clés manquent.\n" +
+      "aiText : 3 à 4 phrases utiles et nuancées. keyFactors : 3 à 5 phrases courtes, chacune reliée à un fait fourni. N'affiche jamais de nom de modèle, de fournisseur, de clé technique ou de promesse de gain.";
 
     const userPrompt =
       `Analyse la rencontre ${data.home} vs ${data.away}.\n\n` +

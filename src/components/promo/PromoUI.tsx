@@ -7,6 +7,24 @@ import { track } from "@/lib/analytics";
 
 export const AFF_REL = "sponsored noopener noreferrer nofollow";
 
+/** Mise en valeur légère des termes qui répondent à l'intention de recherche. */
+export function HighlightText({ text }: { text: string }) {
+  const parts = text.split(/(code promo|bonus|dépôt|retrait|conditions|Mobile Money|18\+)/gi);
+  return (
+    <>
+      {parts.map((part, index) =>
+        /^(code promo|bonus|dépôt|retrait|conditions|Mobile Money|18\+)$/i.test(part) ? (
+          <strong key={`${part}-${index}`} className="font-bold text-foreground">
+            {part}
+          </strong>
+        ) : (
+          <span key={`${part}-${index}`}>{part}</span>
+        ),
+      )}
+    </>
+  );
+}
+
 /** Bouton de copie du code promo. */
 export function CopyCodeButton({ code, size = "md" }: { code: string; size?: "sm" | "md" | "lg" }) {
   const [copied, setCopied] = useState(false);
@@ -90,11 +108,21 @@ export function PromoCodeCard({ b }: { b: Bookmaker }) {
       <div className="flex items-start justify-between gap-3 border-b border-border/60 p-4">
         <div className="flex items-center gap-3">
           <div
-            className="grid size-12 shrink-0 place-items-center rounded-xl text-sm font-black text-white"
+            className="relative grid size-12 shrink-0 place-items-center overflow-hidden rounded-xl text-sm font-black text-white"
             style={{ backgroundColor: b.accent }}
-            aria-hidden
           >
-            {b.name.slice(0, 2).toUpperCase()}
+            <span aria-hidden>{b.name.slice(0, 2).toUpperCase()}</span>
+            {b.logoUrl && (
+              <img
+                src={b.logoUrl}
+                alt={`Logo ${b.name}`}
+                loading="lazy"
+                className="absolute inset-1 size-10 rounded-lg object-contain"
+                onError={(event) => {
+                  event.currentTarget.style.display = "none";
+                }}
+              />
+            )}
           </div>
           <div>
             <h3 className="text-base font-black leading-tight">{b.name}</h3>
@@ -252,11 +280,21 @@ export function RelatedBookmakers({ items, title }: { items: Bookmaker[]; title?
             className="flex items-center gap-3 rounded-2xl border border-border/70 bg-surface/40 p-4 transition-colors hover:bg-surface"
           >
             <span
-              className="grid size-11 shrink-0 place-items-center rounded-xl text-xs font-black text-white"
+              className="relative grid size-11 shrink-0 place-items-center overflow-hidden rounded-xl text-xs font-black text-white"
               style={{ backgroundColor: b.accent }}
-              aria-hidden
             >
-              {b.name.slice(0, 2).toUpperCase()}
+              <span aria-hidden>{b.name.slice(0, 2).toUpperCase()}</span>
+              {b.logoUrl && (
+                <img
+                  src={b.logoUrl}
+                  alt={`Logo ${b.name}`}
+                  loading="lazy"
+                  className="absolute inset-1 size-9 rounded-lg object-contain"
+                  onError={(event) => {
+                    event.currentTarget.style.display = "none";
+                  }}
+                />
+              )}
             </span>
             <span className="min-w-0">
               <span className="block text-sm font-black">

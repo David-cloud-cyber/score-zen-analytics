@@ -41,6 +41,8 @@ export type Bookmaker = {
   name: string;
   code: string;
   affiliateUrl: string;
+  /** Logo officiel ou favicon du domaine du bookmaker. */
+  logoUrl?: string;
   bannerUrl?: string;
   bannerLinkUrl?: string;
   rating: number; // /5
@@ -61,7 +63,7 @@ export type Bookmaker = {
   /**
    * AEO/GEO — réponse directe de 40 à 60 mots à la question principale.
    * Affichée juste sous le H1 et exposée en JSON-LD `QAPage` + `speakable`
-   * pour être citée par Google AI Overviews, ChatGPT, Perplexity, Gemini.
+   * pour être citée par les moteurs de réponse et les assistants génératifs.
    * Générée automatiquement si absente.
    */
   directAnswer?: string;

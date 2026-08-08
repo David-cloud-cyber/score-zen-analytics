@@ -6,6 +6,7 @@ export const BETWINNER = defineBookmaker({
   name: "Betwinner",
   code: "BALL10",
   affiliateUrl: "https://bwredir.com/1jmi",
+  logoUrl: "https://betwinner.com/favicon.ico",
   bannerUrl: betwinnerBanner,
   bannerLinkUrl: "https://bwredir.com/1jmi",
   rating: 4.5,

@@ -221,13 +221,13 @@ function AnalysePage() {
               onClick={handleSwap}
               type="button"
               className={cn(
-                "group flex items-center gap-2 rounded-full bg-surface px-3 py-1.5 text-xs font-bold ring-1 ring-black/5 transition-all hover:bg-foreground hover:text-background active:scale-95 dark:ring-white/10",
+                "group inline-flex items-center gap-1.5 rounded-full bg-surface px-2 py-1 text-[10px] font-bold ring-1 ring-black/5 transition-all hover:bg-foreground hover:text-background active:scale-95 dark:ring-white/10",
                 swapping && "rotate-180 scale-110",
               )}
               aria-label="Inverser les équipes"
             >
-              <ArrowLeftRight className={cn("size-4 transition-transform group-hover:scale-110", swapping && "rotate-180")} />
-              <span className="text-[11px]">Inverser Domicile / Extérieur</span>
+              <ArrowLeftRight className={cn("size-3.5 transition-transform group-hover:scale-110", swapping && "rotate-180")} />
+              <span className="hidden text-[11px] sm:inline">Inverser</span>
             </button>
           </div>
 
@@ -238,29 +238,6 @@ function AnalysePage() {
             onChange={setAway}
             placeholder="ex. FC Barcelone, Man City, Inter..."
           />
-        </div>
-
-        {/* Popular Quick Select Badges */}
-        <div className="mt-4 border-t border-border/50 pt-3">
-          <div className="mb-2 text-[10px] font-black uppercase tracking-wider text-muted-foreground">
-            Raccourcis rapides :
-          </div>
-          <div className="flex flex-wrap gap-1.5">
-            {POPULAR_TEAMS.slice(0, 6).map((team) => (
-              <button
-                key={team.name}
-                type="button"
-                onClick={() => {
-                  if (!home) setHome(team.name);
-                  else if (!away && home !== team.name) setAway(team.name);
-                  else setHome(team.name);
-                }}
-                className="inline-flex items-center gap-1.5 rounded-xl bg-surface px-2.5 py-1 text-xs font-medium ring-1 ring-black/5 transition-transform hover:scale-105 active:scale-95 dark:ring-white/10"
-              >
-                <span>{team.name}</span>
-              </button>
-            ))}
-          </div>
         </div>
 
         {/* Match Matcher Notice */}
@@ -297,7 +274,7 @@ function AnalysePage() {
           )}
         </button>
         <p className="mt-2.5 text-center text-[10px] text-muted-foreground">
-          Calculé par Gemini 3.1 Pro avec statistiques d'effectif et historique H2H.
+          Estimation statistique LiveFoot basée sur la forme, les absences, les confrontations directes et les données de marché disponibles.
         </p>
       </div>
 
@@ -321,7 +298,7 @@ function AnalysePage() {
                 <div className="inline-flex items-center gap-1.5 rounded-full bg-brand/20 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-brand">
                   <Sparkles className="size-3" /> Prédiction IA
                 </div>
-                <div className="text-[10px] font-bold text-background/60">Gemini 3.1 Pro</div>
+                <div className="text-[10px] font-bold text-background/60">Analyse multicritère</div>
               </div>
               <h2 className="mb-4 text-xl font-black leading-tight">
                 {home} <span className="text-background/40">vs</span> {away}

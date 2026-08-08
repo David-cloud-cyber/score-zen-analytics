@@ -5,10 +5,11 @@ import { Sparkles, ChevronRight, Loader2, AlertTriangle, RefreshCw } from "lucid
 import { AppShell, PageTitle } from "@/components/AppShell";
 import { RemoteMatchCard } from "@/components/RemoteMatchCard";
 import { getFixtures } from "@/lib/football.functions";
-import { buildRouteMeta } from "@/lib/seo";
+import { buildRouteMeta, faqSchema, ORG, SPEAKABLE } from "@/lib/seo";
 import { cn } from "@/lib/utils";
 import { PageSkeleton } from "@/components/PageSkeleton";
 import { track } from "@/lib/analytics";
+import { VisibilityGuide } from "@/components/VisibilityGuide";
 
 
 const fixturesQuery = (mode: "today" | "live") =>
@@ -21,13 +22,44 @@ const fixturesQuery = (mode: "today" | "live") =>
   });
 
 export const Route = createFileRoute("/")({
-  head: () =>
-    buildRouteMeta({
+  head: () => {
+    const base = buildRouteMeta({
       path: "/",
       title: "Matchs du jour & scores en direct",
       description:
-        "Suivez tous les matchs du jour en direct : Ligue 1, Liga, Premier League, Ligue des champions. Scores, compos et analyses IA.",
-    }),
+        "Suivez tous les matchs du jour en direct : Ligue 1, Liga, Premier League, Ligue des champions. Scores, compos et analyses statistiques.",
+    });
+    return {
+      ...base,
+      scripts: [
+        {
+          type: "application/ld+json",
+          children: JSON.stringify(faqSchema([
+            {
+              q: "Quelle est la différence entre SEO, AEO et GEO ?",
+              a: "Le SEO aide une page à être trouvée, l'AEO l'aide à répondre directement aux questions et le GEO l'aide à être comprise et citée par les moteurs génératifs.",
+            },
+            {
+              q: "Comment fonctionne une analyse de match LiveFoot ?",
+              a: "LiveFoot croise la forme récente, le contexte domicile-extérieur, le classement, les absences, les confrontations directes et les données de marché disponibles pour produire une estimation prudente.",
+            },
+          ])),
+        },
+        {
+          type: "application/ld+json",
+          children: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "WebSite",
+            name: "LiveFoot IA",
+            url: "https://www.livefoot.fun",
+            publisher: ORG,
+            speakable: SPEAKABLE,
+            inLanguage: "fr",
+          }),
+        },
+      ],
+    };
+  },
   loader: ({ context }) => {
     // Best-effort prefetch — never crash the page on API errors.
     context.queryClient.ensureQueryData(fixturesQuery("today")).catch(() => {});
@@ -227,6 +259,8 @@ function HomePage() {
           </div>
         </Link>
       </div>
+
+      <VisibilityGuide />
 
       {/* Footer */}
       <footer className="mt-10 space-y-3 border-t border-border/60 px-4 py-6 text-center lg:px-0">
