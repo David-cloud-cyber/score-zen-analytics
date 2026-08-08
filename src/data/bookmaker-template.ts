@@ -58,6 +58,13 @@ export type Bookmaker = {
   seoDescription: string;
   /** Points clés affichés en encart « À retenir » sous le hero. */
   keyTakeaways: string[];
+  /**
+   * AEO/GEO — réponse directe de 40 à 60 mots à la question principale.
+   * Affichée juste sous le H1 et exposée en JSON-LD `QAPage` + `speakable`
+   * pour être citée par Google AI Overviews, ChatGPT, Perplexity, Gemini.
+   * Générée automatiquement si absente.
+   */
+  directAnswer?: string;
   intro: string[];
   steps: string[];
   bonusTable: BonusRow[];
