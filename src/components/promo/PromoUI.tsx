@@ -284,3 +284,22 @@ export function BonusTypeBadges({ types }: { types: string[] }) {
     </div>
   );
 }
+
+/**
+ * Réponse directe (AEO/GEO) : 40-60 mots factuels placés juste après le H1.
+ * Le `data-answer` est ciblé par le schéma `speakable` pour que les moteurs
+ * de réponse et les IA génératives citent ce paragraphe.
+ */
+export function AnswerBox({ question, answer }: { question: string; answer: string }) {
+  return (
+    <section
+      aria-label="Réponse rapide"
+      className="rounded-2xl border-l-4 border-brand bg-brand/5 p-5"
+    >
+      <h2 className="mb-2 text-sm font-black uppercase tracking-widest text-brand">{question}</h2>
+      <p data-answer className="text-[15px] font-medium leading-relaxed text-foreground">
+        {answer}
+      </p>
+    </section>
+  );
+}
