@@ -35,10 +35,6 @@ export const Route = createFileRoute("/")({
           type: "application/ld+json",
           children: JSON.stringify(faqSchema([
             {
-              q: "Quelle est la différence entre SEO, AEO et GEO ?",
-              a: "Le SEO aide une page à être trouvée, l'AEO l'aide à répondre directement aux questions et le GEO l'aide à être comprise et citée par les moteurs génératifs.",
-            },
-            {
               q: "Comment fonctionne une analyse de match LiveFoot ?",
               a: "LiveFoot croise la forme récente, le contexte domicile-extérieur, le classement, les absences, les confrontations directes et les données de marché disponibles pour produire une estimation prudente.",
             },
