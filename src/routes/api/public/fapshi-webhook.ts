@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { getRuntimeEnv } from "@/lib/config.server";
 
 // Webhook Fapshi : notifié sur SUCCESSFUL / FAILED / EXPIRED.
 // Sécurité : en-tête `x-wh-secret` + re-vérification du statut auprès de Fapshi.
@@ -6,7 +7,7 @@ export const Route = createFileRoute("/api/public/fapshi-webhook")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const expected = process.env.FAPSHI_WEBHOOK_SECRET;
+        const expected = getRuntimeEnv("FAPSHI_WEBHOOK_SECRET");
         if (!expected) return new Response("Webhook not configured", { status: 503 });
         const got = request.headers.get("x-wh-secret");
         if (!got || got !== expected) return new Response("Invalid secret", { status: 401 });

@@ -1,6 +1,8 @@
 // Client serveur pour l'API Fapshi (Mobile Money / Orange Money — Cameroun).
 // Sandbox : https://sandbox.fapshi.com — Live : https://live.fapshi.com
 
+import { getRuntimeEnv } from "./config.server";
+
 export type FapshiStatus = "CREATED" | "PENDING" | "SUCCESSFUL" | "FAILED" | "EXPIRED";
 
 export type FapshiTransaction = {
@@ -17,9 +19,9 @@ export type FapshiTransaction = {
 };
 
 function config() {
-  const apiUser = process.env.FAPSHI_API_USER;
-  const apiKey = process.env.FAPSHI_API_KEY;
-  const base = (process.env.FAPSHI_BASE_URL ?? "https://live.fapshi.com").replace(/\/+$/, "");
+  const apiUser = getRuntimeEnv("FAPSHI_API_USER");
+  const apiKey = getRuntimeEnv("FAPSHI_API_KEY");
+  const base = (getRuntimeEnv("FAPSHI_BASE_URL") ?? "https://live.fapshi.com").replace(/\/+$/, "");
   if (!apiUser || !apiKey) {
     throw new Error("Paiement indisponible : identifiants Fapshi non configurés.");
   }

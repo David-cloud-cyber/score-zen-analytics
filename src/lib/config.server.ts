@@ -4,32 +4,37 @@
  * service-role key (server-side only; the table is not readable by anon/authenticated).
  */
 
-const SUPABASE_URL =
-  (typeof process !== "undefined" && process.env?.SUPABASE_URL) ||
-  "https://oirdlreedxhldmwadwom.supabase.co";
+type RuntimeEnv = Record<string, string | undefined>;
 
-const SUPABASE_KEY =
-  typeof process !== "undefined" ? process.env?.SUPABASE_SERVICE_ROLE_KEY : undefined;
+function cloudflareEnv(): RuntimeEnv | undefined {
+  return (globalThis as typeof globalThis & { __env__?: RuntimeEnv }).__env__;
+}
+
+export function getRuntimeEnv(name: string): string | undefined {
+  return cloudflareEnv()?.[name] ?? (typeof process !== "undefined" ? process.env?.[name] : undefined);
+}
 
 const configCache = new Map<string, string>();
 
 export async function getConfig(name: string): Promise<string | undefined> {
   // 1. Env var — fastest path (Cloudflare Worker secrets inject these at runtime)
-  const envVal = typeof process !== "undefined" ? process.env?.[name] : undefined;
+  const envVal = getRuntimeEnv(name);
   if (envVal) return envVal;
 
   // 2. In-memory cache
   if (configCache.has(name)) return configCache.get(name);
 
   // 3. Private app_config table — service-role only
-  if (!SUPABASE_KEY) return undefined;
+  const supabaseUrl = getRuntimeEnv("SUPABASE_URL") || "https://oirdlreedxhldmwadwom.supabase.co";
+  const supabaseKey = getRuntimeEnv("SUPABASE_SERVICE_ROLE_KEY");
+  if (!supabaseKey) return undefined;
   try {
     const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/app_config?key=eq.${encodeURIComponent(name)}&select=value&limit=1`,
+      `${supabaseUrl}/rest/v1/app_config?key=eq.${encodeURIComponent(name)}&select=value&limit=1`,
       {
         headers: {
-          apikey: SUPABASE_KEY,
-          Authorization: `Bearer ${SUPABASE_KEY}`,
+          apikey: supabaseKey,
+          Authorization: `Bearer ${supabaseKey}`,
         },
       },
     );
