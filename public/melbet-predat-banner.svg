@@ -1,46 +1,88 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 420" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" role="img" aria-labelledby="title desc">
   <title id="title">MELBET PREDAT - bonus sportif jusqu'a 195 000 FCFA</title>
-  <desc id="desc">Banniere partenaire LiveFoot pour le code promo MELBET PREDAT.</desc>
+  <desc id="desc">Banniere partenaire LiveFoot inspiree d'une affiche de stade pour le code promo MELBET PREDAT.</desc>
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#120307" />
-      <stop offset="0.52" stop-color="#650713" />
-      <stop offset="1" stop-color="#ef172d" />
+      <stop offset="0" stop-color="#050812" />
+      <stop offset="0.45" stop-color="#1b1220" />
+      <stop offset="1" stop-color="#8f1220" />
     </linearGradient>
-    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#fff2a8" />
-      <stop offset="0.42" stop-color="#ffd24a" />
-      <stop offset="1" stop-color="#f49b16" />
+    <linearGradient id="panel" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#060a17" stop-opacity="0.82" />
+      <stop offset="1" stop-color="#18060e" stop-opacity="0.93" />
     </linearGradient>
-    <linearGradient id="glass" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0" stop-color="#fff" stop-opacity="0" />
-      <stop offset="0.48" stop-color="#fff" stop-opacity="0.18" />
-      <stop offset="1" stop-color="#fff" stop-opacity="0" />
+    <linearGradient id="yellow" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fff38b" />
+      <stop offset="0.45" stop-color="#ffd43a" />
+      <stop offset="1" stop-color="#f39d15" />
     </linearGradient>
-    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#000" flood-opacity="0.32" />
-    </filter>
+    <radialGradient id="light">
+      <stop offset="0" stop-color="#fff" stop-opacity="0.95" />
+      <stop offset="0.17" stop-color="#ffcf78" stop-opacity="0.62" />
+      <stop offset="1" stop-color="#e31c39" stop-opacity="0" />
+    </radialGradient>
+    <radialGradient id="ball" cx="35%" cy="28%">
+      <stop offset="0" stop-color="#fff" />
+      <stop offset="0.56" stop-color="#e2e8f1" />
+      <stop offset="1" stop-color="#728096" />
+    </radialGradient>
+    <filter id="blur"><feGaussianBlur stdDeviation="18" /></filter>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="12" stdDeviation="13" flood-color="#050007" flood-opacity="0.58" /></filter>
+    <clipPath id="ballClip"><circle cx="985" cy="462" r="139" /></clipPath>
   </defs>
-  <rect width="1200" height="420" rx="32" fill="url(#bg)" />
-  <circle cx="1070" cy="42" r="240" fill="#ff4c62" opacity="0.18" />
-  <circle cx="1080" cy="390" r="220" fill="#38030a" opacity="0.4" />
-  <path d="M770 0h210L740 420H530z" fill="url(#glass)" opacity="0.9" />
-  <path d="M0 352c250-84 440-28 650-86v154H0z" fill="#30030a" opacity="0.34" />
-  <g font-family="Inter,Arial,sans-serif">
-    <rect x="64" y="48" width="242" height="36" rx="18" fill="#fff" fill-opacity="0.14" stroke="#fff" stroke-opacity="0.24" />
-    <text x="86" y="72" fill="#fff" font-size="17" font-weight="800" letter-spacing="2.5">LIVEFOOT  /  PARTENAIRE</text>
-    <text x="68" y="186" fill="#fff" font-size="86" font-weight="950" letter-spacing="-2">MELBET</text>
-    <rect x="70" y="207" width="230" height="58" rx="29" fill="url(#gold)" filter="url(#shadow)" />
-    <text x="105" y="244" fill="#260308" font-size="29" font-weight="950" letter-spacing="3">PREDAT</text>
-    <text x="70" y="322" fill="#fff" font-size="39" font-weight="900">Jusqu'a 195 000 FCFA*</text>
-    <text x="72" y="360" fill="#ffe7e9" font-size="17" font-weight="650">Bonus sportif indicatif  |  Offre selon pays  |  18+</text>
-    <text x="70" y="392" fill="#fff" fill-opacity="0.68" font-size="14" font-weight="600">Verifiez les conditions affichees dans votre compte avant tout depot.</text>
+  <rect width="1200" height="675" fill="url(#bg)" />
+  <rect width="850" height="675" fill="url(#panel)" />
+  <path d="M0 0h92L0 144zm0 230 205-230h46L0 288zm0 158L356 0h38L0 436zM0 584 538 0h42L0 631z" fill="#e51a36" opacity="0.22" />
+  <path d="M726 0h128L730 675H590z" fill="#ff6574" opacity="0.09" />
+  <path d="M850 0h12L770 675h-12z" fill="#fff" opacity="0.12" />
+  <ellipse cx="1010" cy="230" rx="280" ry="165" fill="#e31c39" opacity="0.34" filter="url(#blur)" />
+  <g opacity="0.85">
+    <circle cx="1010" cy="188" r="105" fill="url(#light)" />
+    <circle cx="1115" cy="112" r="60" fill="url(#light)" />
+    <circle cx="900" cy="116" r="48" fill="url(#light)" />
   </g>
-  <g transform="translate(1018 211)" filter="url(#shadow)">
-    <circle r="112" fill="#fff" fill-opacity="0.1" stroke="#fff" stroke-opacity="0.34" stroke-width="2" />
-    <circle r="76" fill="#fff" />
-    <path d="M-38-18c17-35 55-35 76-3-10 38-55 49-76 3Zm21 2c9 14 25 14 35 0-10-14-26-14-35 0Z" fill="#e30613" />
-    <circle cx="-9" cy="-17" r="6" fill="#fff" />
-    <path d="M-52 98h104" stroke="#ffd24a" stroke-width="5" stroke-linecap="round" />
+  <g stroke="#ffd4aa" stroke-opacity="0.32" fill="none">
+    <path d="M760 350 1190 250M750 383l450-86M738 418l462-76" stroke-width="3" />
+    <path d="M715 502h485M705 540h495M692 585h508" stroke-width="2" />
+    <path d="M790 675 930 350M1010 675 1010 340M1160 675 1080 350" stroke-width="2" />
+  </g>
+  <path d="M700 675h500V505c-140 36-328 41-500 0z" fill="#350916" opacity="0.8" />
+  <g font-family="Arial Black,Inter,Arial,sans-serif">
+    <text x="66" y="108" fill="#ffd43a" font-size="68" font-weight="950" font-style="italic" letter-spacing="-3">MEL</text>
+    <text x="216" y="108" fill="#fff" font-size="68" font-weight="950" font-style="italic" letter-spacing="-3">BET</text>
+    <circle cx="1135" cy="64" r="38" fill="#170811" stroke="#ffd43a" stroke-width="4" />
+    <text x="1113" y="74" fill="#fff" font-size="25" font-weight="900">18+</text>
+    <rect x="64" y="137" width="755" height="88" rx="22" fill="#120811" fill-opacity="0.86" stroke="#ffd43a" stroke-width="4" stroke-dasharray="12 7" />
+    <g transform="translate(103 181)">
+      <path d="M-22-20 8-34l23 30-31 25-23-30z" fill="url(#yellow)" />
+      <circle cx="3" cy="-20" r="5" fill="#170811" />
+      <text x="-2" y="9" fill="#170811" font-size="25" font-weight="900">%</text>
+    </g>
+    <text x="165" y="193" fill="#fff" font-size="33" font-weight="900">CODE PROMO :</text>
+    <text x="510" y="193" fill="#ffd43a" font-size="43" font-weight="950">PREDAT</text>
+    <text x="68" y="288" fill="#fff" font-size="31" font-weight="900" letter-spacing="1">BONUS SPORTIF JUSQU'A</text>
+    <path d="M68 275h68M650 275h145" stroke="#ffd43a" stroke-width="4" />
+    <text x="64" y="407" fill="#ffd43a" font-size="94" font-weight="950" font-style="italic" letter-spacing="-3">195 000</text>
+    <text x="304" y="468" fill="#fff" font-size="54" font-weight="950" font-style="italic">FCFA*</text>
+    <path d="M68 430h206M460 430h335" stroke="#ffd43a" stroke-width="3" />
+    <rect x="144" y="488" width="450" height="77" rx="18" fill="url(#yellow)" filter="url(#shadow)" />
+    <text x="207" y="540" fill="#170811" font-size="41" font-weight="950">S'INSCRIRE</text>
+    <g fill="#fff" font-size="16" font-weight="800">
+      <text x="75" y="630">BONUS SPORTIF</text>
+      <text x="272" y="630">MOBILE MONEY</text>
+      <text x="484" y="630">OFFRE SELON PAYS</text>
+      <text x="714" y="630">SUPPORT 24/7</text>
+    </g>
+  </g>
+  <g transform="translate(985 462)" filter="url(#shadow)">
+    <circle r="139" fill="url(#ball)" stroke="#fff4e8" stroke-width="5" />
+    <g clip-path="url(#ballClip)" fill="#321923" stroke="#21101a" stroke-width="3">
+      <path d="M0-38-39-12l15 45h48l15-45z" />
+      <path d="M-39-12-92-28l-38 50 72 20z" />
+      <path d="M39-12 92-28l39 50-73 20z" />
+      <path d="M-24 33-58 90l58 42 58-42-34-57z" />
+      <path d="M-92 42-122 92l64 44 34-46zM92 42l30 50-64 44-34-46z" />
+    </g>
+    <path d="M-117 64c77 52 143 48 222 0M-90-73c56 29 107 29 175 0" fill="none" stroke="#fff" stroke-opacity="0.45" stroke-width="7" />
   </g>
 </svg>

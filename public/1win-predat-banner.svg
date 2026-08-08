@@ -1,55 +1,88 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 420" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" role="img" aria-labelledby="title desc">
   <title id="title">1WIN PREDAT - bonus jusqu'a 130 000 FCFA</title>
-  <desc id="desc">Banniere partenaire LiveFoot pour le code promo 1WIN PREDAT.</desc>
+  <desc id="desc">Banniere partenaire LiveFoot inspiree d'une affiche de stade pour le code promo 1WIN PREDAT.</desc>
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#050b1a" />
-      <stop offset="0.52" stop-color="#082b68" />
-      <stop offset="1" stop-color="#087dff" />
+      <stop offset="0" stop-color="#03091a" />
+      <stop offset="0.48" stop-color="#071f50" />
+      <stop offset="1" stop-color="#087df5" />
     </linearGradient>
-    <linearGradient id="cyan" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#b8f5ff" />
-      <stop offset="0.45" stop-color="#47d7ff" />
-      <stop offset="1" stop-color="#1387ff" />
+    <linearGradient id="panel" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#03091a" stop-opacity="0.76" />
+      <stop offset="1" stop-color="#031332" stop-opacity="0.9" />
     </linearGradient>
-    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#fff0a0" />
-      <stop offset="0.5" stop-color="#ffc52f" />
-      <stop offset="1" stop-color="#f28b19" />
+    <linearGradient id="yellow" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fff36b" />
+      <stop offset="0.45" stop-color="#ffd400" />
+      <stop offset="1" stop-color="#f5a700" />
     </linearGradient>
-    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-      <feGaussianBlur stdDeviation="18" result="blur" />
-      <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
-    </filter>
-    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#00102f" flood-opacity="0.42" />
-    </filter>
+    <radialGradient id="light">
+      <stop offset="0" stop-color="#fff" stop-opacity="0.95" />
+      <stop offset="0.18" stop-color="#8eeaff" stop-opacity="0.55" />
+      <stop offset="1" stop-color="#168aff" stop-opacity="0" />
+    </radialGradient>
+    <radialGradient id="ball" cx="35%" cy="28%">
+      <stop offset="0" stop-color="#fff" />
+      <stop offset="0.56" stop-color="#d9e8f8" />
+      <stop offset="1" stop-color="#7187a2" />
+    </radialGradient>
+    <filter id="blur"><feGaussianBlur stdDeviation="18" /></filter>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="12" stdDeviation="13" flood-color="#00102d" flood-opacity="0.55" /></filter>
+    <clipPath id="ballClip"><circle cx="985" cy="462" r="139" /></clipPath>
   </defs>
-  <rect width="1200" height="420" rx="32" fill="url(#bg)" />
-  <circle cx="1010" cy="70" r="180" fill="#39d8ff" opacity="0.16" filter="url(#glow)" />
-  <circle cx="1110" cy="360" r="190" fill="#001338" opacity="0.46" />
-  <path d="M720 0h190L685 420H495z" fill="#fff" opacity="0.08" />
-  <path d="M820 0h22L710 420h-22z" fill="#8eeaff" opacity="0.28" />
-  <g fill="none" stroke="#8eeaff" stroke-opacity="0.24">
-    <circle cx="1002" cy="213" r="126" stroke-width="2" />
-    <circle cx="1002" cy="213" r="98" stroke-width="1" />
-    <path d="M876 213h252M1002 87v252" />
+  <rect width="1200" height="675" fill="url(#bg)" />
+  <rect width="850" height="675" fill="url(#panel)" />
+  <path d="M0 0h92L0 144zm0 230 205-230h46L0 288zm0 158L356 0h38L0 436zM0 584 538 0h42L0 631z" fill="#1e82ff" opacity="0.2" />
+  <path d="M726 0h128L730 675H590z" fill="#5bcfff" opacity="0.09" />
+  <path d="M850 0h12L770 675h-12z" fill="#fff" opacity="0.14" />
+  <ellipse cx="1010" cy="230" rx="280" ry="165" fill="#168aff" opacity="0.32" filter="url(#blur)" />
+  <g opacity="0.8">
+    <circle cx="1010" cy="188" r="105" fill="url(#light)" />
+    <circle cx="1115" cy="112" r="60" fill="url(#light)" />
+    <circle cx="900" cy="116" r="48" fill="url(#light)" />
   </g>
-  <g font-family="Inter,Arial,sans-serif">
-    <rect x="64" y="48" width="242" height="36" rx="18" fill="#fff" fill-opacity="0.13" stroke="#8eeaff" stroke-opacity="0.42" />
-    <text x="86" y="72" fill="#d9faff" font-size="17" font-weight="800" letter-spacing="2.5">LIVEFOOT  /  PARTENAIRE</text>
-    <text x="68" y="184" fill="#fff" font-size="92" font-weight="950" letter-spacing="-4">1WIN</text>
-    <text x="70" y="227" fill="#a5edff" font-size="25" font-weight="800" letter-spacing="4">PLAY SMARTER</text>
-    <rect x="70" y="250" width="228" height="58" rx="29" fill="url(#gold)" filter="url(#shadow)" />
-    <text x="106" y="287" fill="#07152f" font-size="29" font-weight="950" letter-spacing="3">PREDAT</text>
-    <text x="70" y="352" fill="#fff" font-size="39" font-weight="900">Jusqu'a 130 000 FCFA*</text>
-    <text x="72" y="387" fill="#d9faff" font-size="16" font-weight="650">+500 % repartis sur les 4 premiers depots  |  18+</text>
+  <g stroke="#b9edff" stroke-opacity="0.35" fill="none">
+    <path d="M760 350 1190 250M750 383l450-86M738 418l462-76" stroke-width="3" />
+    <path d="M715 502h485M705 540h495M692 585h508" stroke-width="2" />
+    <path d="M790 675 930 350M1010 675 1010 340M1160 675 1080 350" stroke-width="2" />
   </g>
-  <g transform="translate(1002 213)" filter="url(#shadow)">
-    <circle r="76" fill="#061735" stroke="url(#cyan)" stroke-width="7" />
-    <path d="M-37 15V-26h18v25c0 16 6 23 19 23s19-7 19-23v-25h18v41c0 27-14 42-37 42S-37 42-37 15Z" fill="#fff" />
-    <path d="M-26-45h52" stroke="#ffc52f" stroke-width="7" stroke-linecap="round" />
-    <circle cx="-42" cy="-47" r="5" fill="#47d7ff" />
-    <circle cx="42" cy="-47" r="5" fill="#47d7ff" />
+  <path d="M700 675h500V505c-140 36-328 41-500 0z" fill="#04245a" opacity="0.75" />
+  <g font-family="Arial Black,Inter,Arial,sans-serif">
+    <text x="66" y="108" fill="#ffd400" font-size="74" font-weight="950" font-style="italic" letter-spacing="-4">1</text>
+    <text x="130" y="108" fill="#fff" font-size="74" font-weight="950" font-style="italic" letter-spacing="-4">WIN</text>
+    <circle cx="1135" cy="64" r="38" fill="#061431" stroke="#ffd400" stroke-width="4" />
+    <text x="1113" y="74" fill="#fff" font-size="25" font-weight="900">18+</text>
+    <rect x="64" y="137" width="755" height="88" rx="22" fill="#061431" fill-opacity="0.8" stroke="#ffd400" stroke-width="4" stroke-dasharray="12 7" />
+    <g transform="translate(103 181)">
+      <path d="M-22-20 8-34l23 30-31 25-23-30z" fill="url(#yellow)" />
+      <circle cx="3" cy="-20" r="5" fill="#061431" />
+      <text x="-2" y="9" fill="#061431" font-size="25" font-weight="900">%</text>
+    </g>
+    <text x="165" y="193" fill="#fff" font-size="33" font-weight="900">CODE PROMO :</text>
+    <text x="510" y="193" fill="#ffd400" font-size="43" font-weight="950">PREDAT</text>
+    <text x="68" y="288" fill="#fff" font-size="31" font-weight="900" letter-spacing="1">BONUS DE BIENVENUE JUSQU'A</text>
+    <path d="M68 275h68M705 275h90" stroke="#ffd400" stroke-width="4" />
+    <text x="64" y="407" fill="#ffd400" font-size="94" font-weight="950" font-style="italic" letter-spacing="-3">130 000</text>
+    <text x="304" y="468" fill="#fff" font-size="54" font-weight="950" font-style="italic">FCFA</text>
+    <path d="M68 430h206M426 430h370" stroke="#ffd400" stroke-width="3" />
+    <rect x="144" y="488" width="450" height="77" rx="18" fill="url(#yellow)" filter="url(#shadow)" />
+    <text x="207" y="540" fill="#061431" font-size="41" font-weight="950">S'INSCRIRE</text>
+    <g fill="#fff" font-size="16" font-weight="800">
+      <text x="75" y="630">BONUS SPORTIF</text>
+      <text x="272" y="630">MOBILE MONEY</text>
+      <text x="484" y="630">COTES EN DIRECT</text>
+      <text x="714" y="630">SUPPORT 24/7</text>
+    </g>
+  </g>
+  <g transform="translate(985 462)" filter="url(#shadow)">
+    <circle r="139" fill="url(#ball)" stroke="#eaf6ff" stroke-width="5" />
+    <g clip-path="url(#ballClip)" fill="#23344c" stroke="#17263a" stroke-width="3">
+      <path d="M0-38-39-12l15 45h48l15-45z" />
+      <path d="M-39-12-92-28l-38 50 72 20z" />
+      <path d="M39-12 92-28l39 50-73 20z" />
+      <path d="M-24 33-58 90l58 42 58-42-34-57z" />
+      <path d="M-92 42-122 92l64 44 34-46zM92 42l30 50-64 44-34-46z" />
+    </g>
+    <path d="M-117 64c77 52 143 48 222 0M-90-73c56 29 107 29 175 0" fill="none" stroke="#fff" stroke-opacity="0.45" stroke-width="7" />
   </g>
 </svg>
