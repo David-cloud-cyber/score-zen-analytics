@@ -367,7 +367,9 @@ function BookmakerArticle() {
               {b.rating && b.reviewCount ? (
                 <RatingStars rating={b.rating} count={b.reviewCount} />
               ) : (
-                <span className="text-[11px] text-muted-foreground">Note non publiée : offre à vérifier</span>
+                <span className="inline-flex items-center rounded-full bg-brand/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-brand">
+                  Offre partenaire
+                </span>
               )}
             </div>
           </div>
