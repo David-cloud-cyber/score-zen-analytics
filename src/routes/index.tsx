@@ -255,6 +255,34 @@ function HomePage() {
         </Link>
       </div>
 
+      {/* Résumé éditorial utile aux visiteurs et aux moteurs, sans exposer de jargon technique. */}
+      <section
+        aria-labelledby="livefoot-summary-title"
+        data-answer
+        className="mt-10 space-y-3 border-t border-border/60 px-4 pt-6 lg:px-0"
+      >
+        <h2 id="livefoot-summary-title" className="text-lg font-black tracking-tight">
+          Livescore et analyses football en direct
+        </h2>
+        <p className="max-w-3xl text-sm leading-relaxed text-muted-foreground">
+          LiveFoot réunit les <strong className="text-foreground">scores en direct</strong>, les compositions,
+          la forme récente et des <strong className="text-foreground">analyses statistiques de matchs</strong> dans
+          une interface rapide. Consultez les rencontres du jour, comparez deux équipes et retrouvez nos guides de
+          codes promo vérifiés pour les nouveaux inscrits majeurs.
+        </p>
+        <nav aria-label="Explorer LiveFoot" className="flex flex-wrap gap-x-4 gap-y-2 text-xs font-bold">
+          <Link to="/analyse" search={{ home: "", away: "" }} className="text-brand hover:underline">
+            Analyser un match
+          </Link>
+          <Link to="/codes-promo" className="text-brand hover:underline">
+            Voir les codes promo
+          </Link>
+          <Link to="/communaute" className="text-muted-foreground hover:text-foreground">
+            Rejoindre la communauté
+          </Link>
+        </nav>
+      </section>
+
 
       {/* Footer */}
       <footer className="mt-10 space-y-3 border-t border-border/60 px-4 py-6 text-center lg:px-0">

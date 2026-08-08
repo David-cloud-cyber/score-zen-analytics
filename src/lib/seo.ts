@@ -23,13 +23,16 @@ export function buildRouteMeta(input: RouteMetaInput) {
     { property: "og:description", content: input.description },
     { property: "og:url", content: url },
     { property: "og:type", content: input.type ?? "website" },
+    { property: "og:locale", content: "fr_FR" },
     { name: "twitter:title", content: fullTitle },
     { name: "twitter:description", content: input.description },
     { name: "twitter:card", content: input.image ? "summary_large_image" : "summary" },
   ];
   if (input.image) {
     meta.push({ property: "og:image", content: input.image });
+    meta.push({ property: "og:image:alt", content: fullTitle });
     meta.push({ name: "twitter:image", content: input.image });
+    meta.push({ name: "twitter:image:alt", content: fullTitle });
   }
   if (input.noindex) meta.push({ name: "robots", content: "noindex" });
   return {

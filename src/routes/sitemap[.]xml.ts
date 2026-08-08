@@ -6,6 +6,7 @@ const BASE_URL = "https://www.livefoot.fun";
 
 interface SitemapEntry {
   path: string;
+  lastmod?: string;
   changefreq?: "always" | "hourly" | "daily" | "weekly" | "monthly" | "yearly" | "never";
   priority?: string;
 }
@@ -17,15 +18,21 @@ export const Route = createFileRoute("/sitemap.xml")({
         // On liste uniquement les routes publiques stables. Les fiches match
         // (/live/$id) ne sont pas listées car leurs IDs API-Football changent
         // en permanence : l'indexation se fait via les liens internes.
+        const latestBookmakerUpdate = BOOKMAKERS.reduce(
+          (latest, bookmaker) => (bookmaker.updatedAt > latest ? bookmaker.updatedAt : latest),
+          "",
+        );
+
         const entries: SitemapEntry[] = [
           { path: "/", changefreq: "hourly", priority: "1.0" },
           { path: "/analyse", changefreq: "weekly", priority: "0.9" },
           { path: "/communaute", changefreq: "daily", priority: "0.8" },
           { path: "/mentions-legales", changefreq: "yearly", priority: "0.3" },
           { path: "/premium", changefreq: "monthly", priority: "0.7" },
-          { path: "/codes-promo", changefreq: "weekly", priority: "0.9" },
+          { path: "/codes-promo", lastmod: latestBookmakerUpdate, changefreq: "weekly", priority: "0.9" },
           ...BOOKMAKERS.map((b) => ({
             path: `/codes-promo/${b.slug}`,
+            lastmod: b.updatedAt,
             changefreq: "weekly" as const,
             priority: "0.8",
           })),
@@ -35,6 +42,7 @@ export const Route = createFileRoute("/sitemap.xml")({
           [
             `  <url>`,
             `    <loc>${BASE_URL}${e.path}</loc>`,
+            e.lastmod ? `    <lastmod>${e.lastmod}</lastmod>` : null,
             e.changefreq ? `    <changefreq>${e.changefreq}</changefreq>` : null,
             e.priority ? `    <priority>${e.priority}</priority>` : null,
             `  </url>`,
