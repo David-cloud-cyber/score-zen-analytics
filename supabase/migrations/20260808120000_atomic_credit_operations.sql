@@ -139,3 +139,6 @@ REVOKE ALL ON FUNCTION public.activate_subscription(UUID, UUID, TIMESTAMPTZ, TIM
 GRANT EXECUTE ON FUNCTION public.consume_analysis_credit(UUID, INTEGER, TEXT, TEXT, TEXT, JSONB) TO service_role;
 GRANT EXECUTE ON FUNCTION public.credit_payment(UUID, UUID, INTEGER) TO service_role;
 GRANT EXECUTE ON FUNCTION public.activate_subscription(UUID, UUID, TIMESTAMPTZ, TIMESTAMPTZ, TEXT) TO service_role;
+
+-- Keep the existing referral helper safe when it is invoked by a trigger.
+ALTER FUNCTION public.generate_referral_code() SET search_path = public;
