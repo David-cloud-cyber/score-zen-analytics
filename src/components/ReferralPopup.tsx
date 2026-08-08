@@ -22,16 +22,35 @@ interface ReferralPopupProps {
 }
 
 export function ReferralPopup({ variant, onDismiss }: ReferralPopupProps) {
+  useEffect(() => {
+    if (!variant) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onDismiss();
+    };
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [variant, onDismiss]);
+
   if (!variant) return null;
 
   return (
     <div
       className="fixed inset-0 z-50 grid place-items-end bg-foreground/60 backdrop-blur-sm sm:place-items-center"
       onClick={onDismiss}
+      role="presentation"
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-[440px] rounded-t-3xl bg-background p-5 shadow-2xl sm:rounded-3xl sm:max-w-sm"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="referral-title"
+        className="max-h-[calc(100dvh-1rem)] w-full max-w-[420px] overflow-y-auto rounded-t-3xl bg-background p-5 shadow-2xl sm:rounded-3xl sm:p-6"
       >
         {variant === "free_invite" && <FreeInviteContent onDismiss={onDismiss} />}
         {variant === "premium_low_credits" && <PremiumLowCreditsContent onDismiss={onDismiss} />}
@@ -85,15 +104,16 @@ function FreeInviteContent({ onDismiss }: { onDismiss: () => void }) {
           <div className="mb-1.5 inline-flex items-center gap-1.5 rounded-full bg-brand/15 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-brand">
             <Users className="size-3" /> Parrainage
           </div>
-          <h2 className="text-xl font-black leading-tight">
-            Invitez un ami,<br />gagnez 5 crédits
+          <h2 id="referral-title" className="text-xl font-black leading-tight">
+            Invitez un proche, gagnez 5 crédits
           </h2>
           <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
-            Partagez votre lien. Dès que votre ami s'inscrit, vous recevez automatiquement{" "}
+            Partagez votre lien unique. Dès qu'un proche crée son compte, vous recevez automatiquement{" "}
             <span className="font-bold text-brand">+5 crédits</span>.
           </p>
         </div>
         <button
+          type="button"
           onClick={onDismiss}
           className="grid size-8 shrink-0 place-items-center rounded-full bg-surface ring-1 ring-black/5 dark:ring-white/10"
           aria-label="Fermer"
@@ -135,16 +155,16 @@ function FreeInviteContent({ onDismiss }: { onDismiss: () => void }) {
           <WhatsAppIcon /> Partager
         </button>
         <Link
-          to="/premium"
+          to="/profil"
           onClick={onDismiss}
           className="flex items-center justify-center gap-1.5 rounded-2xl bg-foreground py-3 text-xs font-black text-background transition-transform active:scale-[0.98]"
         >
-          <Crown className="size-3.5 text-warn" /> Premium
+          <Users className="size-3.5 text-brand" /> Mon parrainage
         </Link>
       </div>
 
       <p className="mt-3 text-center text-[10px] text-muted-foreground">
-        Votre ami reçoit ses 10 crédits de bienvenue habituels. Vous, +5 crédits.
+        Votre proche reçoit ses crédits de bienvenue habituels. Vous gagnez +5 crédits par inscription attribuée.
       </p>
     </>
   );
@@ -163,7 +183,7 @@ function PremiumLowCreditsContent({ onDismiss }: { onDismiss: () => void }) {
           <div className="mb-1.5 inline-flex items-center gap-1.5 rounded-full bg-warn/15 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-warn">
             <Coins className="size-3" /> Crédits faibles
           </div>
-          <h2 className="text-xl font-black leading-tight">
+          <h2 id="referral-title" className="text-xl font-black leading-tight">
             Vos crédits<br />s'épuisent
           </h2>
           <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
@@ -172,6 +192,7 @@ function PremiumLowCreditsContent({ onDismiss }: { onDismiss: () => void }) {
           </p>
         </div>
         <button
+          type="button"
           onClick={onDismiss}
           className="grid size-8 shrink-0 place-items-center rounded-full bg-surface ring-1 ring-black/5 dark:ring-white/10"
           aria-label="Fermer"

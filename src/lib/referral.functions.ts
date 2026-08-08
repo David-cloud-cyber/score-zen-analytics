@@ -118,3 +118,42 @@ export const getMyReferralStats = createServerFn({ method: "GET" })
 
     return { referralCount: count ?? 0 };
   });
+
+/**
+ * Données privées du tableau de parrainage.
+ * Aucun e-mail ni identifiant interne n'est renvoyé au navigateur.
+ */
+export const getMyReferralDetails = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const [{ data: profile }, { data: referredProfiles }, { data: rewards }] = await Promise.all([
+      supabaseAdmin.from("profiles").select("referral_code").eq("id", context.userId).maybeSingle(),
+      supabaseAdmin
+        .from("profiles")
+        .select("display_name, created_at")
+        .eq("referred_by", context.userId)
+        .order("created_at", { ascending: false }),
+      supabaseAdmin
+        .from("credits_ledger")
+        .select("amount")
+        .eq("user_id", context.userId)
+        .eq("kind", "bonus")
+        .ilike("label", "Parrainage%"),
+    ]);
+
+    const code = profile?.referral_code ?? null;
+    const referrals = (referredProfiles ?? []).map((item) => ({
+      displayName: item.display_name?.trim() || "Nouveau membre",
+      joinedAt: item.created_at,
+    }));
+
+    return {
+      code,
+      referralLink: code ? `https://www.livefoot.fun/auth?ref=${code}` : null,
+      referralCount: referrals.length,
+      creditsEarned: (rewards ?? []).reduce((sum, reward) => sum + Math.max(0, reward.amount), 0),
+      referrals,
+    };
+  });

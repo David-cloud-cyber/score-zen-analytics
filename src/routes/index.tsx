@@ -9,7 +9,6 @@ import { buildRouteMeta, faqSchema, ORG, SPEAKABLE } from "@/lib/seo";
 import { cn } from "@/lib/utils";
 import { PageSkeleton } from "@/components/PageSkeleton";
 import { track } from "@/lib/analytics";
-import { VisibilityGuide } from "@/components/VisibilityGuide";
 
 
 const fixturesQuery = (mode: "today" | "live") =>
@@ -260,7 +259,6 @@ function HomePage() {
         </Link>
       </div>
 
-      <VisibilityGuide />
 
       {/* Footer */}
       <footer className="mt-10 space-y-3 border-t border-border/60 px-4 py-6 text-center lg:px-0">

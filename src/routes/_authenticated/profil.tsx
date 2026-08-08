@@ -1,11 +1,13 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useSuspenseQuery, useQuery, queryOptions, useQueryClient } from "@tanstack/react-query";
-import { Crown, History, Settings, LogOut, ChevronRight, Coins, Sparkles, Plus, TrendingDown, TrendingUp, Check, Info, X, Lock, ShieldCheck } from "lucide-react";
+import { Crown, History, Settings, LogOut, ChevronRight, Coins, Sparkles, Plus, TrendingDown, TrendingUp, Check, Info, X, Lock, ShieldCheck, Users, Copy } from "lucide-react";
 import { AppShell, PageTitle } from "@/components/AppShell";
 import { PRICED_PACKS, formatXaf, type PricedPack } from "@/lib/pricing";
 import { createTopupCheckout, verifyTopup, getMyPayments } from "@/lib/payments.functions";
 import { getMyBalance, getMyAnalysisHistory } from "@/lib/analyses.functions";
+import { getMyReferralDetails } from "@/lib/referral.functions";
+import { requestReferralPopup } from "@/hooks/use-referral-popup";
 import { useServerFn } from "@tanstack/react-start";
 import { useSession } from "@/hooks/use-session";
 import { toast } from "sonner";
@@ -55,9 +57,15 @@ function ProfilPage() {
     queryFn: () => getMyPayments(),
     staleTime: 15_000,
   });
+  const { data: referralData } = useQuery({
+    queryKey: ["me", "referral"],
+    queryFn: () => getMyReferralDetails(),
+    staleTime: 30_000,
+  });
 
   const [showTopup, setShowTopup] = useState(false);
   const [flash, setFlash] = useState<string | null>(null);
+  const [referralCopied, setReferralCopied] = useState(false);
 
   const isPremium = profile.plan === "premium";
   const history = isPremium ? rawHistory : rawHistory.slice(0, 10);
@@ -122,6 +130,18 @@ function ProfilPage() {
       toast.success("Solde actualisé.");
     } catch {
       toast.error("Impossible d'actualiser.");
+    }
+  };
+
+  const copyReferralLink = async () => {
+    if (!referralData?.referralLink) return;
+    try {
+      await navigator.clipboard.writeText(referralData.referralLink);
+      setReferralCopied(true);
+      toast.success("Lien de parrainage copié !");
+      window.setTimeout(() => setReferralCopied(false), 1800);
+    } catch {
+      toast.error("Impossible de copier le lien.");
     }
   };
 
@@ -215,6 +235,83 @@ function ProfilPage() {
         <StatCard value={isPremium ? "Premium" : "Gratuit"} label="Plan" />
         <StatCard value={String(balance)} label="Crédits" />
       </div>
+
+      {/* Referral dashboard */}
+      <section aria-labelledby="referral-title" className="mt-6 px-4 lg:px-0">
+        <div className="overflow-hidden rounded-3xl border border-brand/25 bg-brand/5 p-5">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <div className="mb-1.5 inline-flex items-center gap-1.5 rounded-full bg-brand/15 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-brand">
+                <Users className="size-3" aria-hidden /> Parrainage
+              </div>
+              <h2 id="referral-title" className="text-xl font-black tracking-tight">Invitez, suivez, gagnez</h2>
+              <p className="mt-1 max-w-xl text-xs leading-relaxed text-muted-foreground">
+                Retrouvez ici votre lien, le nombre de filleuls inscrits et les crédits attribués. Le popup ne s'ouvre plus automatiquement : vous le contrôlez depuis ce tableau.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={requestReferralPopup}
+              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-xs font-black text-brand-foreground transition-transform hover:scale-[1.02] active:scale-95"
+            >
+              <Users className="size-3.5" aria-hidden /> Partager mon lien
+            </button>
+          </div>
+
+          {referralData ? (
+            <>
+              <div className="mt-4 grid grid-cols-3 gap-2.5">
+                <ReferralStat value={String(referralData.referralCount)} label="Filleuls" />
+                <ReferralStat value={`+${referralData.creditsEarned}`} label="Crédits gagnés" />
+                <ReferralStat value={referralData.code ?? "—"} label="Votre code" compact />
+              </div>
+
+              {referralData.referralLink && (
+                <div className="mt-3 flex items-center gap-2 rounded-2xl bg-background px-3 py-2.5 ring-1 ring-black/5 dark:ring-white/10">
+                  <span className="min-w-0 flex-1 truncate font-mono text-[11px] text-muted-foreground">{referralData.referralLink}</span>
+                  <button
+                    type="button"
+                    onClick={copyReferralLink}
+                    className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-foreground px-2.5 py-1.5 text-[10px] font-black text-background"
+                  >
+                    <Copy className="size-3" aria-hidden /> {referralCopied ? "Copié" : "Copier"}
+                  </button>
+                </div>
+              )}
+
+              <div className="mt-4">
+                <div className="mb-2 flex items-center justify-between">
+                  <h3 className="text-[11px] font-black uppercase tracking-widest">Mes filleuls</h3>
+                  <span className="text-[10px] text-muted-foreground">{referralData.referralCount} inscription{referralData.referralCount > 1 ? "s" : ""}</span>
+                </div>
+                {referralData.referrals.length === 0 ? (
+                  <p className="rounded-2xl border border-dashed border-brand/30 px-3 py-3 text-xs text-muted-foreground">
+                    Aucun filleul pour le moment. Partagez votre lien pour commencer.
+                  </p>
+                ) : (
+                  <ul className="divide-y divide-border/60 rounded-2xl bg-background ring-1 ring-black/5 dark:ring-white/10" role="list">
+                    {referralData.referrals.map((referral) => (
+                      <li key={`${referral.displayName}-${referral.joinedAt}`} className="flex items-center justify-between gap-3 px-3 py-2.5">
+                        <div className="flex min-w-0 items-center gap-2">
+                          <span className="grid size-7 shrink-0 place-items-center rounded-full bg-brand/15 text-brand">
+                            <Users className="size-3.5" aria-hidden />
+                          </span>
+                          <span className="truncate text-xs font-bold">{referral.displayName}</span>
+                        </div>
+                        <time className="shrink-0 text-[10px] text-muted-foreground" dateTime={referral.joinedAt}>
+                          {new Date(referral.joinedAt).toLocaleDateString("fr-FR")}
+                        </time>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </>
+          ) : (
+            <div className="mt-4 h-24 animate-pulse rounded-2xl bg-background/70" aria-label="Chargement du parrainage" />
+          )}
+        </div>
+      </section>
 
       {/* Credit Rules */}
       <section aria-labelledby="rules-title" className="mt-6 px-4 lg:px-0">
@@ -391,6 +488,15 @@ function StatCard({ value, label, icon }: { value: string; label: string; icon?:
         <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">{label}</span>
       </div>
       <div className="mt-1 text-xl font-black tabular-nums leading-none">{value}</div>
+    </div>
+  );
+}
+
+function ReferralStat({ value, label, compact = false }: { value: string; label: string; compact?: boolean }) {
+  return (
+    <div className="min-w-0 rounded-2xl bg-background p-3 ring-1 ring-black/5 dark:ring-white/10">
+      <div className={cn("truncate font-black leading-none", compact ? "text-sm tracking-wider" : "text-xl tabular-nums")}>{value}</div>
+      <div className="mt-1 truncate text-[9px] font-black uppercase tracking-widest text-muted-foreground">{label}</div>
     </div>
   );
 }

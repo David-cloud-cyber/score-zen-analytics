@@ -8,8 +8,6 @@ import { NotificationPopover } from "@/components/NotificationPopover";
 import { useSession } from "@/hooks/use-session";
 import { ReferralPopup } from "@/components/ReferralPopup";
 import { useReferralPopup } from "@/hooks/use-referral-popup";
-import { useQuery } from "@tanstack/react-query";
-import { getMyBalance } from "@/lib/analyses.functions";
 
 const NAV = [
   { to: "/", label: "Matchs", icon: Radio, match: (p: string) => p === "/" || p.startsWith("/match") },
@@ -34,18 +32,7 @@ const SIDEBAR_NAV = [
 
 /** Popup de parrainage / upsell — monté au niveau AppShell pour être disponible partout. */
 function GlobalReferralPopup() {
-  const { user } = useSession();
-  const { data: profile } = useQuery({
-    queryKey: ["me", "balance"],
-    queryFn: () => getMyBalance(),
-    enabled: !!user,
-    staleTime: 30_000,
-  });
-
-  const credits = profile?.credits ?? null;
-  const plan = (profile?.plan ?? null) as "free" | "premium" | null;
-
-  const { variant, dismiss } = useReferralPopup(credits, plan);
+  const { variant, dismiss } = useReferralPopup();
 
   return <ReferralPopup variant={variant} onDismiss={dismiss} />;
 }
