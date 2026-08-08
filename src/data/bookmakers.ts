@@ -47,6 +47,8 @@ export const BOOKMAKERS: Bookmaker[] = [
       "Le code promo 1win PREDAT débloque le bonus de bienvenue maximal du bookmaker : jusqu'à 130 000 FCFA répartis sur vos quatre premiers dépôts, soit +500 % de votre mise de départ. C'est, en août 2026, l'une des offres les plus généreuses accessibles depuis l'Afrique francophone.",
       "Ce code se saisit au moment de la création du compte, dans le champ prévu à cet effet. Il est valable pour tous les nouveaux inscrits majeurs, sur le site comme sur l'application Android et iOS. Il ne peut pas être ajouté après l'ouverture du compte : c'est le seul vrai point de vigilance.",
       "Chez LiveFoot AI, nous confrontons chaque jour nos analyses IA aux cotes 1win. Cette page détaille l'offre, les conditions de mise, les moyens de paiement Mobile Money, des exemples concrets de paris football et basket, et notre avis honnête — points faibles compris.",
+      "Le parcours recommandé est rapide : cliquez sur l'inscription depuis LiveFoot, choisissez votre devise, saisissez PREDAT avant de valider, puis vérifiez que le bonus apparaît dans votre compte. Cette étape de contrôle est importante, car un code oublié après le premier dépôt est rarement récupérable.",
+      "L'objectif n'est pas de vous pousser à déposer davantage, mais de vous aider à comparer une offre avec ses conditions réelles. Utilisez PREDAT seulement si le délai de 30 jours, les paris combinés et les règles de retrait correspondent à votre façon de jouer et à votre budget.",
     ],
     steps: [
       "Cliquez sur le bouton « Récupérer le bonus » de cette page pour ouvrir 1win dans un nouvel onglet.",

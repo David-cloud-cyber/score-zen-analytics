@@ -33,6 +33,8 @@ export const BETWINNER = defineBookmaker({
     "Le code promo Betwinner BALL10 débloque le bonus de bienvenue maximal du bookmaker : jusqu'à 130 000 FCFA sur votre premier dépôt. En août 2026, c'est l'une des offres les plus compétitives disponibles depuis l'Afrique francophone, avec un dépôt minimum très bas de 500 FCFA.",
     "Betwinner est un opérateur international présent dans plus de 50 pays, avec une couverture sportive très large : football africain et européen, basket NBA et WNBA, tennis, e-sport et des milliers d'événements en direct chaque jour. Le paiement en FCFA via Mobile Money est intégré nativement.",
     "Cette page détaille le fonctionnement du code BALL10, les conditions de mise réelles, les moyens de dépôt et de retrait, l'application mobile, ainsi que notre avis complet — points faibles inclus. Avant de valider un combiné, passez chaque affiche dans le moteur de prédictions IA de LiveFoot.",
+    "Pour profiter de l'offre sans erreur, utilisez le bouton d'inscription de cette page puis vérifiez trois éléments avant de déposer : le code BALL10 apparaît bien dans votre formulaire, votre devise est correcte et le montant du bonus est visible dans l'espace Promotions. Cette vérification de quelques secondes évite la plupart des refus de bonus.",
+    "Notre conseil éditorial est simple : inscrivez-vous uniquement si vous comprenez les conditions de mise et si le montant engagé reste compatible avec votre budget. Le bonus peut améliorer votre capital de départ, mais il ne garantit aucun gain et ne remplace jamais une gestion prudente des mises.",
   ],
   steps: [
     "Cliquez sur « Récupérer le bonus » sur cette page pour ouvrir Betwinner dans un nouvel onglet.",

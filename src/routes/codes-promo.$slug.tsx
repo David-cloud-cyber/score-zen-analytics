@@ -227,6 +227,34 @@ function AnalyseCta({ title, text, label, location }: { title: string; text: str
   );
 }
 
+/** CTA éditoriale placée tôt dans l'article pour répondre à l'intention d'inscription. */
+function PromoRegistrationCta({ b }: { b: Bookmaker }) {
+  const location = `promo_${b.slug}_registration_intro`;
+  const ref = useCtaImpression<HTMLElement>(location);
+  return (
+    <section ref={ref} id="inscription-livefoot" className="scroll-mt-24 rounded-2xl border border-brand/30 bg-brand/5 p-5">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="space-y-2">
+          <p className="text-xs font-black uppercase tracking-widest text-brand">Offre vérifiée par LiveFoot</p>
+          <h2 className="text-xl font-black tracking-tight">Activez votre bonus avec le code {b.code}</h2>
+          <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
+            Ouvrez votre compte {b.name} depuis cette page, saisissez <strong className="font-black text-foreground">{b.code}</strong> pendant l'inscription, puis contrôlez que le code est bien accepté avant votre premier dépôt. Le bonus dépend des conditions de l'opérateur : lisez-les avant de miser.
+          </p>
+        </div>
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
+          <CopyCodeButton code={b.code} size="sm" />
+          <AffiliateButton
+            href={b.affiliateUrl}
+            className="px-4 py-2.5"
+          >
+            S'inscrire avec {b.code}
+          </AffiliateButton>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function BulletList({ items }: { items: string[] }) {
   return (
     <ul className="space-y-1.5">
@@ -288,6 +316,7 @@ function BookmakerArticle() {
   );
 
   const toc: { id: string; label: string; children?: { id: string; label: string }[] }[] = [
+    { id: "inscription-livefoot", label: `S'inscrire avec le code ${b.code}` },
     { id: "comment-utiliser", label: `Comment utiliser le code ${b.code}` },
     { id: "details-bonus", label: "Détails du bonus" },
     { id: "conditions", label: "Conditions générales" },
@@ -374,6 +403,8 @@ function BookmakerArticle() {
         {b.directAnswer && (
           <AnswerBox question={`Quel est le code promo ${b.name} en 2026 ?`} answer={b.directAnswer} />
         )}
+
+        <PromoRegistrationCta b={b} />
 
         {/* À retenir */}
         {b.keyTakeaways.length > 0 && (
