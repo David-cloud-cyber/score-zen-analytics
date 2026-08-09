@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Crown, Check, Zap, Sparkles, ShieldCheck, HelpCircle, Lock, ArrowRight } from "lucide-react";
@@ -25,6 +25,12 @@ export const Route = createFileRoute("/premium")({
 });
 
 function PremiumPage() {
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  if (pathname === "/premium/tableau-de-bord") return <Outlet />;
+  return <PremiumSubscriptionPage />;
+}
+
+function PremiumSubscriptionPage() {
   const { user } = useSession();
   const navigate = useNavigate();
   const { data: profile } = useQuery({
@@ -37,6 +43,8 @@ function PremiumPage() {
   const premiumExpiry = formatPremiumExpiry(profile?.premium_until);
   const premiumDays = premiumDaysRemaining(profile?.premium_until);
 
+  // /premium est le parent de /premium/tableau-de-bord : le Hub doit être
+  // rendu dans l'Outlet, sinon le parent recouvre l'interface enfant.
   const [busyPlan, setBusyPlan] = useState<string | null>(null);
   const subCheckoutFn = useServerFn(createSubscriptionCheckout);
   const topupCheckoutFn = useServerFn(createTopupCheckout);
