@@ -4,8 +4,10 @@ import { z } from "zod";
 import {
   blendPredictions,
   buildStatisticalPrediction,
+  type CommunitySnapshot,
   type H2HMatch,
   type LiveSnapshot,
+  type MatchSignals,
   type OddsSnapshot,
   type StatisticalPrediction,
   type TeamPredictionContext,
@@ -233,6 +235,31 @@ async function fetchHeadToHead(homeId: number, awayId: number): Promise<HeadToHe
   }
 }
 
+/** Agrégation des votes communautaires publics pour un fixture connu. */
+async function fetchCommunitySnapshot(fixtureId?: string): Promise<CommunitySnapshot | null> {
+  const id = Number(fixtureId);
+  if (!Number.isInteger(id) || id <= 0) return null;
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data } = await supabaseAdmin
+      .from("community_predictions")
+      .select("prediction")
+      .eq("fixture_id", id)
+      .limit(500);
+    const counts = { home: 0, draw: 0, away: 0 };
+    for (const row of (data ?? []) as Array<{ prediction?: string }>) {
+      if (row.prediction === "home" || row.prediction === "draw" || row.prediction === "away") {
+        counts[row.prediction] += 1;
+      }
+    }
+    const votes = counts.home + counts.draw + counts.away;
+    return votes ? { ...counts, votes } : null;
+  } catch {
+    // La migration peut ne pas être encore déployée : le moteur continue sans ce signal.
+    return null;
+  }
+}
+
 /**
  * Récupère les cotes bookmakers en temps réel pour le prochain match entre
  * les deux équipes (ou le match en cours).
@@ -312,8 +339,21 @@ async function fetchBookmakerOdds(
     const avg = (arr: number[]) =>
       arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null;
 
+    const spread = (arr: number[]) => {
+      if (arr.length < 2) return 0;
+      const mean = avg(arr) ?? 1;
+      return Math.min(1, (Math.max(...arr) - Math.min(...arr)) / mean);
+    };
+
     const n = Math.max(homeOdds.length, drawOdds.length, awayOdds.length);
-    return { home: avg(homeOdds), draw: avg(drawOdds), away: avg(awayOdds), sources: n, fixtureId };
+    return {
+      home: avg(homeOdds),
+      draw: avg(drawOdds),
+      away: avg(awayOdds),
+      sources: n,
+      fixtureId,
+      marketSpread: Math.max(spread(homeOdds), spread(drawOdds), spread(awayOdds)),
+    };
   } catch {
     return null;
   }
@@ -338,7 +378,8 @@ async function fetchLiveSnapshot(matchId?: string): Promise<LiveSnapshot | null>
     const [fixtures, statistics, events, lineups] = await Promise.all([
       apiFootball<
         Array<{
-          fixture: { status: { short: string; elapsed: number | null } };
+          fixture: { status: { short: string; elapsed: number | null }; referee: string | null };
+          league: { id: number; name: string };
           teams: { home: { id: number }; away: { id: number } };
           goals: { home: number | null; away: number | null };
         }>
@@ -382,6 +423,10 @@ async function fetchLiveSnapshot(matchId?: string): Promise<LiveSnapshot | null>
       awayXg: pick(fixture.teams.away.id, "expected_goals"),
       homeShotsOnTarget: pick(fixture.teams.home.id, "Shots on Goal"),
       awayShotsOnTarget: pick(fixture.teams.away.id, "Shots on Goal"),
+      homeCorners: pick(fixture.teams.home.id, "Corner Kicks"),
+      awayCorners: pick(fixture.teams.away.id, "Corner Kicks"),
+      homeYellowCards: pick(fixture.teams.home.id, "Yellow Cards"),
+      awayYellowCards: pick(fixture.teams.away.id, "Yellow Cards"),
       homeRedCards,
       awayRedCards,
       homeLineupConfirmed: Boolean(
@@ -390,6 +435,9 @@ async function fetchLiveSnapshot(matchId?: string): Promise<LiveSnapshot | null>
       awayLineupConfirmed: Boolean(
         lineups.find((lineup) => lineup.team.id === fixture.teams.away.id)?.startXI.length,
       ),
+      referee: fixture.fixture.referee,
+      competitionId: fixture.league.id,
+      competitionName: fixture.league.name,
     };
   } catch {
     return null;
@@ -580,7 +628,7 @@ export const runAnalysis = createServerFn({ method: "POST" })
     ]);
 
     // H2H + bookmaker odds en parallèle une fois les IDs connus
-    const [h2h, bookmakerOdds] = await Promise.all([
+    const [h2h, bookmakerOdds, communitySnapshot] = await Promise.all([
       homeCtx && awayCtx ? fetchHeadToHead(homeCtx.id, awayCtx.id) : Promise.resolve([]),
       homeCtx && awayCtx
         ? fetchBookmakerOdds(
@@ -589,6 +637,7 @@ export const runAnalysis = createServerFn({ method: "POST" })
             Number.isInteger(Number(data.matchId)) ? Number(data.matchId) : undefined,
           )
         : Promise.resolve(null),
+      fetchCommunitySnapshot(data.matchId),
     ]);
     // Lors d'une saisie manuelle, les cotes permettent souvent d'identifier le
     // fixture : on complète alors le snapshot par statistiques et compositions.
@@ -606,8 +655,44 @@ export const runAnalysis = createServerFn({ method: "POST" })
       ? `Cotes moyennes (${bookmakerOdds.sources} source(s)) : domicile ${bookmakerOdds.home?.toFixed(2) ?? "n/d"} · nul ${bookmakerOdds.draw?.toFixed(2) ?? "n/d"} · extérieur ${bookmakerOdds.away?.toFixed(2) ?? "n/d"}.`
       : "Aucune cote exploitable dans le snapshot.";
     const liveForPrompt = analysisLiveSnapshot
-      ? `## Données live / match identifié\nStatut ${analysisLiveSnapshot.status}, minute ${analysisLiveSnapshot.minute ?? "n/d"}, score ${analysisLiveSnapshot.homeScore}-${analysisLiveSnapshot.awayScore}, xG ${analysisLiveSnapshot.homeXg}-${analysisLiveSnapshot.awayXg}, tirs cadrés ${analysisLiveSnapshot.homeShotsOnTarget}-${analysisLiveSnapshot.awayShotsOnTarget}, rouges ${analysisLiveSnapshot.homeRedCards}-${analysisLiveSnapshot.awayRedCards}, compositions ${analysisLiveSnapshot.homeLineupConfirmed && analysisLiveSnapshot.awayLineupConfirmed ? "confirmées" : "non confirmées"}.`
+      ? `## Données live / match identifié\nStatut ${analysisLiveSnapshot.status}, minute ${analysisLiveSnapshot.minute ?? "n/d"}, score ${analysisLiveSnapshot.homeScore}-${analysisLiveSnapshot.awayScore}, xG ${analysisLiveSnapshot.homeXg}-${analysisLiveSnapshot.awayXg}, tirs cadrés ${analysisLiveSnapshot.homeShotsOnTarget}-${analysisLiveSnapshot.awayShotsOnTarget}, rouges ${analysisLiveSnapshot.homeRedCards}-${analysisLiveSnapshot.awayRedCards}, corners ${analysisLiveSnapshot.homeCorners ?? "n/d"}-${analysisLiveSnapshot.awayCorners ?? "n/d"}, cartons jaunes ${analysisLiveSnapshot.homeYellowCards ?? "n/d"}-${analysisLiveSnapshot.awayYellowCards ?? "n/d"}, compositions ${analysisLiveSnapshot.homeLineupConfirmed && analysisLiveSnapshot.awayLineupConfirmed ? "confirmées" : "non confirmées"}.`
       : "## Données live\nAucun snapshot live associé à cette demande.";
+
+    const majorCompetitions = new Set([2, 39, 61, 78, 135, 140]);
+    const competitionId = analysisLiveSnapshot?.competitionId ?? null;
+    const competitionImportance =
+      competitionId === null ? 0 : majorCompetitions.has(competitionId) ? 1 : 0.55;
+    const coverage =
+      [homeCtx, awayCtx, h2h.length >= 3, bookmakerOdds, analysisLiveSnapshot].filter(Boolean)
+        .length / 5;
+    const signals: MatchSignals = {
+      community: communitySnapshot,
+      competition: analysisLiveSnapshot
+        ? {
+            id: competitionId,
+            name: analysisLiveSnapshot.competitionName ?? null,
+            importance: competitionImportance,
+          }
+        : null,
+      referee: analysisLiveSnapshot?.referee ? { name: analysisLiveSnapshot.referee } : null,
+      market: bookmakerOdds
+        ? {
+            anomalyScore: bookmakerOdds.marketSpread && bookmakerOdds.marketSpread > 0.18 ? 0.5 : 0,
+            volumeAvailable: false,
+          }
+        : null,
+      coverage,
+    };
+
+    const signalBlock = [
+      communitySnapshot
+        ? `## Consensus communautaire\nVotes : domicile ${communitySnapshot.home}, nul ${communitySnapshot.draw}, extérieur ${communitySnapshot.away} sur ${communitySnapshot.votes} vote(s). Ce signal est secondaire et ne constitue pas une preuve.`
+        : "## Consensus communautaire\nAucun vote public exploitable pour ce fixture.",
+      analysisLiveSnapshot?.referee
+        ? `## Compétition et arbitrage\nCompétition : ${analysisLiveSnapshot.competitionName ?? "n/d"}. Arbitre déclaré : ${analysisLiveSnapshot.referee}. Les habitudes historiques de l'arbitre ne sont pas disponibles dans le snapshot courant.`
+        : "## Compétition et arbitrage\nArbitre ou compétition détaillée indisponible.",
+      `## Couverture des données\nScore interne de couverture : ${Math.round(coverage * 100)}%. Les signaux absents ne doivent pas être inventés.`,
+    ].join("\n\n");
 
     const contextBlock = [
       homeCtx
@@ -640,6 +725,7 @@ export const runAnalysis = createServerFn({ method: "POST" })
         ? `## Consensus du marché (bookmakers)\n${oddsForPrompt}\nLes probabilités implicites incluent une marge : elles calibrent le modèle sans le remplacer.`
         : `## Consensus du marché\nAucune cote disponible pour ce match (match non répertorié ou hors calendrier).`,
       liveForPrompt,
+      signalBlock,
     ].join("\n\n");
 
     // Le calcul déterministe est produit avant l'IA. Il constitue le fallback
@@ -650,6 +736,7 @@ export const runAnalysis = createServerFn({ method: "POST" })
       h2h,
       odds: bookmakerOdds,
       live: analysisLiveSnapshot,
+      signals,
     });
     const snapshotForAI = {
       home: homeCtx && {
@@ -671,6 +758,7 @@ export const runAnalysis = createServerFn({ method: "POST" })
       h2h,
       odds: bookmakerOdds,
       live: analysisLiveSnapshot,
+      signals,
       statisticalProjection: basePrediction,
     };
 
@@ -683,6 +771,7 @@ export const runAnalysis = createServerFn({ method: "POST" })
       "Marchés : retourne 5 objets maximum couvrant 1X2 ou Double Chance, BTTS, Over/Under 2.5 et, seulement si les données le permettent, corners ou cartons. Une recommandation n'est jamais une garantie de gain.\n" +
       "Confiance : nombre entre 0 et 85. Risque : exactement bas, moyen ou eleve. La confiance baisse si les équipes sont mal identifiées, si l'historique est faible ou si des données clés manquent.\n" +
       "aiText : 3 à 4 phrases utiles et nuancées. keyFactors : 3 à 5 phrases courtes, chacune reliée à un fait fourni. N'affiche jamais de nom de modèle, de fournisseur, de clé technique ou de promesse de gain.\n" +
+      "Les scores internes de couverture, d'anomalie de marché et de volume sont des signaux de calibration uniquement : ne les présente jamais comme une preuve de match truqué, ne les affiche pas dans aiText ou keyFactors et n'invente aucune information absente.\n" +
       "Une projection statistique déterministe est incluse dans le snapshot. Tu peux l'affiner avec les données fournies, mais n'écarte pas fortement ses probabilités sans fait précis ; tu ne dois jamais créer de donnée absente.";
 
     const userPrompt =

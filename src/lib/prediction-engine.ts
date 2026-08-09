@@ -29,6 +29,23 @@ export type OddsSnapshot = {
   away: number | null;
   sources: number;
   fixtureId?: number;
+  /** Écart normalisé entre les cotes disponibles. */
+  marketSpread?: number;
+};
+
+export type CommunitySnapshot = {
+  home: number;
+  draw: number;
+  away: number;
+  votes: number;
+};
+
+export type MatchSignals = {
+  community?: CommunitySnapshot | null;
+  competition?: { id: number | null; name: string | null; importance: number } | null;
+  referee?: { name: string; averageYellow?: number | null; averageRed?: number | null } | null;
+  market?: { anomalyScore?: number | null; volumeAvailable?: boolean } | null;
+  coverage?: number;
 };
 
 export type LiveSnapshot = {
@@ -44,6 +61,13 @@ export type LiveSnapshot = {
   awayRedCards: number;
   homeLineupConfirmed: boolean;
   awayLineupConfirmed: boolean;
+  homeCorners?: number;
+  awayCorners?: number;
+  homeYellowCards?: number;
+  awayYellowCards?: number;
+  referee?: string | null;
+  competitionId?: number | null;
+  competitionName?: string | null;
 };
 
 export type PredictionContext = {
@@ -52,6 +76,7 @@ export type PredictionContext = {
   h2h: H2HMatch[];
   odds: OddsSnapshot | null;
   live: LiveSnapshot | null;
+  signals?: MatchSignals;
 };
 
 export type StatisticalPrediction = {
@@ -133,6 +158,11 @@ function oddsProbabilities(odds: OddsSnapshot | null) {
   if (!odds?.home || !odds.draw || !odds.away) return null;
   const raw = { home: 1 / odds.home, draw: 1 / odds.draw, away: 1 / odds.away };
   return normalize(raw);
+}
+
+function communityProbabilities(community: CommunitySnapshot | null | undefined) {
+  if (!community || community.votes < 8) return null;
+  return normalize({ home: community.home, draw: community.draw, away: community.away });
 }
 
 function resultProbabilities(
@@ -317,11 +347,28 @@ export function buildStatisticalPrediction(context: PredictionContext): Statisti
     // Les cotes sont un signal de consensus, pas une vérité : elles calibrent
     // modérément le modèle indépendant au lieu de le remplacer.
     const base = normalize(probabilities);
-    const marketWeight = context.odds && context.odds.sources >= 3 ? 0.28 : 0.2;
+    const spreadPenalty = clamp((context.odds?.marketSpread ?? 0) * 0.8, 0, 0.12);
+    const marketWeight = clamp(
+      (context.odds && context.odds.sources >= 3 ? 0.28 : 0.2) - spreadPenalty,
+      0.12,
+      0.28,
+    );
     probabilities = {
       home: base.home * (1 - marketWeight) + market.home * marketWeight,
       draw: base.draw * (1 - marketWeight) + market.draw * marketWeight,
       away: base.away * (1 - marketWeight) + market.away * marketWeight,
+    };
+  }
+  const community = communityProbabilities(context.signals?.community);
+  if (community && !live) {
+    // La communauté enrichit le consensus sans pouvoir renverser seule
+    // la projection statistique ou le marché.
+    const communityWeight =
+      context.signals?.community && context.signals.community.votes >= 40 ? 0.12 : 0.07;
+    probabilities = {
+      home: probabilities.home * (1 - communityWeight) + community.home * communityWeight,
+      draw: probabilities.draw * (1 - communityWeight) + community.draw * communityWeight,
+      away: probabilities.away * (1 - communityWeight) + community.away * communityWeight,
     };
   }
   const normalized = normalize(probabilities);
@@ -329,7 +376,11 @@ export function buildStatisticalPrediction(context: PredictionContext): Statisti
   const dataQuality = clamp(
     (homeMetrics.reliability + awayMetrics.reliability) / 2 +
       (context.odds ? 0.1 : 0) +
-      (live && live.homeLineupConfirmed && live.awayLineupConfirmed ? 0.1 : 0),
+      (live && live.homeLineupConfirmed && live.awayLineupConfirmed ? 0.1 : 0) +
+      (context.signals?.competition?.importance ?? 0) * 0.06 +
+      (community ? 0.04 : 0) -
+      (context.odds?.marketSpread ?? 0) * 0.18 -
+      (context.signals?.market?.anomalyScore ?? 0) * 0.14,
     0.3,
     1,
   );
@@ -389,6 +440,17 @@ export function buildStatisticalPrediction(context: PredictionContext): Statisti
     );
   }
 
+  if (community) {
+    keyFactors.push(
+      `Consensus communautaire : ${community.home}% domicile, ${community.draw}% nul, ${community.away}% extérieur sur ${context.signals?.community?.votes ?? 0} vote(s), avec un poids secondaire.`,
+    );
+  }
+  if (live && (live.homeCorners !== undefined || live.awayCorners !== undefined)) {
+    keyFactors.push(
+      `Rythme live : ${live.homeCorners ?? 0}-${live.awayCorners ?? 0} corners et ${live.homeYellowCards ?? 0}-${live.awayYellowCards ?? 0} cartons jaunes.`,
+    );
+  }
+
   const marketConfidence = (probability: number) => confidenceFrom(probability, dataQuality, live);
   const markets: StatisticalPrediction["markets"] = [
     {
@@ -426,11 +488,39 @@ export function buildStatisticalPrediction(context: PredictionContext): Statisti
     },
   ];
 
+  if (live && (live.homeCorners ?? 0) + (live.awayCorners ?? 0) > 0) {
+    const totalCorners = (live.homeCorners ?? 0) + (live.awayCorners ?? 0);
+    const cornerConfidence = marketConfidence(
+      clamp(0.52 + Math.min(totalCorners, 12) * 0.018, 0.5, 0.78),
+    );
+    markets.push({
+      label: "Corners live",
+      pick: totalCorners >= 7 ? "Plus de 8,5 corners" : "Plus de 5,5 corners",
+      confidence: cornerConfidence,
+      risk: riskFor(cornerConfidence),
+      rationale: `Le match compte ${totalCorners} corner(s) actuellement ; ce marché reste conditionné au rythme observé et à la minute de jeu.`,
+    });
+  }
+
+  if (live && (live.homeYellowCards ?? 0) + (live.awayYellowCards ?? 0) > 0) {
+    const totalCards = (live.homeYellowCards ?? 0) + (live.awayYellowCards ?? 0);
+    const cardConfidence = marketConfidence(
+      clamp(0.5 + Math.min(totalCards, 6) * 0.025, 0.5, 0.72),
+    );
+    markets.push({
+      label: "Cartons live",
+      pick: totalCards >= 3 ? "Plus de 3,5 cartons" : "Marché cartons à surveiller",
+      confidence: cardConfidence,
+      risk: riskFor(cardConfidence),
+      rationale: `Les événements live recensent ${totalCards} carton(s) ; l'arbitre et le contexte disciplinaire restent à confirmer.`,
+    });
+  }
+
   return {
     probabilities: normalized,
     probableScore,
     markets,
-    aiText: `${livePrefix}La projection statistique favorise ${winnerName} (${winnerProbability}%), avec un score modal de ${probableScore}. Elle combine la forme récente, les rendements domicile/extérieur, les absences, le classement, les confrontations et les cotes lorsque celles-ci sont disponibles. La confiance diminue automatiquement si le contexte est incomplet.`,
+    aiText: `${livePrefix}La projection statistique favorise ${winnerName} (${winnerProbability}%), avec un score modal de ${probableScore}. Elle combine la forme récente, les rendements domicile/extérieur, les absences, le classement, les confrontations, le marché et les signaux disponibles. La confiance diminue automatiquement si le contexte est incomplet ou contradictoire.`,
     keyFactors: keyFactors.slice(0, 5),
   };
 }

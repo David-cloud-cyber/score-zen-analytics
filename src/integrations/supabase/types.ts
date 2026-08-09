@@ -44,6 +44,39 @@ export type Database = {
         }
         Relationships: []
       }
+      community_predictions: {
+        Row: {
+          id: string
+          user_id: string | null
+          user_name: string
+          fixture_id: number
+          home_team: string
+          away_team: string
+          prediction: "home" | "draw" | "away"
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id?: string | null
+          user_name?: string
+          fixture_id: number
+          home_team: string
+          away_team: string
+          prediction: "home" | "draw" | "away"
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string | null
+          user_name?: string
+          fixture_id?: number
+          home_team?: string
+          away_team?: string
+          prediction?: "home" | "draw" | "away"
+          created_at?: string
+        }
+        Relationships: []
+      }
       app_config: {
         Row: {
           description: string | null
@@ -345,6 +378,7 @@ export type Database = {
       credit_kind: "analysis" | "topup" | "bonus" | "refund" | "subscription"
       favorite_kind: "team" | "competition" | "match"
       plan_tier: "free" | "premium"
+      prediction_choice: "home" | "draw" | "away"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -476,6 +510,7 @@ export const Constants = {
       credit_kind: ["analysis", "topup", "bonus", "refund", "subscription"],
       favorite_kind: ["team", "competition", "match"],
       plan_tier: ["free", "premium"],
+      prediction_choice: ["home", "draw", "away"],
     },
   },
 } as const
