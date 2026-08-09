@@ -78,7 +78,7 @@ export const Route = createFileRoute("/")({
 function HomeError({ error, reset }: { error: Error; reset: () => void }) {
   return (
     <AppShell>
-      <div className="mx-4 mt-8 rounded-2xl border border-alert/30 bg-alert/5 p-6 text-center lg:mx-0">
+      <div className="mx-4 mt-8 animate-score-pop rounded-xl border border-alert/30 bg-alert/5 p-4 text-center lg:mx-0">
         <AlertTriangle className="mx-auto size-6 text-alert" aria-hidden />
         <h2 className="mt-3 text-base font-black">Données football indisponibles</h2>
         <p className="mt-1 text-sm text-muted-foreground">
@@ -86,7 +86,7 @@ function HomeError({ error, reset }: { error: Error; reset: () => void }) {
         </p>
         <button
           onClick={reset}
-          className="mt-4 inline-flex items-center gap-2 rounded-full bg-foreground px-4 py-2 text-xs font-bold text-background"
+          className="mt-4 inline-flex items-center gap-2 rounded-xl bg-[#181818] px-4 py-2 text-xs font-bold text-[#f7f7f7]"
         >
           <RefreshCw className="size-3.5" /> Réessayer
         </button>
@@ -303,19 +303,19 @@ function HomePage() {
       {/* Grouped matches */}
       <div className="mt-8 space-y-6 px-4 lg:px-0">
         {isError ? (
-          <div className="rounded-2xl border border-alert/30 bg-alert/5 p-6 text-center text-sm text-muted-foreground">
+          <div className="animate-score-pop rounded-xl border border-alert/30 bg-alert/5 p-4 text-center text-sm text-muted-foreground">
             Les scores du jour sont momentanément indisponibles. Vous pouvez consulter les analyses
             et les guides pendant la prochaine actualisation.
             <button
               type="button"
               onClick={() => void refetch()}
-              className="mt-3 block mx-auto text-xs font-black text-brand hover:underline"
+              className="mx-auto mt-3 block text-xs font-black text-brand hover:underline"
             >
               Réessayer
             </button>
           </div>
         ) : grouped.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
+          <div className="score-empty-state text-sm text-muted-foreground">
             {filter === "live"
               ? "Aucun match en direct pour le moment."
               : filter === "upcoming"

@@ -1,10 +1,10 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
+  ArrowRight,
   Coins,
   Menu,
   Radio,
   Search,
-  Settings,
   Sparkles,
   Star,
   Ticket,
@@ -201,7 +201,7 @@ function DesktopSidebar({ pathname }: { pathname: string }) {
             to="/premium/tableau-de-bord"
             className="mt-3 flex items-center justify-center gap-1 rounded-lg bg-brand py-2 text-[11px] font-black text-brand-foreground transition-transform hover:scale-[1.02]"
           >
-            Ouvrir le Hub <Settings className="size-3" />
+            Ouvrir le Hub <ArrowRight className="size-3" />
           </Link>
         </div>
       </nav>
@@ -385,9 +385,6 @@ export function TopBar({ onMenuOpen }: { onMenuOpen?: () => void }) {
 
       <div className="flex items-center gap-2">
         <PremiumStatusBadge profile={profile} compact className="hidden sm:inline-flex" />
-        <div className="hidden lg:block">
-          <ThemeToggle />
-        </div>
         <button
           onClick={() => setOpen(true)}
           className="grid size-9 place-items-center rounded-full bg-surface ring-1 ring-black/5 transition-transform hover:scale-105 active:scale-95 lg:hidden dark:ring-white/10"

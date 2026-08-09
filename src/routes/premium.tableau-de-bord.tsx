@@ -112,8 +112,8 @@ function PremiumHubPage() {
         <HubQuickNav />
 
         {data.warning && (
-          <div className="flex items-start gap-3 rounded-2xl border border-warn/30 bg-warn/10 p-4 text-sm">
-            <Info className="mt-0.5 size-4 shrink-0 text-warn" aria-hidden />
+          <div className="flex items-start gap-3 rounded-xl border border-brand/25 bg-brand/5 p-4 text-sm">
+            <Info className="mt-0.5 size-4 shrink-0 text-brand" aria-hidden />
             <p className="text-muted-foreground">{data.warning}</p>
           </div>
         )}
@@ -233,7 +233,7 @@ function HubHeader({
         aria-hidden
       />
       <div
-        className="pointer-events-none absolute -bottom-24 left-1/3 size-56 rounded-full bg-warn/20 blur-3xl"
+        className="pointer-events-none absolute -bottom-24 left-1/3 size-56 rounded-full bg-brand/15 blur-3xl"
         aria-hidden
       />
       <div className="relative flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
@@ -316,10 +316,7 @@ function HubOverview({ data }: { data: PremiumHubData }) {
   return (
     <section aria-label="Résumé du Hub" className="grid grid-cols-2 gap-2 sm:grid-cols-4">
       {metrics.map((metric) => (
-        <div
-          key={metric.label}
-          className="rounded-2xl border border-border/70 bg-card p-3 shadow-sm"
-        >
+        <div key={metric.label} className="score-card animate-rise p-3">
           <div className="flex items-center gap-1.5 text-brand">
             {metric.icon}
             <span className="text-[9px] font-black uppercase tracking-wider text-muted-foreground">
@@ -344,7 +341,7 @@ function HubQuickNav() {
   return (
     <nav
       aria-label="Navigation du Hub"
-      className="sticky top-[4.25rem] z-20 -mx-1 flex gap-2 overflow-x-auto rounded-2xl border border-border/70 bg-background/90 p-1.5 shadow-sm backdrop-blur-xl lg:top-2"
+      className="sticky top-[4.25rem] z-20 -mx-1 flex gap-2 overflow-x-auto rounded-xl border border-border/70 bg-background/90 p-1.5 backdrop-blur-xl lg:top-2"
     >
       {links.map(([href, label]) => (
         <a
@@ -404,7 +401,7 @@ function RadarCard({
   const riskLabel =
     item.risk === "bas" ? "Risque bas" : item.risk === "moyen" ? "Risque moyen" : "Risque élevé";
   return (
-    <article className="animate-rise overflow-hidden rounded-xl border border-border/70 bg-card shadow-none transition-shadow hover:shadow-md">
+    <article className="animate-rise overflow-hidden rounded-xl border border-border/70 bg-card shadow-none transition-colors hover:border-brand/30">
       <div className="border-b border-border/60 bg-surface/40 p-4">
         <div className="flex items-center justify-between gap-3 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
           <span className="truncate">{item.league}</span>
@@ -448,10 +445,10 @@ function RadarCard({
           />
         </div>
 
-        <div className="rounded-2xl bg-surface/50 p-3">
+        <div className="rounded-xl border border-border/60 bg-surface/50 p-3">
           <div className="flex items-center justify-between gap-2">
             <span className="inline-flex items-center gap-1.5 text-xs font-black">
-              <Zap className="size-3.5 text-warn" /> {riskLabel}
+              <Zap className="size-3.5 text-brand" /> {riskLabel}
             </span>
             <span className="text-[10px] font-bold text-muted-foreground">
               Implicite : {item.impliedProbability === null ? "—" : `${item.impliedProbability}%`}
@@ -460,7 +457,7 @@ function RadarCard({
           <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{item.reason}</p>
         </div>
 
-        <details className="group rounded-2xl border border-border/60 px-3 py-2">
+        <details className="group rounded-xl border border-border/60 px-3 py-2">
           <summary className="flex cursor-pointer list-none items-center justify-between text-xs font-bold marker:hidden">
             Pourquoi ce signal ?{" "}
             <ChevronRight
@@ -492,7 +489,9 @@ function RadarCard({
             disabled={busy}
             className={cn(
               "inline-flex items-center justify-center gap-2 rounded-xl border px-4 py-3 text-xs font-black transition-colors disabled:opacity-50",
-              followed ? "border-warn/40 bg-warn/10 text-warn" : "border-border hover:bg-surface",
+              followed
+                ? "border-brand/40 bg-brand/10 text-brand"
+                : "border-border hover:bg-surface",
             )}
           >
             <Star className={cn("size-3.5", followed && "fill-current")} aria-hidden />{" "}
@@ -537,7 +536,7 @@ function Metric({ label, value, tone }: { label: string; value: string; tone?: "
 function AlertsPanel({ alerts }: { alerts: HubAlert[] }) {
   if (!alerts.length) {
     return (
-      <div className="rounded-3xl border border-dashed border-border p-8 text-center">
+      <div className="score-empty-state">
         <Bell className="mx-auto size-7 text-muted-foreground" />
         <p className="mt-2 text-sm font-bold">Aucune alerte active</p>
         <p className="mt-1 text-xs text-muted-foreground">
@@ -552,7 +551,7 @@ function AlertsPanel({ alerts }: { alerts: HubAlert[] }) {
         <div
           key={alert.id}
           className={cn(
-            "flex items-start gap-3 rounded-2xl border p-3",
+            "flex items-start gap-3 rounded-xl border p-3",
             alert.kind === "value" ? "border-brand/25 bg-brand/5" : "border-border/70 bg-card",
           )}
         >
@@ -646,7 +645,7 @@ function Scorecard({ scorecard }: { scorecard: PremiumHubData["scorecard"] }) {
         value={scorecard.theoreticalRoi === null ? "À venir" : `${scorecard.theoreticalRoi}%`}
         icon={<TrendingUp className="size-4" />}
       />
-      <div className="col-span-2 rounded-2xl bg-surface/60 p-3 text-xs text-muted-foreground">
+      <div className="col-span-2 rounded-xl border border-border/60 bg-surface/60 p-3 text-xs text-muted-foreground">
         <p className="font-bold text-foreground">Vos habitudes</p>
         <p className="mt-1">
           Marché le plus analysé :{" "}
@@ -680,7 +679,7 @@ function ScoreMetric({
   icon: React.ReactNode;
 }) {
   return (
-    <div className="rounded-2xl border border-border/70 bg-card p-3">
+    <div className="score-card p-3">
       <span className="text-brand">{icon}</span>
       <p className="mt-2 text-xl font-black tabular-nums">{value}</p>
       <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">{label}</p>
@@ -698,7 +697,7 @@ function FollowedTeams({
   const teams = favorites.filter((favorite) => favorite.kind === "team");
   if (!teams.length)
     return (
-      <div className="rounded-3xl border border-dashed border-border p-7 text-center">
+      <div className="score-empty-state p-7">
         <Star className="mx-auto size-7 text-muted-foreground" />
         <p className="mt-2 text-sm font-bold">Aucune équipe suivie</p>
         <p className="mt-1 text-xs text-muted-foreground">
@@ -709,11 +708,8 @@ function FollowedTeams({
   return (
     <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
       {teams.map((favorite) => (
-        <div
-          key={favorite.id}
-          className="flex items-center gap-3 rounded-2xl border border-border/70 bg-card p-3"
-        >
-          <span className="grid size-9 place-items-center rounded-xl bg-warn/10 text-warn">
+        <div key={favorite.id} className="score-card flex items-center gap-3 p-3">
+          <span className="grid size-9 place-items-center rounded-xl bg-brand/10 text-brand">
             <Star className="size-4 fill-current" />
           </span>
           <span className="min-w-0 flex-1 truncate text-sm font-black">
@@ -738,7 +734,7 @@ function FollowedTeams({
 
 function EmptyRadar() {
   return (
-    <div className="rounded-3xl border border-dashed border-border p-8 text-center">
+    <div className="score-empty-state">
       <Target className="mx-auto size-8 text-muted-foreground" />
       <p className="mt-2 text-sm font-bold">Aucune opportunité calculable pour le moment</p>
       <p className="mx-auto mt-1 max-w-md text-xs leading-relaxed text-muted-foreground">
@@ -760,8 +756,8 @@ function PremiumGate({ credits }: { credits: number }) {
   return (
     <AppShell>
       <div className="space-y-6 px-4 pb-12 pt-6 lg:px-0">
-        <div className="relative overflow-hidden rounded-3xl bg-foreground p-6 text-background shadow-xl">
-          <Lock className="size-7 text-warn" />
+        <div className="relative animate-rise overflow-hidden rounded-xl bg-[#181818] p-6 text-[#f7f7f7] shadow-none">
+          <Lock className="size-7 text-brand" />
           <h1 className="mt-4 text-2xl font-black">Le Premium Intelligence Hub vous attend</h1>
           <p className="mt-2 max-w-xl text-sm leading-relaxed text-background/70">
             Débloquez le radar value, les alertes personnalisées, le suivi des performances et les
@@ -816,7 +812,7 @@ function FeaturePreview({
   text: string;
 }) {
   return (
-    <div className="flex gap-3 rounded-2xl border border-border/70 bg-card p-4">
+    <div className="score-card flex gap-3 p-4">
       <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-brand/10 text-brand">
         {icon}
       </span>
@@ -832,10 +828,10 @@ function HubLoading() {
   return (
     <AppShell>
       <div className="space-y-4 px-4 pb-12 pt-6 lg:px-0">
-        <div className="h-48 animate-pulse rounded-3xl bg-surface" />
+        <div className="h-48 animate-score-shimmer rounded-xl bg-surface" />
         <div className="grid gap-4 lg:grid-cols-2">
-          <div className="h-72 animate-pulse rounded-3xl bg-surface" />
-          <div className="h-72 animate-pulse rounded-3xl bg-surface" />
+          <div className="h-72 animate-score-shimmer rounded-xl bg-surface" />
+          <div className="h-72 animate-score-shimmer rounded-xl bg-surface" />
         </div>
       </div>
     </AppShell>
@@ -845,7 +841,7 @@ function HubLoading() {
 function HubError({ onRetry }: { onRetry: () => void }) {
   return (
     <AppShell>
-      <div className="mx-4 mt-12 rounded-3xl border border-alert/30 bg-alert/5 p-6 text-center lg:mx-0">
+      <div className="mx-4 mt-12 rounded-xl border border-alert/30 bg-alert/5 p-6 text-center lg:mx-0">
         <ShieldAlert className="mx-auto size-7 text-alert" />
         <h1 className="mt-3 text-lg font-black">Le tableau de bord n’a pas pu être chargé</h1>
         <p className="mt-2 text-sm text-muted-foreground">
@@ -854,7 +850,7 @@ function HubError({ onRetry }: { onRetry: () => void }) {
         <button
           type="button"
           onClick={onRetry}
-          className="mt-4 inline-flex items-center gap-2 rounded-xl bg-foreground px-4 py-2.5 text-xs font-black text-background"
+          className="mt-4 inline-flex items-center gap-2 rounded-xl bg-[#181818] px-4 py-2.5 text-xs font-black text-[#f7f7f7]"
         >
           <RefreshCw className="size-4" /> Réessayer
         </button>
