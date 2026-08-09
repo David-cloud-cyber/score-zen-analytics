@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { apiFootball, todayISO } from "@/lib/apifootball.server";
 import type { Database, Json } from "@/integrations/supabase/types";
+import { isPremiumActive } from "@/lib/premium-status";
 
 type FavoriteKind = Database["public"]["Enums"]["favorite_kind"];
 
@@ -337,7 +338,7 @@ export const getPremiumDashboard = createServerFn({ method: "GET" })
       .eq("id", context.userId)
       .maybeSingle();
     const safeProfile = profile ?? { credits: 0, plan: "free" as const, premium_until: null };
-    const isPremium = safeProfile.plan === "premium" && (!safeProfile.premium_until || new Date(safeProfile.premium_until) > new Date());
+    const isPremium = isPremiumActive({ plan: safeProfile.plan, premium_until: safeProfile.premium_until });
 
     const { data: favoriteRows } = await context.supabase
       .from("favorites")
@@ -413,9 +414,9 @@ export const togglePremiumFavorite = createServerFn({ method: "POST" })
       return { active: false };
     }
 
-    const { data: profile } = await context.supabase.from("profiles").select("plan").eq("id", context.userId).maybeSingle();
+    const { data: profile } = await context.supabase.from("profiles").select("plan, premium_until").eq("id", context.userId).maybeSingle();
     const { count } = await context.supabase.from("favorites").select("id", { count: "exact", head: true }).eq("user_id", context.userId);
-    if (profile?.plan !== "premium" && (count ?? 0) >= 3) {
+    if (!isPremiumActive(profile) && (count ?? 0) >= 3) {
       throw new Error("Les comptes gratuits sont limités à 3 favoris. Passez Premium pour débloquer le suivi illimité.");
     }
     const { error } = await context.supabase.from("favorites").insert({

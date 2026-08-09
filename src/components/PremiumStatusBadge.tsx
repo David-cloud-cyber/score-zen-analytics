@@ -19,7 +19,7 @@ export function PremiumStatusBadge({
 
   return (
     <Link
-      to="/profil"
+      to="/premium/tableau-de-bord"
       aria-label={expiry ? `Premium actif jusqu'au ${expiry}` : "Premium actif"}
       className={cn(
         "inline-flex items-center gap-1.5 rounded-full bg-brand/10 text-brand ring-1 ring-brand/25 transition-colors hover:bg-brand/15",

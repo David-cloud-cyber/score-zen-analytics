@@ -104,6 +104,9 @@ function PremiumHubPage() {
       <div className="space-y-6 px-4 pb-12 pt-4 lg:px-0">
         <HubHeader data={data} onRefresh={() => query.refetch()} refreshing={query.isFetching} />
 
+        <HubOverview data={data} />
+        <HubQuickNav />
+
         {data.warning && (
           <div className="flex items-start gap-3 rounded-2xl border border-warn/30 bg-warn/10 p-4 text-sm">
             <Info className="mt-0.5 size-4 shrink-0 text-warn" aria-hidden />
@@ -214,6 +217,9 @@ function HubHeader({ data, onRefresh, refreshing }: { data: PremiumHubData; onRe
           <span className="inline-flex items-center gap-1.5 rounded-full bg-brand/20 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-brand">
             <Crown className="size-3.5" /> Intelligence Hub
           </span>
+          <span className="ml-2 inline-flex items-center gap-1.5 rounded-full bg-background/10 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-background/80">
+            <span className="size-1.5 rounded-full bg-brand" /> Premium actif
+          </span>
           <h1 className="mt-3 text-2xl font-black tracking-tight sm:text-3xl">Votre centre de décision</h1>
           <p className="mt-2 max-w-xl text-sm leading-relaxed text-background/70">
             Repérez les signaux intéressants, suivez vos équipes et comprenez chaque projection avant de prendre une décision.
@@ -239,6 +245,45 @@ function HubHeader({ data, onRefresh, refreshing }: { data: PremiumHubData; onRe
         <span>Dernière mise à jour : {new Date(data.fetchedAt).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}</span>
       </div>
     </header>
+  );
+}
+
+function HubOverview({ data }: { data: PremiumHubData }) {
+  const metrics = [
+    { label: "Opportunités", value: String(data.radar.length), hint: "à étudier aujourd'hui", icon: <Target className="size-4" /> },
+    { label: "Alertes actives", value: String(data.alerts.length), hint: "signaux personnalisés", icon: <BellRing className="size-4" /> },
+    { label: "Taux de réussite", value: data.scorecard.hitRate === null ? "—" : `${data.scorecard.hitRate}%`, hint: `${data.scorecard.settledAnalyses} analyse(s) réglée(s)`, icon: <Gauge className="size-4" /> },
+    { label: "Équipes suivies", value: String(data.favorites.filter((favorite) => favorite.kind === "team").length), hint: "notifications configurables", icon: <Users className="size-4" /> },
+  ];
+
+  return (
+    <section aria-label="Résumé du Hub" className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+      {metrics.map((metric) => (
+        <div key={metric.label} className="rounded-2xl border border-border/70 bg-card p-3 shadow-sm">
+          <div className="flex items-center gap-1.5 text-brand">{metric.icon}<span className="text-[9px] font-black uppercase tracking-wider text-muted-foreground">{metric.label}</span></div>
+          <p className="mt-2 text-2xl font-black tabular-nums">{metric.value}</p>
+          <p className="mt-1 text-[10px] leading-tight text-muted-foreground">{metric.hint}</p>
+        </div>
+      ))}
+    </section>
+  );
+}
+
+function HubQuickNav() {
+  const links = [
+    ["#radar-title", "Radar"],
+    ["#alerts-title", "Alertes"],
+    ["#scorecard-title", "Performances"],
+    ["#teams-title", "Équipes"],
+  ] as const;
+  return (
+    <nav aria-label="Navigation du Hub" className="sticky top-[4.25rem] z-20 -mx-1 flex gap-2 overflow-x-auto rounded-2xl border border-border/70 bg-background/90 p-1.5 shadow-sm backdrop-blur-xl lg:top-2">
+      {links.map(([href, label]) => (
+        <a key={href} href={href} className="shrink-0 rounded-xl px-3 py-2 text-[11px] font-black text-muted-foreground transition-colors hover:bg-surface hover:text-foreground">
+          {label}
+        </a>
+      ))}
+    </nav>
   );
 }
 
