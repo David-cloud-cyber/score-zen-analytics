@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -50,8 +50,133 @@ export const Route = createFileRoute("/premium/tableau-de-bord")({
   component: PremiumHubPage,
 });
 
+const DEMO_HUB_DATA: PremiumHubData = {
+  isPremium: true,
+  profile: { credits: 86, plan: "premium", premiumUntil: "2026-12-31T23:59:59.000Z" },
+  radar: [
+    {
+      fixtureId: "demo-arsenal-chelsea",
+      kickoff: "2026-08-09T18:30:00.000Z",
+      league: "Premier League · Angleterre",
+      home: { name: "Arsenal", logo: "https://media.api-sports.io/football/teams/42.png" },
+      away: { name: "Chelsea", logo: "https://media.api-sports.io/football/teams/49.png" },
+      pick: "Arsenal ou nul",
+      market: "Double chance",
+      probability: 74,
+      impliedProbability: 62,
+      odd: 1.42,
+      edge: 12,
+      confidence: 88,
+      risk: "bas",
+      reason:
+        "Arsenal présente une meilleure dynamique à domicile et concède peu d'occasions sur les cinq dernières journées.",
+      factors: [
+        "Forme récente : 4 victoires sur 5",
+        "Avantage domicile confirmé",
+        "Écart défensif favorable",
+      ],
+    },
+    {
+      fixtureId: "demo-real-atletico",
+      kickoff: "2026-08-09T20:00:00.000Z",
+      league: "LaLiga · Espagne",
+      home: { name: "Real Madrid", logo: "https://media.api-sports.io/football/teams/541.png" },
+      away: { name: "Atlético Madrid", logo: "https://media.api-sports.io/football/teams/530.png" },
+      pick: "Moins de 3,5 buts",
+      market: "Total buts",
+      probability: 68,
+      impliedProbability: 55,
+      odd: 1.82,
+      edge: 13,
+      confidence: 79,
+      risk: "moyen",
+      reason:
+        "Le profil tactique des deux équipes favorise un match fermé malgré la qualité offensive disponible.",
+      factors: [
+        "H2H souvent serré",
+        "Rythme contrôlé attendu",
+        "Marché stable sur les dernières heures",
+      ],
+    },
+    {
+      fixtureId: "demo-bayern-dortmund",
+      kickoff: "2026-08-09T16:30:00.000Z",
+      league: "Bundesliga · Allemagne",
+      home: { name: "Bayern Munich", logo: "https://media.api-sports.io/football/teams/157.png" },
+      away: { name: "Dortmund", logo: "https://media.api-sports.io/football/teams/165.png" },
+      pick: "Les deux équipes marquent",
+      market: "BTTS",
+      probability: 71,
+      impliedProbability: 59,
+      odd: 1.69,
+      edge: 12,
+      confidence: 76,
+      risk: "moyen",
+      reason:
+        "Les deux attaques produisent régulièrement des occasions franches et les absences concernent surtout les défenses.",
+      factors: [
+        "BTTS validé dans 7 des 10 derniers matchs",
+        "Deux défenses remaniées",
+        "Volume de tirs élevé",
+      ],
+    },
+  ],
+  alerts: [
+    {
+      id: "demo-alert-1",
+      kind: "value",
+      title: "Nouveau signal de valeur",
+      message: "Arsenal ou nul vient de dépasser votre seuil de confiance.",
+      time: "2026-08-09T17:42:00.000Z",
+      read: false,
+      fixtureId: "demo-arsenal-chelsea",
+    },
+    {
+      id: "demo-alert-2",
+      kind: "start",
+      title: "Coup d'envoi bientôt",
+      message: "Real Madrid · Atlético Madrid commence dans 45 minutes.",
+      time: "2026-08-09T19:15:00.000Z",
+      read: false,
+      fixtureId: "demo-real-atletico",
+    },
+    {
+      id: "demo-alert-3",
+      kind: "system",
+      title: "Données actualisées",
+      message:
+        "Les probabilités du radar ont été recalibrées avec les dernières cotes disponibles.",
+      time: "2026-08-09T17:20:00.000Z",
+      read: true,
+    },
+  ],
+  favorites: [
+    { id: "demo-fav-1", kind: "team", refId: "Arsenal", label: "Arsenal", notify: true },
+    { id: "demo-fav-2", kind: "team", refId: "Real Madrid", label: "Real Madrid", notify: true },
+    {
+      id: "demo-fav-3",
+      kind: "team",
+      refId: "Bayern Munich",
+      label: "Bayern Munich",
+      notify: false,
+    },
+  ],
+  scorecard: {
+    totalAnalyses: 42,
+    settledAnalyses: 31,
+    hitRate: 68,
+    theoreticalRoi: 11.4,
+    favoriteMarket: "Double chance",
+    favoriteTeam: "Arsenal",
+  },
+  fetchedAt: "2026-08-09T17:45:00.000Z",
+  warning: null,
+};
+
 function PremiumHubPage() {
   const { user, loading: sessionLoading } = useSession();
+  const searchString = useRouterState({ select: (state) => state.location.searchStr });
+  const isDemo = import.meta.env.DEV && searchString.includes("demo=1");
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const getDashboard = useServerFn(getPremiumDashboard);
@@ -62,17 +187,21 @@ function PremiumHubPage() {
   const query = useQuery<PremiumHubData>({
     queryKey: ["premium", "intelligence-hub"],
     queryFn: () => getDashboard(),
-    enabled: !!user,
+    enabled: !!user && !isDemo,
     refetchInterval: 60_000,
     staleTime: 30_000,
   });
 
   useEffect(() => {
-    if (!sessionLoading && !user)
+    if (!isDemo && !sessionLoading && !user)
       navigate({ to: "/auth", search: { redirect: "/premium/tableau-de-bord" } });
-  }, [sessionLoading, user, navigate]);
+  }, [isDemo, sessionLoading, user, navigate]);
 
   async function handleToggleFavorite(item: RadarOpportunity) {
+    if (isDemo) {
+      toast.info("Aperçu local : cette action est désactivée en mode démo.");
+      return;
+    }
     const key = item.fixtureId;
     setBusyFavorite(key);
     try {
@@ -89,6 +218,10 @@ function PremiumHubPage() {
   }
 
   async function handleNotification(favorite: HubFavorite) {
+    if (isDemo) {
+      toast.info("Aperçu local : cette action est désactivée en mode démo.");
+      return;
+    }
     try {
       await updateNotification({ data: { favoriteId: favorite.id, notify: !favorite.notify } });
       await queryClient.invalidateQueries({ queryKey: ["premium", "intelligence-hub"] });
@@ -97,16 +230,33 @@ function PremiumHubPage() {
     }
   }
 
-  if (sessionLoading || !user || query.isLoading) return <HubLoading />;
-  if (query.isError || !query.data) return <HubError onRetry={() => query.refetch()} />;
-  const data = query.data;
+  if (sessionLoading || (!isDemo && (!user || query.isLoading))) return <HubLoading />;
+  if (!isDemo && (query.isError || !query.data))
+    return <HubError onRetry={() => query.refetch()} />;
+  const data: PremiumHubData = isDemo ? DEMO_HUB_DATA : query.data!;
 
   if (!data.isPremium) return <PremiumGate credits={data.profile.credits} />;
 
   return (
     <AppShell>
       <div className="space-y-6 px-4 pb-12 pt-4 lg:px-0">
-        <HubHeader data={data} onRefresh={() => query.refetch()} refreshing={query.isFetching} />
+        {isDemo && (
+          <div
+            className="flex items-center gap-2 rounded-xl border border-brand/30 bg-brand/10 px-3 py-2 text-xs font-bold text-brand"
+            role="status"
+          >
+            <Sparkles className="size-3.5 shrink-0" aria-hidden />
+            Aperçu local · données fictives · aucune donnée réelle ni action serveur utilisée
+          </div>
+        )}
+
+        <HubHeader
+          data={data}
+          onRefresh={() => {
+            if (!isDemo) void query.refetch();
+          }}
+          refreshing={!isDemo && query.isFetching}
+        />
 
         <HubOverview data={data} />
         <HubQuickNav />
@@ -190,7 +340,7 @@ function PremiumHubPage() {
                 <Sparkles className="size-3.5" /> Analyse approfondie
               </p>
               <h2 className="mt-1 text-xl font-black">Passez du signal à l’explication</h2>
-              <p className="mt-1 max-w-xl text-sm leading-relaxed text-background/65">
+              <p className="mt-1 max-w-xl text-sm leading-relaxed text-[#f7f7f7]/65">
                 Ouvrez une analyse complète pour voir la forme, le H2H, les absences et les marchés
                 recommandés.
               </p>
@@ -241,20 +391,20 @@ function HubHeader({
           <span className="inline-flex items-center gap-1.5 rounded-full bg-brand/20 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-brand">
             <Crown className="size-3.5" /> Intelligence Hub
           </span>
-          <span className="ml-2 inline-flex items-center gap-1.5 rounded-full bg-background/10 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-background/80">
+          <span className="ml-2 inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-[#f7f7f7]/80">
             <span className="size-1.5 rounded-full bg-brand" /> Premium actif
           </span>
           <h1 className="mt-3 text-2xl font-black tracking-tight sm:text-3xl">
             Votre centre de décision
           </h1>
-          <p className="mt-2 max-w-xl text-sm leading-relaxed text-background/70">
+          <p className="mt-2 max-w-xl text-sm leading-relaxed text-[#f7f7f7]/70">
             Repérez les signaux intéressants, suivez vos équipes et comprenez chaque projection
             avant de prendre une décision.
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <div className="rounded-2xl bg-background/10 px-3 py-2 text-right">
-            <p className="text-[10px] font-black uppercase tracking-widest text-background/55">
+          <div className="rounded-xl bg-white/10 px-3 py-2 text-right">
+            <p className="text-[10px] font-black uppercase tracking-widest text-[#f7f7f7]/55">
               Crédits
             </p>
             <p className="text-lg font-black tabular-nums text-brand">{data.profile.credits}</p>
@@ -262,14 +412,14 @@ function HubHeader({
           <button
             type="button"
             onClick={onRefresh}
-            className="grid size-10 place-items-center rounded-xl bg-background/10 text-background transition-colors hover:bg-background/20"
+            className="grid size-10 place-items-center rounded-xl bg-white/10 text-[#f7f7f7] transition-colors hover:bg-white/20"
             aria-label="Actualiser le tableau de bord"
           >
             <RefreshCw className={cn("size-4", refreshing && "animate-spin")} aria-hidden />
           </button>
         </div>
       </div>
-      <div className="relative mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-[11px] text-background/55">
+      <div className="relative mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-[11px] text-[#f7f7f7]/55">
         <span className="inline-flex items-center gap-1.5">
           <span className="size-1.5 rounded-full bg-brand" /> Données actualisées automatiquement
         </span>
@@ -759,7 +909,7 @@ function PremiumGate({ credits }: { credits: number }) {
         <div className="relative animate-rise overflow-hidden rounded-xl bg-[#181818] p-6 text-[#f7f7f7] shadow-none">
           <Lock className="size-7 text-brand" />
           <h1 className="mt-4 text-2xl font-black">Le Premium Intelligence Hub vous attend</h1>
-          <p className="mt-2 max-w-xl text-sm leading-relaxed text-background/70">
+          <p className="mt-2 max-w-xl text-sm leading-relaxed text-[#f7f7f7]/70">
             Débloquez le radar value, les alertes personnalisées, le suivi des performances et les
             explications avancées.
           </p>
@@ -770,7 +920,7 @@ function PremiumGate({ credits }: { credits: number }) {
             >
               Passer Premium <ChevronRight className="size-4" />
             </Link>
-            <span className="inline-flex items-center rounded-xl bg-background/10 px-3 py-3 text-xs font-bold text-background/70">
+            <span className="inline-flex items-center rounded-xl bg-white/10 px-3 py-3 text-xs font-bold text-[#f7f7f7]/70">
               {credits} crédits disponibles
             </span>
           </div>

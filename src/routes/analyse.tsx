@@ -380,10 +380,10 @@ function AnalysePage() {
                 <div className="inline-flex items-center gap-1.5 rounded-full bg-brand/20 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-brand">
                   <Sparkles className="size-3" /> Prédiction LiveFoot
                 </div>
-                <div className="text-[10px] font-bold text-background/60">Analyse multicritère</div>
+                <div className="text-[10px] font-bold text-[#f7f7f7]/60">Analyse multicritère</div>
               </div>
               <h2 className="mb-4 text-xl font-black leading-tight">
-                {home} <span className="text-background/40">vs</span> {away}
+                {home} <span className="text-[#f7f7f7]/40">vs</span> {away}
               </h2>
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
                 <WinProbabilityDonut
@@ -401,7 +401,7 @@ function AnalysePage() {
                     awayName={away}
                   />
                   <div className="mt-3 rounded-xl bg-background/5 p-3">
-                    <div className="text-[10px] font-bold uppercase tracking-widest text-background/60">
+                    <div className="text-[10px] font-bold uppercase tracking-widest text-[#f7f7f7]/60">
                       Score probable
                     </div>
                     <div className="font-mono text-lg font-black tabular-nums">
