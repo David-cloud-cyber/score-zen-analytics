@@ -8,6 +8,7 @@ import { AppShell, PageTitle } from "@/components/AppShell";
 import { getMyBalance } from "@/lib/analyses.functions";
 import { getMyPremiumFavorites, togglePremiumFavorite } from "@/lib/premium-hub.functions";
 import { cn } from "@/lib/utils";
+import { isPremiumActive } from "@/lib/premium-status";
 
 export const Route = createFileRoute("/_authenticated/favoris")({
   head: () => ({
@@ -39,7 +40,7 @@ function FavorisPage() {
     queryFn: () => getMyBalance(),
   });
 
-  const isPremium = profile?.plan === "premium";
+  const isPremium = isPremiumActive(profile);
 
   const getFavorites = useServerFn(getMyPremiumFavorites);
   const toggleFavorite = useServerFn(togglePremiumFavorite);

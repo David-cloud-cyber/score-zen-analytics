@@ -11,6 +11,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useSession } from "@/hooks/use-session";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { formatPremiumExpiry, isPremiumActive, premiumDaysRemaining } from "@/lib/premium-status";
 
 export const Route = createFileRoute("/premium")({
   head: () =>
@@ -32,13 +33,19 @@ function PremiumPage() {
     enabled: !!user,
   });
 
-  const isPremium = profile?.plan === "premium" && (!profile.premium_until || new Date(profile.premium_until) > new Date());
+  const isPremium = isPremiumActive(profile);
+  const premiumExpiry = formatPremiumExpiry(profile?.premium_until);
+  const premiumDays = premiumDaysRemaining(profile?.premium_until);
 
   const [busyPlan, setBusyPlan] = useState<string | null>(null);
   const subCheckoutFn = useServerFn(createSubscriptionCheckout);
   const topupCheckoutFn = useServerFn(createTopupCheckout);
 
   const handleSubscribe = async (plan: PremiumPlan) => {
+    if (isPremium) {
+      navigate({ to: "/premium/tableau-de-bord" });
+      return;
+    }
     if (!user) {
       toast.info("Veuillez vous connecter pour vous abonner.");
       navigate({ to: "/auth" });
@@ -104,8 +111,9 @@ function PremiumPage() {
             </p>
 
             {isPremium && (
-              <div className="mt-4 inline-flex items-center gap-2 rounded-2xl bg-brand/20 px-3 py-2 text-xs font-black text-brand ring-1 ring-brand/30">
-                <Check className="size-4" /> Vous êtes actuellement Membre Premium !
+              <div className="mt-4 flex flex-wrap items-center gap-2 rounded-2xl bg-brand/20 px-3 py-2 text-xs font-black text-brand ring-1 ring-brand/30" role="status">
+                <Check className="size-4" /> Premium actif
+                {premiumExpiry && <span className="font-medium text-brand/80">jusqu’au {premiumExpiry}{premiumDays !== null ? ` · ${premiumDays} j` : ""}</span>}
               </div>
             )}
           </div>
@@ -190,7 +198,7 @@ function PremiumPage() {
                     : "bg-foreground text-background",
                 )}
               >
-                {busyPlan === plan.id ? "Redirection..." : `Souscrire (${formatXaf(plan.priceXaf)})`}
+                {isPremium ? "Accéder au Hub" : busyPlan === plan.id ? "Redirection..." : `Souscrire (${formatXaf(plan.priceXaf)})`}
                 <ArrowRight className="size-4" />
               </button>
             </div>

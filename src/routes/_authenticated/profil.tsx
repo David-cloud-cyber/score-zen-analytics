@@ -12,6 +12,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useSession } from "@/hooks/use-session";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { formatPremiumExpiry, isPremiumActive, premiumDaysRemaining } from "@/lib/premium-status";
 
 const CREDIT_RULES = [
   { cost: 3, label: "Analyse IA d'un match", desc: "Probabilités 1X2, score probable et 5 marchés recommandés" },
@@ -67,7 +68,9 @@ function ProfilPage() {
   const [flash, setFlash] = useState<string | null>(null);
   const [referralCopied, setReferralCopied] = useState(false);
 
-  const isPremium = profile.plan === "premium";
+  const isPremium = isPremiumActive(profile);
+  const premiumExpiry = formatPremiumExpiry(profile.premium_until);
+  const premiumDays = premiumDaysRemaining(profile.premium_until);
   const history = isPremium ? rawHistory : rawHistory.slice(0, 10);
   const balance = profile.credits;
   const monthlyLimit = isPremium ? 100 : 5;
@@ -180,6 +183,23 @@ function ProfilPage() {
             </div>
           </div>
         </div>
+        {isPremium && (
+          <div className="mt-3 flex items-center gap-3 rounded-2xl border border-brand/25 bg-brand/5 p-3" role="status" aria-live="polite">
+            <div className="grid size-9 shrink-0 place-items-center rounded-xl bg-brand/15 text-brand">
+              <ShieldCheck className="size-5" aria-hidden />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="text-xs font-black text-brand">Premium actif et confirmé</div>
+              <div className="mt-0.5 text-[11px] text-muted-foreground">
+                {premiumExpiry ? `Accès annuel jusqu’au ${premiumExpiry}` : "Accès Premium actif"}
+                {premiumDays !== null && ` · ${premiumDays} jour${premiumDays > 1 ? "s" : ""} restant${premiumDays > 1 ? "s" : ""}`}
+              </div>
+            </div>
+            <Link to="/premium/tableau-de-bord" className="shrink-0 rounded-xl bg-brand px-3 py-2 text-[10px] font-black text-brand-foreground">
+              Ouvrir le Hub
+            </Link>
+          </div>
+        )}
       </div>
 
       {/* Credits Wallet */}

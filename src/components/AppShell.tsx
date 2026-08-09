@@ -8,6 +8,9 @@ import { NotificationPopover } from "@/components/NotificationPopover";
 import { useSession } from "@/hooks/use-session";
 import { ReferralPopup } from "@/components/ReferralPopup";
 import { useReferralPopup } from "@/hooks/use-referral-popup";
+import { useQuery } from "@tanstack/react-query";
+import { getMyBalance } from "@/lib/analyses.functions";
+import { PremiumStatusBadge } from "@/components/PremiumStatusBadge";
 
 const NAV = [
   { to: "/", label: "Matchs", icon: Radio, match: (p: string) => p === "/" || p.startsWith("/match") },
@@ -72,6 +75,12 @@ export function AppShell({ children, hideHeader = false }: { children: ReactNode
 
 function DesktopSidebar({ pathname }: { pathname: string }) {
   const { user } = useSession();
+  const { data: profile } = useQuery({
+    queryKey: ["me", "balance"],
+    queryFn: () => getMyBalance(),
+    enabled: !!user,
+    staleTime: 30_000,
+  });
   const displayName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Profil";
   const initials = displayName.slice(0, 2).toUpperCase();
   return (
@@ -146,18 +155,21 @@ function DesktopSidebar({ pathname }: { pathname: string }) {
           <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Thème</span>
           <ThemeToggle compact />
         </div>
-        <Link
-          to="/profil"
-          className="flex items-center gap-3 rounded-xl px-2 py-2 hover:bg-surface"
-        >
-          <div className="grid size-9 place-items-center rounded-full bg-foreground text-xs font-black text-background">
-            {initials}
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="truncate text-xs font-bold">{displayName}</div>
-            <div className="text-[10px] text-muted-foreground">Mon profil</div>
-          </div>
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            to="/profil"
+            className="flex min-w-0 flex-1 items-center gap-3 rounded-xl px-2 py-2 hover:bg-surface"
+          >
+            <div className="grid size-9 shrink-0 place-items-center rounded-full bg-foreground text-xs font-black text-background">
+              {initials}
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-xs font-bold">{displayName}</div>
+              <div className="text-[10px] text-muted-foreground">Mon profil</div>
+            </div>
+          </Link>
+          <PremiumStatusBadge profile={profile} compact />
+        </div>
       </div>
     </aside>
   );
@@ -203,6 +215,13 @@ function MobileBottomNav({ pathname }: { pathname: string }) {
 
 export function TopBar() {
   const { setOpen } = useSearchDialog();
+  const { user } = useSession();
+  const { data: profile } = useQuery({
+    queryKey: ["me", "balance"],
+    queryFn: () => getMyBalance(),
+    enabled: !!user,
+    staleTime: 30_000,
+  });
   return (
     <header className="sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-border/60 bg-background/85 px-4 py-3 backdrop-blur-xl lg:px-8 lg:py-4">
       <Link to="/" className="flex items-center gap-2 lg:hidden">
@@ -224,6 +243,7 @@ export function TopBar() {
       </div>
 
       <div className="flex items-center gap-2">
+        <PremiumStatusBadge profile={profile} compact className="hidden sm:inline-flex" />
         <div className="hidden lg:block">
           <ThemeToggle />
         </div>
