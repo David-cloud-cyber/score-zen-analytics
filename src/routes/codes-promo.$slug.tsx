@@ -98,7 +98,6 @@ export const Route = createFileRoute("/codes-promo/$slug")({
       ...base,
       meta: [
         ...base.meta,
-        { name: "robots", content: "index, follow, max-image-preview:large, max-snippet:-1" },
         { name: "author", content: "Livefoot IA" },
         { property: "article:published_time", content: `${b.updatedAt}T00:00:00Z` },
         { property: "article:modified_time", content: `${b.updatedAt}T00:00:00Z` },

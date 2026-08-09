@@ -2,8 +2,11 @@
 User-agent: *
 Allow: /
 Disallow: /auth
+Disallow: /api/
 Disallow: /profil
 Disallow: /favoris
+Disallow: /premium/tableau-de-bord
+Disallow: /match/
 
 # Moteurs de réponse et IA génératives (AEO / GEO) — citation autorisée
 User-agent: Googlebot

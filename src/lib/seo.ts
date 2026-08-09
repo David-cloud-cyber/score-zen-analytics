@@ -12,9 +12,7 @@ export type RouteMetaInput = {
 };
 
 export function buildRouteMeta(input: RouteMetaInput) {
-  const fullTitle = input.title.includes(SITE_NAME)
-    ? input.title
-    : `${input.title} — ${SITE_NAME}`;
+  const fullTitle = input.title.includes(SITE_NAME) ? input.title : `${input.title} — ${SITE_NAME}`;
   const url = `${SITE}${input.path.startsWith("/") ? input.path : `/${input.path}`}`;
   const meta: Array<Record<string, string>> = [
     { title: fullTitle },
@@ -27,6 +25,12 @@ export function buildRouteMeta(input: RouteMetaInput) {
     { name: "twitter:title", content: fullTitle },
     { name: "twitter:description", content: input.description },
     { name: "twitter:card", content: input.image ? "summary_large_image" : "summary" },
+    {
+      name: "robots",
+      content: input.noindex
+        ? "noindex, nofollow"
+        : "index, follow, max-image-preview:large, max-snippet:-1",
+    },
   ];
   if (input.image) {
     meta.push({ property: "og:image", content: input.image });
@@ -34,7 +38,6 @@ export function buildRouteMeta(input: RouteMetaInput) {
     meta.push({ name: "twitter:image", content: input.image });
     meta.push({ name: "twitter:image:alt", content: fullTitle });
   }
-  if (input.noindex) meta.push({ name: "robots", content: "noindex" });
   return {
     meta,
     links: [{ rel: "canonical", href: url }],
@@ -108,7 +111,11 @@ export function qaSchema(input: {
 }
 
 /** Bloc de faits vérifiables (GEO) : liste clé/valeur citable par une IA. */
-export function factsSchema(input: { name: string; url: string; facts: { label: string; value: string }[] }) {
+export function factsSchema(input: {
+  name: string;
+  url: string;
+  facts: { label: string; value: string }[];
+}) {
   return {
     "@context": "https://schema.org",
     "@type": "Dataset",

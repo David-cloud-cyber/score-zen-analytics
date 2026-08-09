@@ -41,15 +41,15 @@ const HUB_FAQ = [
 ];
 
 const HUB_ANSWER =
-  "Les codes promo bookmakers vérifiés par LiveFoot AI en 2026 sont PREDAT pour 1win et BALL10 pour Betwinner. Chacun débloque un bonus de bienvenue allant jusqu'à 130 000 FCFA. Le code se saisit obligatoirement pendant l'inscription, le dépôt se fait en Mobile Money (Orange Money, MTN, Moov, Wave) et l'offre est réservée aux nouveaux joueurs majeurs.";
+  "Les codes promo bookmakers présentés par LiveFoot en 2026 incluent PREDAT pour 1win, MELBET et Linebet, ainsi que BALL10 pour Betwinner. Les montants et conditions varient selon le pays et la campagne active. Le code se saisit pendant l'inscription et l'offre doit être vérifiée avant tout dépôt.";
 
 export const Route = createFileRoute("/codes-promo/")({
   head: () => {
     const base = buildRouteMeta({
       path: "/codes-promo",
-      title: "Codes promo bookmakers 2026 : 1win PREDAT, Betwinner BALL10",
+      title: "Codes promo bookmakers 2026 : 1win, Betwinner, MELBET et Linebet",
       description:
-        "Codes promo bookmakers vérifiés en août 2026 : 1win PREDAT et Betwinner BALL10, jusqu'à 130 000 FCFA de bonus. Conditions, dépôt minimum, Mobile Money et avis détaillé.",
+        "Comparez les codes promo 1win, Betwinner, MELBET et Linebet : codes partenaires, offres selon le pays, conditions, dépôt minimum, Mobile Money et avis détaillés.",
     });
     return {
       ...base,
@@ -97,7 +97,12 @@ export const Route = createFileRoute("/codes-promo/")({
             "@type": "BreadcrumbList",
             itemListElement: [
               { "@type": "ListItem", position: 1, name: "Accueil", item: SITE },
-              { "@type": "ListItem", position: 2, name: "Codes promo", item: `${SITE}/codes-promo` },
+              {
+                "@type": "ListItem",
+                position: 2,
+                name: "Codes promo",
+                item: `${SITE}/codes-promo`,
+              },
             ],
           }),
         },
@@ -139,7 +144,10 @@ function PromoFilters() {
     <section className="space-y-4" aria-label="Liste des codes promo">
       <div className="space-y-3 rounded-2xl border border-border/70 bg-surface/40 p-4">
         <div className="flex flex-wrap items-center gap-3">
-          <label htmlFor="filtre-bookmaker" className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">
+          <label
+            htmlFor="filtre-bookmaker"
+            className="text-[11px] font-black uppercase tracking-widest text-muted-foreground"
+          >
             Bookmaker
           </label>
           <select
@@ -222,7 +230,8 @@ function PromoHub() {
             <div className="space-y-2">
               <h2 className="text-base font-black">Choisissez votre pays</h2>
               <p className="text-sm leading-relaxed text-muted-foreground">
-                Consultez les conditions, la devise et les moyens de paiement à vérifier pour votre zone avant de vous inscrire.
+                Consultez les conditions, la devise et les moyens de paiement à vérifier pour votre
+                zone avant de vous inscrire.
               </p>
               <div className="flex flex-wrap gap-2">
                 {SEO_COUNTRIES.map((country) => (
@@ -241,20 +250,24 @@ function PromoHub() {
 
         <div className="space-y-3 text-sm leading-relaxed text-muted-foreground">
           <p>
-            Retrouvez ici l'ensemble des <strong className="text-foreground">codes promo bookmakers</strong> négociés par
-            LiveFoot AI pour l'Afrique francophone. Chaque code débloque le bonus de bienvenue maximal proposé par
-            l'opérateur : montant supérieur à l'offre publique, sans frais et sans contrepartie sur vos cotes.
+            Retrouvez ici l'ensemble des{" "}
+            <strong className="text-foreground">codes promo bookmakers</strong> négociés par
+            LiveFoot AI pour l'Afrique francophone. Chaque code débloque le bonus de bienvenue
+            maximal proposé par l'opérateur : montant supérieur à l'offre publique, sans frais et
+            sans contrepartie sur vos cotes.
           </p>
           <p>
-            Nous ne référençons que des plateformes qui acceptent le paiement en FCFA via Mobile Money (Orange Money,
-            MTN, Moov, Wave), qui traitent les retraits rapidement et dont le service client répond en français. Pour
-            chaque partenaire, une page complète détaille le bonus, les conditions de mise, les moyens de paiement,
-            l'application mobile et notre avis, points faibles inclus.
+            Nous ne référençons que des plateformes qui acceptent le paiement en FCFA via Mobile
+            Money (Orange Money, MTN, Moov, Wave), qui traitent les retraits rapidement et dont le
+            service client répond en français. Pour chaque partenaire, une page complète détaille le
+            bonus, les conditions de mise, les moyens de paiement, l'application mobile et notre
+            avis, points faibles inclus.
           </p>
           <p>
-            Le code doit toujours être saisi <strong className="text-foreground">pendant l'inscription</strong> : c'est
-            l'erreur la plus fréquente, et elle est irréversible. Copiez-le d'un clic depuis les cartes ci-dessous avant
-            d'ouvrir le site du bookmaker.
+            Le code doit toujours être saisi{" "}
+            <strong className="text-foreground">pendant l'inscription</strong> : c'est l'erreur la
+            plus fréquente, et elle est irréversible. Copiez-le d'un clic depuis les cartes
+            ci-dessous avant d'ouvrir le site du bookmaker.
           </p>
         </div>
 
@@ -266,11 +279,21 @@ function PromoHub() {
             <table className="w-full min-w-[520px] text-sm">
               <thead className="bg-surface/70 text-[11px] uppercase tracking-wider text-muted-foreground">
                 <tr>
-                  <th scope="col" className="px-4 py-3 text-left">Bookmaker</th>
-                  <th scope="col" className="px-4 py-3 text-left">Code</th>
-                  <th scope="col" className="px-4 py-3 text-left">Bonus</th>
-                  <th scope="col" className="px-4 py-3 text-left">Dépôt min.</th>
-                  <th scope="col" className="px-4 py-3 text-left">Note</th>
+                  <th scope="col" className="px-4 py-3 text-left">
+                    Bookmaker
+                  </th>
+                  <th scope="col" className="px-4 py-3 text-left">
+                    Code
+                  </th>
+                  <th scope="col" className="px-4 py-3 text-left">
+                    Bonus
+                  </th>
+                  <th scope="col" className="px-4 py-3 text-left">
+                    Dépôt min.
+                  </th>
+                  <th scope="col" className="px-4 py-3 text-left">
+                    Note
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -282,7 +305,9 @@ function PromoHub() {
                     </td>
                     <td className="px-4 py-3">{b.bonusHeadline}</td>
                     <td className="px-4 py-3 tabular-nums">{b.minDeposit}</td>
-                    <td className="px-4 py-3 font-bold tabular-nums">{b.rating ? `${b.rating.toFixed(1)}/5` : "Selon l’offre"}</td>
+                    <td className="px-4 py-3 font-bold tabular-nums">
+                      {b.rating ? `${b.rating.toFixed(1)}/5` : "Selon l’offre"}
+                    </td>
                   </tr>
                 ))}
               </tbody>

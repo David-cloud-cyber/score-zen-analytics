@@ -15,11 +15,7 @@ export function countryHubHead(country: SeoCountry) {
 
   return {
     ...base,
-    meta: [
-      ...base.meta,
-      { name: "robots", content: "index, follow, max-image-preview:large, max-snippet:-1" },
-      { name: "author", content: "Livefoot IA" },
-    ],
+    meta: [...base.meta, { name: "author", content: "Livefoot IA" }],
     scripts: [
       {
         type: "application/ld+json",
@@ -50,12 +46,14 @@ export function countryHubHead(country: SeoCountry) {
           "@context": "https://schema.org",
           "@type": "ItemList",
           name: `Codes promo bookmakers au ${country.name}`,
-          itemListElement: BOOKMAKERS.filter((b) => b.countryPageSlugs?.includes(country.slug)).map((b, index) => ({
-            "@type": "ListItem",
-            position: index + 1,
-            name: `Code promo ${b.name} ${country.name}`,
-            url: `${SITE}/codes-promo/${b.slug}/${country.slug}`,
-          })),
+          itemListElement: BOOKMAKERS.filter((b) => b.countryPageSlugs?.includes(country.slug)).map(
+            (b, index) => ({
+              "@type": "ListItem",
+              position: index + 1,
+              name: `Code promo ${b.name} ${country.name}`,
+              url: `${SITE}/codes-promo/${b.slug}/${country.slug}`,
+            }),
+          ),
         }),
       },
       {
@@ -79,13 +77,18 @@ export function countryBookmakerHead(bookmaker: Bookmaker, country: SeoCountry) 
   const title = `Code promo ${bookmaker.name} ${country.name} : ${bookmaker.code} et bonus`;
   const description = `Code promo ${bookmaker.name} ${bookmaker.code} au ${country.name} : bonus en ${country.currency}, inscription, dépôt, paiements et conditions à vérifier.`;
   const answer = `Le code promo ${bookmaker.name} ${bookmaker.code} peut être utilisé au ${country.name} si l’offre est disponible pour le compte. Le bonus, la devise ${country.currency}, le dépôt minimum et les paiements doivent être confirmés lors de l’inscription.`;
-  const base = buildRouteMeta({ path, title, description, image: bookmaker.bannerUrl, type: "article" });
+  const base = buildRouteMeta({
+    path,
+    title,
+    description,
+    image: bookmaker.bannerUrl,
+    type: "article",
+  });
 
   return {
     ...base,
     meta: [
       ...base.meta,
-      { name: "robots", content: "index, follow, max-image-preview:large, max-snippet:-1" },
       { name: "author", content: "Livefoot IA" },
       { property: "article:modified_time", content: `${bookmaker.updatedAt}T00:00:00Z` },
     ],
@@ -101,7 +104,11 @@ export function countryBookmakerHead(bookmaker: Bookmaker, country: SeoCountry) 
           dateModified: bookmaker.updatedAt,
           inLanguage: "fr",
           mainEntityOfPage: `${SITE}${path}`,
-          keywords: [`code promo ${bookmaker.name} ${country.name}`, `${bookmaker.name} ${country.currency}`, `bonus bookmaker ${country.name}`].join(", "),
+          keywords: [
+            `code promo ${bookmaker.name} ${country.name}`,
+            `${bookmaker.name} ${country.currency}`,
+            `bonus bookmaker ${country.name}`,
+          ].join(", "),
           author: ORG,
           publisher: ORG,
           about: [
@@ -131,12 +138,18 @@ export function countryBookmakerHead(bookmaker: Bookmaker, country: SeoCountry) 
             {
               "@type": "Question",
               name: `Quel est le code promo ${bookmaker.name} au ${country.name} ?`,
-              acceptedAnswer: { "@type": "Answer", text: `Le code partenaire présenté est ${bookmaker.code}. Vérifiez son acceptation pendant l’inscription.` },
+              acceptedAnswer: {
+                "@type": "Answer",
+                text: `Le code partenaire présenté est ${bookmaker.code}. Vérifiez son acceptation pendant l’inscription.`,
+              },
             },
             {
               "@type": "Question",
               name: `Quels paiements sont proposés au ${country.name} ?`,
-              acceptedAnswer: { "@type": "Answer", text: `Les paiements courants incluent parfois ${country.paymentMethods.join(", ")}; la disponibilité doit être vérifiée dans le compte.` },
+              acceptedAnswer: {
+                "@type": "Answer",
+                text: `Les paiements courants incluent parfois ${country.paymentMethods.join(", ")}; la disponibilité doit être vérifiée dans le compte.`,
+              },
             },
           ],
         }),
@@ -149,7 +162,12 @@ export function countryBookmakerHead(bookmaker: Bookmaker, country: SeoCountry) 
           itemListElement: [
             { "@type": "ListItem", position: 1, name: "Accueil", item: SITE },
             { "@type": "ListItem", position: 2, name: "Codes promo", item: `${SITE}/codes-promo` },
-            { "@type": "ListItem", position: 3, name: country.name, item: `${SITE}/codes-promo/${country.slug}` },
+            {
+              "@type": "ListItem",
+              position: 3,
+              name: country.name,
+              item: `${SITE}/codes-promo/${country.slug}`,
+            },
             { "@type": "ListItem", position: 4, name: bookmaker.name, item: `${SITE}${path}` },
           ],
         }),

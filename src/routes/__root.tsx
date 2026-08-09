@@ -52,7 +52,8 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
           Cette page n'a pas pu être chargée.
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Une erreur s'est produite de notre côté. Vous pouvez essayer d'actualiser la page ou retourner à l'accueil.
+          Une erreur s'est produite de notre côté. Vous pouvez essayer d'actualiser la page ou
+          retourner à l'accueil.
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
@@ -94,16 +95,24 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:locale", content: "fr_FR" },
       { name: "twitter:card", content: "summary_large_image" },
       { property: "og:title", content: "LiveFoot AI — Livescore & analyse football en temps réel" },
-      { name: "twitter:title", content: "LiveFoot AI — Livescore & analyse football en temps réel" },
-      { property: "og:description", content: "Scores en direct et analyses IA détaillées sur chaque match : probabilités, marchés, compositions et prédictions." },
-      { name: "twitter:description", content: "Scores en direct et analyses IA détaillées sur chaque match : probabilités, marchés, compositions et prédictions." },
+      {
+        name: "twitter:title",
+        content: "LiveFoot AI — Livescore & analyse football en temps réel",
+      },
+      {
+        property: "og:description",
+        content:
+          "Scores en direct et analyses IA détaillées sur chaque match : probabilités, marchés, compositions et prédictions.",
+      },
+      {
+        name: "twitter:description",
+        content:
+          "Scores en direct et analyses IA détaillées sur chaque match : probabilités, marchés, compositions et prédictions.",
+      },
       { property: "og:image", content: "https://www.livefoot.fun/logo.png" },
       { property: "og:image:alt", content: "Logo LiveFoot AI" },
       { name: "twitter:image", content: "https://www.livefoot.fun/logo.png" },
       { name: "twitter:image:alt", content: "Logo LiveFoot AI" },
-      { name: "robots", content: "index, follow" },
-      { name: "googlebot", content: "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" },
-      { name: "bingbot", content: "index, follow" },
       // AEO/GEO — informations d'éditeur exploitées par les moteurs de réponse et les IA
       { name: "author", content: "LiveFoot AI" },
       { name: "publisher", content: "LiveFoot AI" },
@@ -130,7 +139,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
           name: "LiveFoot AI",
           url: "https://www.livefoot.fun",
           logo: "https://www.livefoot.fun/logo.png",
-          description: "Scores en direct et analyses IA détaillées sur chaque match de football : probabilités, marchés, compositions et prédictions.",
+          description:
+            "Scores en direct et analyses IA détaillées sur chaque match de football : probabilités, marchés, compositions et prédictions.",
           knowsAbout: [
             "Livescore football",
             "Prédictions football par intelligence artificielle",
@@ -150,7 +160,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
           url: "https://www.livefoot.fun",
           description: "Livescore et analyses IA football en temps réel.",
           inLanguage: "fr",
-          publisher: { "@type": "Organization", name: "LiveFoot AI", url: "https://www.livefoot.fun" },
+          publisher: {
+            "@type": "Organization",
+            name: "LiveFoot AI",
+            url: "https://www.livefoot.fun",
+          },
         }),
       },
     ],
