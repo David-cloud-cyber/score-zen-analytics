@@ -1,7 +1,6 @@
 import { defineBookmaker } from "../bookmaker-template";
 
-const MELBET_AFFILIATE_URL =
-  "https://refpa3665.com/L?tag=d_2730287m_45415c_&site=2730287&ad=45415";
+const MELBET_AFFILIATE_URL = "https://refpa3665.com/L?tag=d_2730287m_45415c_&site=2730287&ad=45415";
 
 export const MELBET = defineBookmaker({
   slug: "melbet",
@@ -49,7 +48,10 @@ export const MELBET = defineBookmaker({
     { label: "Bonus sportif indicatif", value: "Jusqu'à 195 000 FCFA*" },
     { label: "Base de calcul", value: "Offre et majoration variables selon le pays" },
     { label: "Dépôt minimum", value: "À vérifier dans le formulaire MELBET" },
-    { label: "Validité", value: "Souvent 30 jours après activation, selon les conditions affichées" },
+    {
+      label: "Validité",
+      value: "Souvent 30 jours après activation, selon les conditions affichées",
+    },
     { label: "Éligibilité", value: "Nouveaux clients, profil complété et téléphone vérifié" },
     { label: "Paiements", value: "Méthodes disponibles selon le pays et le compte" },
     { label: "Vérifié le", value: "8 août 2026 — montant à confirmer dans l'offre active" },
@@ -118,6 +120,63 @@ export const MELBET = defineBookmaker({
         "PREDAT est intéressant si l'offre affichée au moment de l'inscription confirme le plafond annoncé et si ses conditions correspondent à votre budget. Son principal avantage est la clarté du parcours : code, choix du bonus, dépôt, puis contrôle des règles dans le compte.",
         "Nous ne publions pas de note artificielle pour MELBET : le montant, la campagne et les conditions doivent être vérifiés directement dans l'espace opérateur. Cette transparence protège les lecteurs et évite de présenter une promotion expirée comme garantie.",
       ],
+    },
+    {
+      id: "activation-compte",
+      title: "Vérifier l'activation du bonus MELBET étape par étape",
+      paragraphs: [
+        "Après la création du compte, ne partez pas directement sur un dépôt important. Ouvrez d'abord la rubrique Promotions et comparez le code PREDAT, le nom de l'offre sportive et le montant affiché avec le récapitulatif de l'inscription. Si l'offre n'apparaît pas, gardez une capture de l'écran de confirmation et contactez le support avant toute transaction.",
+        "Le statut du profil peut aussi modifier l'activation. MELBET peut demander la confirmation du téléphone, de l'adresse e-mail ou de l'identité avant de permettre certaines opérations. Utilisez des informations exactes et le même nom que celui associé au moyen de paiement autorisé. Les comptes multiples, les profils incohérents ou les tentatives de contourner une restriction peuvent annuler une promotion et retarder un retrait.",
+        "Une offre de bienvenue se lit comme un contrat court : montant, dépôt, durée, marchés éligibles, cote minimale et règle de conversion doivent être compris ensemble. Le plafond annoncé ne représente pas nécessairement le montant crédité, et un dépôt inférieur au seuil peut ne déclencher aucun bonus. Prenez quelques minutes pour noter ces éléments avant de commencer.",
+      ],
+      bullets: [
+        "Confirmer PREDAT dans le récapitulatif de l'inscription",
+        "Ouvrir la page Promotions après connexion",
+        "Vérifier le montant et la devise réellement affichés",
+        "Lire la règle de conversion avant le dépôt",
+      ],
+    },
+    {
+      id: "retrait-securise",
+      title: "Préparer un retrait MELBET sans mauvaise surprise",
+      paragraphs: [
+        "Le retrait doit être envisagé dès la lecture du bonus, pas seulement après un gain. Vérifiez les méthodes disponibles, les limites, les frais éventuels et les exigences de vérification. Certaines promotions séparent le solde réel du solde bonus ; une somme visible dans le portefeuille n'est donc pas forcément disponible immédiatement. La page de caisse et les conditions de l'offre doivent être consultées ensemble.",
+        "Lors d'une demande, choisissez un moyen de paiement autorisé et contrôlez attentivement le numéro du portefeuille Mobile Money. Ne communiquez jamais un code secret ou un OTP à une personne qui se présente comme un intermédiaire. Si le statut reste en attente, consultez d'abord l'historique, la FAQ et le support officiel avant de soumettre une deuxième demande.",
+        "La vérification d'identité n'est pas un défaut en soi : elle sert à confirmer le titulaire du compte et à respecter les règles de l'opérateur. Envoyez uniquement les documents demandés dans l'espace sécurisé. Si le nom du compte, du document et du moyen de paiement ne correspondent pas, le traitement peut être interrompu jusqu'à clarification.",
+      ],
+      sub: [
+        {
+          id: "checklist-retrait",
+          title: "Checklist avant de confirmer",
+          paragraphs: [
+            "Contrôlez le montant net, le moyen sélectionné, les limites et le statut KYC. En cas de doute sur le délai ou le solde retirable, demandez une confirmation au support MELBET avant d'effectuer une nouvelle opération.",
+          ],
+          bullets: [
+            "Nom du titulaire identique",
+            "Numéro de portefeuille vérifié",
+            "Conditions de mise terminées",
+            "Historique de transaction conservé",
+          ],
+        },
+      ],
+    },
+    {
+      id: "comparaison-partenaire",
+      title: "MELBET PREDAT face aux autres codes partenaires",
+      paragraphs: [
+        "Le meilleur code n'est pas automatiquement celui qui affiche le plafond le plus élevé. Pour comparer MELBET avec 1win, Betwinner ou Linebet, commencez par votre pays et votre moyen de paiement, puis examinez la simplicité de l'offre. Une promotion facile à activer et à comprendre peut être plus adaptée qu'une campagne maximale associée à de nombreuses exclusions.",
+        "LiveFoot utilise la même grille de lecture pour les partenaires : code à saisir, montant confirmé ou variable, dépôt minimum, délai, conditions de mise, paiements et retrait. Cette structure évite de mélanger une donnée de marketing avec une règle contractuelle. Elle permet aussi de revenir rapidement à une page locale lorsque la devise ou l'opérateur de paiement change.",
+        "Pour faire un choix raisonnable, fixez un budget indépendant du bonus et comparez le coût réel de l'activation. Ne déposez pas davantage pour atteindre un plafond qui ne correspond pas à votre stratégie. Les analyses de LiveFoot peuvent aider à comprendre une affiche, mais elles ne garantissent ni cote, ni résultat, ni rendement.",
+      ],
+      table: {
+        head: ["Question", "Réponse à rechercher dans chaque fiche"],
+        rows: [
+          ["Le code est-il reconnu ?", "Confirmation visible avant le dépôt"],
+          ["Le montant est-il confirmé ?", "Offre active dans le pays et la devise du compte"],
+          ["Le bonus est-il adapté ?", "Délai, cote et multiplicateur compris"],
+          ["Le retrait est-il clair ?", "Méthode autorisée et vérification anticipée"],
+        ],
+      },
     },
   ],
   pros: [

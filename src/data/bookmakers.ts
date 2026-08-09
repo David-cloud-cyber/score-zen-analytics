@@ -1,4 +1,4 @@
-import { BONUS_TYPES } from "./bookmaker-template";
+import { BONUS_TYPES, articleWordCount } from "./bookmaker-template";
 /**
  * Contenu statique des pages « Codes promo » partenaires.
  *
@@ -8,11 +8,19 @@ import { BONUS_TYPES } from "./bookmaker-template";
 
 import { defineBookmaker } from "./bookmaker-template";
 import { BETWINNER } from "./bookmakers/betwinner";
+import { LINEBET } from "./bookmakers/linebet";
 import { MELBET } from "./bookmakers/melbet";
 import type { Bookmaker, BonusType } from "./bookmaker-template";
 
-export { BONUS_TYPES, defineBookmaker } from "./bookmaker-template";
-export type { Bookmaker, BonusType, BonusRow, FaqItem, Section, SubSection } from "./bookmaker-template";
+export { BONUS_TYPES, articleWordCount, defineBookmaker } from "./bookmaker-template";
+export type {
+  Bookmaker,
+  BonusType,
+  BonusRow,
+  FaqItem,
+  Section,
+  SubSection,
+} from "./bookmaker-template";
 
 export const BOOKMAKERS: Bookmaker[] = [
   defineBookmaker({
@@ -220,7 +228,8 @@ export const BOOKMAKERS: Bookmaker[] = [
           },
           {
             id: "utilisation-pays",
-            title: "Utilisation depuis le Cameroun, la Côte d'Ivoire, le Sénégal, le Mali ou la RDC",
+            title:
+              "Utilisation depuis le Cameroun, la Côte d'Ivoire, le Sénégal, le Mali ou la RDC",
             paragraphs: [
               "La procédure est identique partout : pays, devise, code PREDAT, dépôt Mobile Money. Seule la liste des opérateurs de paiement change selon votre pays, elle s'adapte automatiquement à votre sélection.",
             ],
@@ -469,7 +478,9 @@ export const BOOKMAKERS: Bookmaker[] = [
           {
             id: "marches-nba",
             title: "Marchés disponibles sur la NBA",
-            paragraphs: ["L'offre couvre le match, les périodes et les performances individuelles."],
+            paragraphs: [
+              "L'offre couvre le match, les périodes et les performances individuelles.",
+            ],
             bullets: [
               "Vainqueur, handicap (spread), total de points (over/under)",
               "Résultat par quart-temps et par mi-temps",
@@ -802,6 +813,7 @@ export const BOOKMAKERS: Bookmaker[] = [
   }),
   BETWINNER,
   MELBET,
+  LINEBET,
 ];
 
 export function getBookmaker(slug: string): Bookmaker | undefined {
@@ -822,5 +834,7 @@ export function getRelatedBookmakers(slug: string, limit = 3): Bookmaker[] {
 
 /** Types de bonus réellement présents dans le catalogue (pour les filtres). */
 export function availableBonusTypes(): BonusType[] {
-  return (BONUS_TYPES as readonly BonusType[]).filter((t) => BOOKMAKERS.some((b) => b.bonusTypes.includes(t)));
+  return (BONUS_TYPES as readonly BonusType[]).filter((t) =>
+    BOOKMAKERS.some((b) => b.bonusTypes.includes(t)),
+  );
 }

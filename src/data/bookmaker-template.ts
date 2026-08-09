@@ -80,6 +80,29 @@ export type Bookmaker = {
   countryPageSlugs?: string[];
 };
 
+/** Compte le contenu éditorial réellement injecté dans l'article partenaire. */
+export function articleWordCount(bookmaker: Bookmaker): number {
+  const sections = bookmaker.sections.flatMap((section) => [
+    section.title,
+    ...section.paragraphs,
+    ...(section.bullets ?? []),
+    ...(section.sub ?? []).flatMap((sub) => [sub.title, ...sub.paragraphs, ...(sub.bullets ?? [])]),
+  ]);
+  const text = [
+    bookmaker.name,
+    bookmaker.code,
+    ...bookmaker.keyTakeaways,
+    ...bookmaker.intro,
+    ...bookmaker.steps,
+    ...bookmaker.terms,
+    ...sections,
+    ...bookmaker.pros,
+    ...bookmaker.cons,
+    ...bookmaker.faq.flatMap((item) => [item.q, item.a]),
+  ].join(" ");
+  return text.trim().split(/\s+/).filter(Boolean).length;
+}
+
 /** Valide/normalise un bookmaker et applique les valeurs par défaut du modèle. */
 export function defineBookmaker(input: Bookmaker): Bookmaker {
   return {

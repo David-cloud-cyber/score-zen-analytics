@@ -1,6 +1,13 @@
 import { createFileRoute, notFound, Link } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
-import { BOOKMAKERS, getBookmaker, getRelatedBookmakers, type Bookmaker, type Section } from "@/data/bookmakers";
+import {
+  BOOKMAKERS,
+  getBookmaker,
+  getRelatedBookmakers,
+  articleWordCount,
+  type Bookmaker,
+  type Section,
+} from "@/data/bookmakers";
 import { SEO_COUNTRIES } from "@/data/country-seo";
 import {
   AffiliateButton,
@@ -39,10 +46,7 @@ export const Route = createFileRoute("/codes-promo/$slug")({
       });
     }
     const url = `${SITE}/codes-promo/${b.slug}`;
-    const wordCount = [b.intro.join(" "), ...b.sections.map((section) => [
-      section.paragraphs.join(" "),
-      ...(section.sub?.map((sub) => sub.paragraphs.join(" ")) ?? []),
-    ].join(" "))].join(" ").trim().split(/\s+/).length;
+    const wordCount = articleWordCount(b);
     const base = buildRouteMeta({
       path: `/codes-promo/${b.slug}`,
       title: b.seoTitle,
@@ -50,31 +54,46 @@ export const Route = createFileRoute("/codes-promo/$slug")({
       image: b.bannerUrl,
       type: "article",
     });
-    const reviewScript = b.rating && b.reviewCount
-      ? {
-          type: "application/ld+json",
-          children: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "Review",
-            name: `Avis sur le code promo ${b.name} ${b.code}`,
-            itemReviewed: {
-              "@type": "Organization",
-              name: b.name,
-              url: b.affiliateUrl,
-              aggregateRating: {
-                "@type": "AggregateRating",
-                ratingValue: b.rating,
-                bestRating: 5,
-                ratingCount: b.reviewCount,
+    const reviewScript =
+      b.rating && b.reviewCount
+        ? {
+            type: "application/ld+json",
+            children: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "Review",
+              name: `Avis sur le code promo ${b.name} ${b.code}`,
+              itemReviewed: {
+                "@type": "Organization",
+                name: b.name,
+                url: b.affiliateUrl,
+                aggregateRating: {
+                  "@type": "AggregateRating",
+                  ratingValue: b.rating,
+                  bestRating: 5,
+                  ratingCount: b.reviewCount,
+                },
               },
-            },
-            reviewRating: { "@type": "Rating", ratingValue: b.rating, bestRating: 5 },
-            positiveNotes: { "@type": "ItemList", itemListElement: b.pros.map((p, i) => ({ "@type": "ListItem", position: i + 1, name: p })) },
-            negativeNotes: { "@type": "ItemList", itemListElement: b.cons.map((p, i) => ({ "@type": "ListItem", position: i + 1, name: p })) },
-            author: { "@type": "Organization", name: "Livefoot IA" },
-          }),
-        }
-      : null;
+              reviewRating: { "@type": "Rating", ratingValue: b.rating, bestRating: 5 },
+              positiveNotes: {
+                "@type": "ItemList",
+                itemListElement: b.pros.map((p, i) => ({
+                  "@type": "ListItem",
+                  position: i + 1,
+                  name: p,
+                })),
+              },
+              negativeNotes: {
+                "@type": "ItemList",
+                itemListElement: b.cons.map((p, i) => ({
+                  "@type": "ListItem",
+                  position: i + 1,
+                  name: p,
+                })),
+              },
+              author: { "@type": "Organization", name: "Livefoot IA" },
+            }),
+          }
+        : null;
     return {
       ...base,
       meta: [
@@ -164,7 +183,9 @@ export const Route = createFileRoute("/codes-promo/$slug")({
                 { label: "Bonus de bienvenue", value: b.bonusHeadline },
                 { label: "Dépôt minimum", value: b.minDeposit },
                 { label: "Licence", value: b.licence },
-                ...(b.rating && b.reviewCount ? [{ label: "Note éditoriale", value: `${b.rating}/5` }] : []),
+                ...(b.rating && b.reviewCount
+                  ? [{ label: "Note éditoriale", value: `${b.rating}/5` }]
+                  : []),
                 { label: "Dernière vérification", value: b.updatedAt },
                 ...b.bonusTable.map((r) => ({ label: r.label, value: r.value })),
               ],
@@ -178,7 +199,12 @@ export const Route = createFileRoute("/codes-promo/$slug")({
             "@type": "BreadcrumbList",
             itemListElement: [
               { "@type": "ListItem", position: 1, name: "Accueil", item: SITE },
-              { "@type": "ListItem", position: 2, name: "Codes promo", item: `${SITE}/codes-promo` },
+              {
+                "@type": "ListItem",
+                position: 2,
+                name: "Codes promo",
+                item: `${SITE}/codes-promo`,
+              },
               { "@type": "ListItem", position: 3, name: b.name, item: url },
             ],
           }),
@@ -195,8 +221,13 @@ function PromoNotFound() {
     <AppShell>
       <div className="space-y-4 px-4 py-16 text-center lg:px-0">
         <h1 className="text-2xl font-black">Code promo introuvable</h1>
-        <p className="text-sm text-muted-foreground">Cette offre n'existe pas ou n'est plus active.</p>
-        <a href="/codes-promo" className="inline-block rounded-xl bg-brand px-5 py-3 text-sm font-black text-brand-foreground">
+        <p className="text-sm text-muted-foreground">
+          Cette offre n'existe pas ou n'est plus active.
+        </p>
+        <a
+          href="/codes-promo"
+          className="inline-block rounded-xl bg-brand px-5 py-3 text-sm font-black text-brand-foreground"
+        >
           Voir tous les codes promo
         </a>
       </div>
@@ -205,7 +236,17 @@ function PromoNotFound() {
 }
 
 /** Encart CTA vers les prédictions IA — placé aux moments clés de l'article. */
-function AnalyseCta({ title, text, label, location }: { title: string; text: string; label: string; location: string }) {
+function AnalyseCta({
+  title,
+  text,
+  label,
+  location,
+}: {
+  title: string;
+  text: string;
+  label: string;
+  location: string;
+}) {
   const ref = useCtaImpression<HTMLElement>(location);
   return (
     <aside ref={ref} className="rounded-2xl border border-brand/30 bg-brand/5 p-5">
@@ -236,21 +277,29 @@ function PromoRegistrationCta({ b }: { b: Bookmaker }) {
   const location = `promo_${b.slug}_registration_intro`;
   const ref = useCtaImpression<HTMLElement>(location);
   return (
-    <section ref={ref} id="inscription-livefoot" className="scroll-mt-24 rounded-2xl border border-brand/30 bg-brand/5 p-5">
+    <section
+      ref={ref}
+      id="inscription-livefoot"
+      className="scroll-mt-24 rounded-2xl border border-brand/30 bg-brand/5 p-5"
+    >
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="space-y-2">
-          <p className="text-xs font-black uppercase tracking-widest text-brand">Offre vérifiée par LiveFoot</p>
-          <h2 className="text-xl font-black tracking-tight">Activez votre bonus avec le code {b.code}</h2>
+          <p className="text-xs font-black uppercase tracking-widest text-brand">
+            Offre vérifiée par LiveFoot
+          </p>
+          <h2 className="text-xl font-black tracking-tight">
+            Activez votre bonus avec le code {b.code}
+          </h2>
           <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
-            Ouvrez votre compte {b.name} depuis cette page, saisissez <strong className="font-black text-foreground">{b.code}</strong> pendant l'inscription, puis contrôlez que le code est bien accepté avant votre premier dépôt. Le bonus dépend des conditions de l'opérateur : lisez-les avant de miser.
+            Ouvrez votre compte {b.name} depuis cette page, saisissez{" "}
+            <strong className="font-black text-foreground">{b.code}</strong> pendant l'inscription,
+            puis contrôlez que le code est bien accepté avant votre premier dépôt. Le bonus dépend
+            des conditions de l'opérateur : lisez-les avant de miser.
           </p>
         </div>
         <div className="flex shrink-0 flex-wrap items-center gap-2">
           <CopyCodeButton code={b.code} size="sm" />
-          <AffiliateButton
-            href={b.affiliateUrl}
-            className="px-4 py-2.5"
-          >
+          <AffiliateButton href={b.affiliateUrl} className="px-4 py-2.5">
             S'inscrire avec {b.code}
           </AffiliateButton>
         </div>
@@ -286,7 +335,11 @@ function SectionBlock({ s }: { s: Section }) {
       {s.bullets && <BulletList items={s.bullets} />}
       {s.table && <SectionTable head={s.table.head} rows={s.table.rows} />}
       {s.sub?.map((sub) => (
-        <div key={sub.id} id={sub.id} className="scroll-mt-24 space-y-2 border-t border-border/50 pt-4">
+        <div
+          key={sub.id}
+          id={sub.id}
+          className="scroll-mt-24 space-y-2 border-t border-border/50 pt-4"
+        >
           <h3 className="text-base font-black tracking-tight">{sub.title}</h3>
           {sub.paragraphs.map((p, i) => (
             <p key={i} className="text-[15px] leading-relaxed text-muted-foreground">
@@ -338,7 +391,11 @@ function BookmakerArticle() {
       <article className="space-y-8 px-4 pb-12 lg:px-0">
         <div className="pt-4">
           <Breadcrumb
-            items={[{ label: "Accueil", to: "/" }, { label: "Codes promo", to: "/codes-promo" }, { label: b.name }]}
+            items={[
+              { label: "Accueil", to: "/" },
+              { label: "Codes promo", to: "/codes-promo" },
+              { label: b.name },
+            ]}
           />
         </div>
 
@@ -393,7 +450,12 @@ function BookmakerArticle() {
           </div>
 
           {b.bannerUrl && (
-            <a href={b.bannerLinkUrl ?? b.affiliateUrl} target="_blank" rel={AFF_REL} className="block overflow-hidden rounded-2xl">
+            <a
+              href={b.bannerLinkUrl ?? b.affiliateUrl}
+              target="_blank"
+              rel={AFF_REL}
+              className="block overflow-hidden rounded-2xl"
+            >
               <img
                 src={b.bannerUrl}
                 alt={`Bonus de bienvenue ${b.name} avec le code promo ${b.code}`}
@@ -404,21 +466,28 @@ function BookmakerArticle() {
           )}
 
           <p className="text-[11px] text-muted-foreground">
-            Dernière vérification : {new Date(b.updatedAt).toLocaleDateString("fr-FR")} · Licence {b.licence} ·{" "}
-            {readingMinutes} min de lecture · Contenu sponsorisé, 18+
+            Dernière vérification : {new Date(b.updatedAt).toLocaleDateString("fr-FR")} · Licence{" "}
+            {b.licence} · {readingMinutes} min de lecture · Contenu sponsorisé, 18+
           </p>
         </header>
 
         {/* Réponse directe — AEO/GEO */}
         {b.directAnswer && (
-          <AnswerBox question={`Quel est le code promo ${b.name} en 2026 ?`} answer={b.directAnswer} />
+          <AnswerBox
+            question={`Quel est le code promo ${b.name} en 2026 ?`}
+            answer={b.directAnswer}
+          />
         )}
 
         <PromoRegistrationCta b={b} />
 
         {/* À retenir */}
         {b.keyTakeaways.length > 0 && (
-          <section data-key-takeaways aria-label="L'essentiel" className="rounded-2xl border border-border/70 bg-surface/40 p-5">
+          <section
+            data-key-takeaways
+            aria-label="L'essentiel"
+            className="rounded-2xl border border-border/70 bg-surface/40 p-5"
+          >
             <h2 className="mb-3 flex items-center gap-2 text-sm font-black uppercase tracking-widest text-muted-foreground">
               <BadgeCheck className="size-4 text-brand" aria-hidden />
               L'essentiel en 30 secondes
@@ -443,34 +512,42 @@ function BookmakerArticle() {
         {/* Sommaire */}
         <details open className="group rounded-2xl border border-border/70 p-4">
           <summary className="flex cursor-pointer list-none items-center justify-between gap-3 marker:hidden">
-            <span className="text-xs font-black uppercase tracking-widest text-muted-foreground">Sommaire</span>
+            <span className="text-xs font-black uppercase tracking-widest text-muted-foreground">
+              Sommaire
+            </span>
             <span className="flex items-center gap-1 text-[11px] font-bold text-brand">
               <span className="group-open:hidden">Afficher</span>
               <span className="hidden group-open:inline">Masquer</span>
-              <ChevronDown className="size-4 transition-transform group-open:rotate-180" aria-hidden />
+              <ChevronDown
+                className="size-4 transition-transform group-open:rotate-180"
+                aria-hidden
+              />
             </span>
           </summary>
           <nav aria-label="Sommaire">
-          <ol className="mt-3 space-y-2">
-            {toc.map((t) => (
-              <li key={t.id}>
-                <a href={`#${t.id}`} className="text-sm font-bold text-brand hover:underline">
-                  {t.label}
-                </a>
-                {t.children && t.children.length > 0 && (
-                  <ul className="mt-1 space-y-0.5 border-l border-border/60 pl-3">
-                    {t.children.map((c) => (
-                      <li key={c.id}>
-                        <a href={`#${c.id}`} className="text-[13px] text-muted-foreground hover:text-foreground">
-                          {c.label}
-                        </a>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </li>
-            ))}
-          </ol>
+            <ol className="mt-3 space-y-2">
+              {toc.map((t) => (
+                <li key={t.id}>
+                  <a href={`#${t.id}`} className="text-sm font-bold text-brand hover:underline">
+                    {t.label}
+                  </a>
+                  {t.children && t.children.length > 0 && (
+                    <ul className="mt-1 space-y-0.5 border-l border-border/60 pl-3">
+                      {t.children.map((c) => (
+                        <li key={c.id}>
+                          <a
+                            href={`#${c.id}`}
+                            className="text-[13px] text-muted-foreground hover:text-foreground"
+                          >
+                            {c.label}
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </li>
+              ))}
+            </ol>
           </nav>
         </details>
 
@@ -480,7 +557,10 @@ function BookmakerArticle() {
           </h2>
           <ol className="space-y-2">
             {b.steps.map((s, i) => (
-              <li key={i} className="flex gap-3 rounded-xl border border-border/60 bg-surface/40 p-3">
+              <li
+                key={i}
+                className="flex gap-3 rounded-xl border border-border/60 bg-surface/40 p-3"
+              >
                 <span className="grid size-6 shrink-0 place-items-center rounded-full bg-brand text-[11px] font-black text-brand-foreground">
                   {i + 1}
                 </span>
@@ -512,7 +592,11 @@ function BookmakerArticle() {
           <SectionBlock key={s.id} s={s} />
         ))}
 
-        <section id="avis-pros-cons" className="grid scroll-mt-24 gap-3 sm:grid-cols-2" aria-label="Points forts et points faibles">
+        <section
+          id="avis-pros-cons"
+          className="grid scroll-mt-24 gap-3 sm:grid-cols-2"
+          aria-label="Points forts et points faibles"
+        >
           <div className="rounded-2xl border border-brand/30 bg-brand/5 p-4">
             <h2 className="mb-2 text-sm font-black text-brand">Points forts</h2>
             <ul className="space-y-1.5">
@@ -569,18 +653,21 @@ function BookmakerArticle() {
         <section className="space-y-3" aria-label={`Code promo ${b.name} par pays`}>
           <h2 className="text-xl font-black tracking-tight">Code promo {b.name} par pays</h2>
           <p className="text-sm leading-relaxed text-muted-foreground">
-            Consultez la devise, les paiements et les conditions à vérifier dans votre zone avant de vous inscrire.
+            Consultez la devise, les paiements et les conditions à vérifier dans votre zone avant de
+            vous inscrire.
           </p>
           <div className="flex flex-wrap gap-2">
-            {SEO_COUNTRIES.filter((country) => b.countryPageSlugs?.includes(country.slug)).map((country) => (
-              <a
-                key={country.slug}
-                href={`/codes-promo/${b.slug}/${country.slug}`}
-                className="rounded-xl border border-border px-3 py-2 text-xs font-bold transition-colors hover:bg-surface"
-              >
-                {b.name} au {country.name}
-              </a>
-            ))}
+            {SEO_COUNTRIES.filter((country) => b.countryPageSlugs?.includes(country.slug)).map(
+              (country) => (
+                <a
+                  key={country.slug}
+                  href={`/codes-promo/${b.slug}/${country.slug}`}
+                  className="rounded-xl border border-border px-3 py-2 text-xs font-bold transition-colors hover:bg-surface"
+                >
+                  {b.name} au {country.name}
+                </a>
+              ),
+            )}
           </div>
         </section>
 
