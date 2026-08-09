@@ -1,6 +1,18 @@
 import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
 import { useState, useId, useRef, useEffect } from "react";
-import { Sparkles, ArrowLeftRight, X, Loader2, Lock, Info, Check, Search, Calendar, ShieldCheck, Trophy } from "lucide-react";
+import {
+  Sparkles,
+  ArrowLeftRight,
+  X,
+  Loader2,
+  Lock,
+  Info,
+  Check,
+  Search,
+  Calendar,
+  ShieldCheck,
+  Trophy,
+} from "lucide-react";
 import { AppShell, PageTitle } from "@/components/AppShell";
 import { Disclaimer } from "@/components/Disclaimer";
 import { WinProbabilityDonut, WinProbabilityLegend } from "@/components/WinProbabilityDonut";
@@ -14,16 +26,16 @@ import { buildRouteMeta, qaSchema, faqSchema, SPEAKABLE, ORG } from "@/lib/seo";
 import { track, lastCtaSource } from "@/lib/analytics";
 
 const ANALYSE_ANSWER =
-  "Pour obtenir une prédiction IA sur un match de football avec LiveFoot AI, saisissez l'équipe à domicile et l'équipe à l'extérieur, puis lancez l'analyse. L'IA croise la forme récente, les confrontations directes, les blessures et le classement, puis renvoie les probabilités 1X2, le score le plus probable et les marchés recommandés avec un niveau de confiance. Une analyse coûte 3 crédits.";
+  "Pour obtenir une prédiction football avec LiveFoot, saisissez l'équipe à domicile et l'équipe à l'extérieur, puis lancez l'analyse. Le moteur LiveFoot recoupe forme récente, confrontations directes, blessures, classement, données live et marché disponible, puis renvoie les probabilités 1X2, le score le plus probable et les marchés recommandés avec un niveau de confiance. Une analyse coûte 3 crédits.";
 
 const ANALYSE_FAQ = [
   {
-    q: "Comment fonctionne la prédiction IA de LiveFoot ?",
-    a: "L'IA agrège les données officielles du match (forme sur les 5 derniers matchs, confrontations directes, blessures, classement, statistiques offensives et défensives) puis calcule des probabilités 1X2, un score probable et des marchés recommandés assortis d'un indice de confiance.",
+    q: "Comment fonctionne la prédiction LiveFoot ?",
+    a: "Le moteur LiveFoot agrège les données officielles du match (forme récente, confrontations directes, blessures, classement, statistiques offensives et défensives, cotes et données live lorsque disponibles), puis calcule des probabilités 1X2, un score probable et des marchés assortis d'un indice de confiance.",
   },
   {
     q: "Les prédictions IA sont-elles fiables à 100 % ?",
-    a: "Non. Aucune prédiction sportive n'est certaine. Les analyses de LiveFoot AI sont statistiques et informatives : elles aident à comprendre un rapport de force, mais ne garantissent aucun résultat ni aucun gain.",
+    a: "Non. Aucune prédiction sportive n'est certaine. Les analyses LiveFoot sont statistiques et informatives : elles aident à comprendre un rapport de force, mais ne garantissent aucun résultat ni aucun gain.",
   },
   {
     q: "Combien coûte une analyse ?",
@@ -36,10 +48,14 @@ const ANALYSE_FAQ = [
 ];
 
 export const Route = createFileRoute("/analyse")({
-  validateSearch: (search: Record<string, unknown>): { home: string; away: string; matchId?: string } => ({
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): { home: string; away: string; matchId?: string } => ({
     home: typeof search.home === "string" ? search.home : "",
     away: typeof search.away === "string" ? search.away : "",
-    ...(typeof search.matchId === "string" && search.matchId.length > 0 ? { matchId: search.matchId } : {}),
+    ...(typeof search.matchId === "string" && search.matchId.length > 0
+      ? { matchId: search.matchId }
+      : {}),
   }),
   head: () => {
     const base = buildRouteMeta({
@@ -88,22 +104,74 @@ export const Route = createFileRoute("/analyse")({
 
 // Popular teams database for instant selection & autocompletion
 const POPULAR_TEAMS = [
-  { name: "Real Madrid", league: "LaLiga 🇪🇸", logo: "https://media.api-sports.io/football/teams/541.png" },
-  { name: "FC Barcelone", league: "LaLiga 🇪🇸", logo: "https://media.api-sports.io/football/teams/529.png" },
-  { name: "Paris Saint-Germain", league: "Ligue 1 🇫🇷", logo: "https://media.api-sports.io/football/teams/85.png" },
-  { name: "Manchester City", league: "Premier League 🏴󠁧󠁢󠁥󠁮󠁧󠁿", logo: "https://media.api-sports.io/football/teams/50.png" },
-  { name: "Arsenal", league: "Premier League 🏴󠁧󠁢󠁥󠁮󠁧󠁿", logo: "https://media.api-sports.io/football/teams/42.png" },
-  { name: "Bayern Munich", league: "Bundesliga 🇩🇪", logo: "https://media.api-sports.io/football/teams/157.png" },
-  { name: "Inter Milan", league: "Serie A 🇮🇹", logo: "https://media.api-sports.io/football/teams/505.png" },
-  { name: "Liverpool FC", league: "Premier League 🏴󠁧󠁢󠁥󠁮󠁧󠁿", logo: "https://media.api-sports.io/football/teams/40.png" },
-  { name: "Chelsea FC", league: "Premier League 🏴󠁧󠁢󠁥󠁮󠁧󠁿", logo: "https://media.api-sports.io/football/teams/49.png" },
-  { name: "Juventus", league: "Serie A 🇮🇹", logo: "https://media.api-sports.io/football/teams/496.png" },
-  { name: "Borussia Dortmund", league: "Bundesliga 🇩🇪", logo: "https://media.api-sports.io/football/teams/165.png" },
-  { name: "Olympique de Marseille", league: "Ligue 1 🇫🇷", logo: "https://media.api-sports.io/football/teams/81.png" },
+  {
+    name: "Real Madrid",
+    league: "LaLiga 🇪🇸",
+    logo: "https://media.api-sports.io/football/teams/541.png",
+  },
+  {
+    name: "FC Barcelone",
+    league: "LaLiga 🇪🇸",
+    logo: "https://media.api-sports.io/football/teams/529.png",
+  },
+  {
+    name: "Paris Saint-Germain",
+    league: "Ligue 1 🇫🇷",
+    logo: "https://media.api-sports.io/football/teams/85.png",
+  },
+  {
+    name: "Manchester City",
+    league: "Premier League 🏴󠁧󠁢󠁥󠁮󠁧󠁿",
+    logo: "https://media.api-sports.io/football/teams/50.png",
+  },
+  {
+    name: "Arsenal",
+    league: "Premier League 🏴󠁧󠁢󠁥󠁮󠁧󠁿",
+    logo: "https://media.api-sports.io/football/teams/42.png",
+  },
+  {
+    name: "Bayern Munich",
+    league: "Bundesliga 🇩🇪",
+    logo: "https://media.api-sports.io/football/teams/157.png",
+  },
+  {
+    name: "Inter Milan",
+    league: "Serie A 🇮🇹",
+    logo: "https://media.api-sports.io/football/teams/505.png",
+  },
+  {
+    name: "Liverpool FC",
+    league: "Premier League 🏴󠁧󠁢󠁥󠁮󠁧󠁿",
+    logo: "https://media.api-sports.io/football/teams/40.png",
+  },
+  {
+    name: "Chelsea FC",
+    league: "Premier League 🏴󠁧󠁢󠁥󠁮󠁧󠁿",
+    logo: "https://media.api-sports.io/football/teams/49.png",
+  },
+  {
+    name: "Juventus",
+    league: "Serie A 🇮🇹",
+    logo: "https://media.api-sports.io/football/teams/496.png",
+  },
+  {
+    name: "Borussia Dortmund",
+    league: "Bundesliga 🇩🇪",
+    logo: "https://media.api-sports.io/football/teams/165.png",
+  },
+  {
+    name: "Olympique de Marseille",
+    league: "Ligue 1 🇫🇷",
+    logo: "https://media.api-sports.io/football/teams/81.png",
+  },
 ];
 
 function AnalysePage() {
-  const { home: homeParam, away: awayParam, matchId: matchIdParam } = useSearch({ from: "/analyse" });
+  const {
+    home: homeParam,
+    away: awayParam,
+    matchId: matchIdParam,
+  } = useSearch({ from: "/analyse" });
   const [home, setHome] = useState(homeParam ?? "");
   const [away, setAway] = useState(awayParam ?? "");
   const [live, setLive] = useState<AnalysisResult | null>(null);
@@ -138,7 +206,7 @@ function AnalysePage() {
       autoLaunched.current = true;
       onSubmit();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionLoading, user, homeParam, awayParam]);
 
   // Swap animation handler
@@ -162,12 +230,12 @@ function AnalysePage() {
     track("analyse_run", { source: lastCtaSource() ?? "direct" });
     setLoading(true);
     setLoadingStep("Extraction des données H2H & formes récentes...");
-    
+
     const steps = [
       "Extraction des données H2H & formes récentes...",
       "Analyse de l'infirmerie et tactiques...",
-      "Calcul des probabilités 1X2 via IA...",
-      "Génération du rapport prédictif...",
+      "Calcul des probabilités et calibration des données...",
+      "Finalisation du rapport prédictif...",
     ];
     let stepIdx = 0;
     const interval = setInterval(() => {
@@ -176,7 +244,9 @@ function AnalysePage() {
     }, 1200);
 
     try {
-      const result = await runFn({ data: { home: home.trim(), away: away.trim(), matchId: matchIdParam || undefined } });
+      const result = await runFn({
+        data: { home: home.trim(), away: away.trim(), matchId: matchIdParam || undefined },
+      });
       setLive(result);
       toast.success("Analyse IA générée — 3 crédits débités.");
     } catch (err) {
@@ -200,7 +270,9 @@ function AnalysePage() {
             <div className="grid size-7 place-items-center rounded-lg bg-brand/10 text-brand">
               <Trophy className="size-4" />
             </div>
-            <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Sélection des Équipes</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              Sélection des Équipes
+            </span>
           </div>
           <span className="rounded-full bg-surface px-2.5 py-1 text-[10px] font-bold text-muted-foreground">
             Coût : 3 crédits
@@ -227,7 +299,12 @@ function AnalysePage() {
               )}
               aria-label="Inverser les équipes"
             >
-              <ArrowLeftRight className={cn("size-3.5 transition-transform group-hover:scale-110", swapping && "rotate-180")} />
+              <ArrowLeftRight
+                className={cn(
+                  "size-3.5 transition-transform group-hover:scale-110",
+                  swapping && "rotate-180",
+                )}
+              />
               <span className="hidden text-[11px] sm:inline">Inverser</span>
             </button>
           </div>
@@ -246,7 +323,8 @@ function AnalysePage() {
           <div className="mt-4 flex items-center gap-2 rounded-2xl bg-brand/10 p-3 text-xs font-medium text-brand">
             <ShieldCheck className="size-4 shrink-0" />
             <span>
-              Confrontation configurée : <strong>{home}</strong> vs <strong>{away}</strong>. Contexte temps réel injecté.
+              Confrontation configurée : <strong>{home}</strong> vs <strong>{away}</strong>.
+              Contexte temps réel injecté.
             </span>
           </div>
         )}
@@ -270,12 +348,13 @@ function AnalysePage() {
           ) : (
             <>
               <Sparkles className="size-4 text-warn animate-pulse" />
-              <span>Lancer l'analyse IA (3 crédits)</span>
+              <span>Lancer l'analyse (3 crédits)</span>
             </>
           )}
         </button>
         <p className="mt-2.5 text-center text-[10px] text-muted-foreground">
-          Estimation statistique LiveFoot basée sur la forme, les absences, les confrontations directes et les données de marché disponibles.
+          Estimation statistique LiveFoot basée sur la forme, les absences, les confrontations
+          directes et les données de marché disponibles.
         </p>
       </div>
 
@@ -285,10 +364,11 @@ function AnalysePage() {
           <div className="flex items-start gap-3 rounded-2xl bg-surface p-4 text-[12px] leading-relaxed text-muted-foreground ring-1 ring-black/5 dark:ring-white/10">
             <Info className="size-5 shrink-0 text-brand" />
             <div>
-              <p className="font-bold text-foreground">Comment fonctionne l'Analyse IA ?</p>
+              <p className="font-bold text-foreground">Comment fonctionne l'analyse LiveFoot ?</p>
               <p className="mt-0.5">
-                Sélectionnez l'équipe à domicile et l'équipe à l'extérieur ci-dessus. L'algorithme évaluera les probabilités 1X2,
-                le score exact le plus probable et recommandera les meilleurs marchés statistiques.
+                Sélectionnez l'équipe à domicile et l'équipe à l'extérieur ci-dessus. L'algorithme
+                évaluera les probabilités 1X2, le score exact le plus probable et recommandera les
+                meilleurs marchés statistiques.
               </p>
             </div>
           </div>
@@ -297,7 +377,7 @@ function AnalysePage() {
             <div className="rounded-3xl bg-foreground p-5 text-background shadow-xl">
               <div className="mb-3 flex items-center justify-between">
                 <div className="inline-flex items-center gap-1.5 rounded-full bg-brand/20 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-brand">
-                  <Sparkles className="size-3" /> Prédiction IA
+                  <Sparkles className="size-3" /> Prédiction LiveFoot
                 </div>
                 <div className="text-[10px] font-bold text-background/60">Analyse multicritère</div>
               </div>
@@ -305,12 +385,27 @@ function AnalysePage() {
                 {home} <span className="text-background/40">vs</span> {away}
               </h2>
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-                <WinProbabilityDonut home={live.probabilities.home} draw={live.probabilities.draw} away={live.probabilities.away} size={130} />
+                <WinProbabilityDonut
+                  home={live.probabilities.home}
+                  draw={live.probabilities.draw}
+                  away={live.probabilities.away}
+                  size={130}
+                />
                 <div className="flex-1">
-                  <WinProbabilityLegend home={live.probabilities.home} draw={live.probabilities.draw} away={live.probabilities.away} homeName={home} awayName={away} />
+                  <WinProbabilityLegend
+                    home={live.probabilities.home}
+                    draw={live.probabilities.draw}
+                    away={live.probabilities.away}
+                    homeName={home}
+                    awayName={away}
+                  />
                   <div className="mt-3 rounded-xl bg-background/5 p-3">
-                    <div className="text-[10px] font-bold uppercase tracking-widest text-background/60">Score probable</div>
-                    <div className="font-mono text-lg font-black tabular-nums">{live.probableScore}</div>
+                    <div className="text-[10px] font-bold uppercase tracking-widest text-background/60">
+                      Score probable
+                    </div>
+                    <div className="font-mono text-lg font-black tabular-nums">
+                      {live.probableScore}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -324,7 +419,9 @@ function AnalysePage() {
                 <p className="text-sm leading-relaxed">{live.aiText}</p>
                 {keyFactors.length > 0 && (
                   <div className="mt-4 border-t border-border/60 pt-3">
-                    <div className="mb-2 text-[10px] font-black uppercase tracking-wider text-muted-foreground">Facteurs Clés :</div>
+                    <div className="mb-2 text-[10px] font-black uppercase tracking-wider text-muted-foreground">
+                      Facteurs Clés :
+                    </div>
                     <ul className="space-y-2 text-xs">
                       {keyFactors.map((f: string, i: number) => (
                         <li key={i} className="flex items-start gap-2">
@@ -339,7 +436,9 @@ function AnalysePage() {
             )}
 
             <div>
-              <h3 className="mb-3 text-[11px] font-black uppercase tracking-widest text-muted-foreground">Marchés recommandés</h3>
+              <h3 className="mb-3 text-[11px] font-black uppercase tracking-widest text-muted-foreground">
+                Marchés recommandés
+              </h3>
               <div className="grid grid-cols-2 gap-3">
                 {live.markets.slice(0, 6).map((m, i) => (
                   <MarketCard key={i} market={m} />
@@ -350,7 +449,10 @@ function AnalysePage() {
         )}
 
         {/* AEO/GEO — réponse directe + FAQ citables par les moteurs de réponse */}
-        <section aria-label="Réponse rapide" className="rounded-2xl border-l-4 border-brand bg-brand/5 p-5">
+        <section
+          aria-label="Réponse rapide"
+          className="rounded-2xl border-l-4 border-brand bg-brand/5 p-5"
+        >
           <h2 className="mb-2 text-sm font-black uppercase tracking-widest text-brand">
             Comment obtenir une prédiction IA sur un match ?
           </h2>
@@ -390,9 +492,10 @@ function TeamAutocompleteInput({
   const wrapperRef = useRef<HTMLDivElement>(null);
   const inputId = useId();
 
-  const filtered = value.trim().length >= 1
-    ? POPULAR_TEAMS.filter((t) => t.name.toLowerCase().includes(value.toLowerCase()))
-    : [];
+  const filtered =
+    value.trim().length >= 1
+      ? POPULAR_TEAMS.filter((t) => t.name.toLowerCase().includes(value.toLowerCase()))
+      : [];
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -406,7 +509,10 @@ function TeamAutocompleteInput({
 
   return (
     <div ref={wrapperRef} className="relative">
-      <label htmlFor={inputId} className="mb-1 block px-1 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+      <label
+        htmlFor={inputId}
+        className="mb-1 block px-1 text-[10px] font-black uppercase tracking-widest text-muted-foreground"
+      >
         {label}
       </label>
       <div className="flex items-center gap-2.5 rounded-2xl bg-surface px-3.5 py-3 ring-1 ring-black/5 focus-within:ring-2 focus-within:ring-brand dark:ring-white/10">
@@ -424,7 +530,12 @@ function TeamAutocompleteInput({
           autoComplete="off"
         />
         {value && (
-          <button type="button" onClick={() => onChange("")} className="text-muted-foreground hover:text-foreground" aria-label="Effacer">
+          <button
+            type="button"
+            onClick={() => onChange("")}
+            className="text-muted-foreground hover:text-foreground"
+            aria-label="Effacer"
+          >
             <X className="size-4" />
           </button>
         )}
