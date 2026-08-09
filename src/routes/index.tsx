@@ -16,6 +16,7 @@ import { buildRouteMeta, faqSchema, ORG, SPEAKABLE } from "@/lib/seo";
 import { cn } from "@/lib/utils";
 import { PageSkeleton } from "@/components/PageSkeleton";
 import { track } from "@/lib/analytics";
+import { DEMO_FIXTURES, isLocalDemo } from "@/lib/local-demo";
 
 const fixturesQuery = (mode: "today" | "live", date?: string) =>
   queryOptions({
@@ -64,6 +65,7 @@ export const Route = createFileRoute("/")({
     };
   },
   loader: ({ context }) => {
+    if (isLocalDemo()) return;
     // Best-effort prefetch — never crash the page on API errors.
     context.queryClient
       .ensureQueryData(fixturesQuery("today", formatDate(new Date())))
@@ -109,6 +111,7 @@ function formatDate(date: Date) {
 }
 
 function HomePage() {
+  const demoMode = isLocalDemo();
   const [dayOffset, setDayOffset] = useState(0);
   const selectedDate = new Date();
   selectedDate.setDate(selectedDate.getDate() + dayOffset);
@@ -126,20 +129,24 @@ function HomePage() {
     isFetching,
     isError,
     refetch,
-  } = useQuery(fixturesQuery("today", selectedDateIso));
-  const hasLive = fixtures.some((m) => m.status === "live" || m.status === "ht");
+  } = useQuery({
+    ...fixturesQuery("today", selectedDateIso),
+    enabled: !demoMode,
+  });
+  const visibleFixtures = demoMode ? DEMO_FIXTURES : fixtures;
+  const hasLive = visibleFixtures.some((m) => m.status === "live" || m.status === "ht");
   const [filter, setFilter] = useState<(typeof FILTERS)[number]["id"]>(
     hasLive ? "live" : "upcoming",
   );
 
-  const filtered = fixtures.filter((m) =>
+  const filtered = visibleFixtures.filter((m) =>
     filter === "live" ? m.status === "live" || m.status === "ht" : m.status === filter,
   );
 
   // Group by league name
   const groupedMap = new Map<
     number,
-    { name: string; logo: string; country: string; matches: typeof fixtures }
+    { name: string; logo: string; country: string; matches: typeof visibleFixtures }
   >();
   for (const m of filtered) {
     const g = groupedMap.get(m.league.id) ?? {
@@ -154,7 +161,8 @@ function HomePage() {
   const grouped = Array.from(groupedMap.values());
   const today = selectedDate.toLocaleDateString("fr-FR", { day: "2-digit", month: "short" });
 
-  const topMatch = fixtures.find((m) => m.status === "live" || m.status === "ht") ?? fixtures[0];
+  const topMatch =
+    visibleFixtures.find((m) => m.status === "live" || m.status === "ht") ?? visibleFixtures[0];
 
   return (
     <AppShell>
@@ -208,7 +216,7 @@ function HomePage() {
       {/* Filter pills */}
       <div className="no-scrollbar flex gap-2 overflow-x-auto px-4 pb-4 lg:px-0">
         {FILTERS.map((f) => {
-          const count = fixtures.filter((m) =>
+          const count = visibleFixtures.filter((m) =>
             f.id === "live" ? m.status === "live" || m.status === "ht" : m.status === f.id,
           ).length;
           const active = filter === f.id;

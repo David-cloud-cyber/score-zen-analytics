@@ -21,11 +21,13 @@ import { getFixtureDetail } from "@/lib/football.functions";
 import { buildRouteMeta } from "@/lib/seo";
 import type { RemoteMatchDetail, ApiLineup } from "@/lib/football-types";
 import { cn } from "@/lib/utils";
+import { DEMO_MATCH_DETAIL, isLocalDemo } from "@/lib/local-demo";
 
-const detailQuery = (id: number) =>
+const detailQuery = (id: number, demoMode = false) =>
   queryOptions({
     queryKey: ["fixture", id],
-    queryFn: () => getFixtureDetail({ data: { id } }),
+    queryFn: () =>
+      demoMode ? Promise.resolve(DEMO_MATCH_DETAIL) : getFixtureDetail({ data: { id } }),
     staleTime: 60_000,
     refetchInterval: 60_000,
     retry: 1,
@@ -41,6 +43,7 @@ export const Route = createFileRoute("/live/$id")({
       noindex: true,
     }),
   loader: ({ context, params }) => {
+    if (isLocalDemo()) return;
     const id = Number(params.id);
     if (!Number.isFinite(id)) return;
     context.queryClient.ensureQueryData(detailQuery(id)).catch(() => {});
@@ -78,7 +81,7 @@ export const Route = createFileRoute("/live/$id")({
 function LiveMatchPage() {
   const { id } = useParams({ from: "/live/$id" });
   const fixtureId = Number(id);
-  const { data } = useSuspenseQuery(detailQuery(fixtureId));
+  const { data } = useSuspenseQuery(detailQuery(fixtureId, isLocalDemo()));
   return <LiveMatchView m={data} />;
 }
 

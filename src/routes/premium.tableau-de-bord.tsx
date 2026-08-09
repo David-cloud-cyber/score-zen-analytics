@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -37,6 +37,7 @@ import { useSession } from "@/hooks/use-session";
 import { track } from "@/lib/analytics";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { isLocalDemo } from "@/lib/local-demo";
 
 export const Route = createFileRoute("/premium/tableau-de-bord")({
   head: () =>
@@ -175,8 +176,7 @@ const DEMO_HUB_DATA: PremiumHubData = {
 
 function PremiumHubPage() {
   const { user, loading: sessionLoading } = useSession();
-  const searchString = useRouterState({ select: (state) => state.location.searchStr });
-  const isDemo = import.meta.env.DEV && searchString.includes("demo=1");
+  const isDemo = isLocalDemo();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const getDashboard = useServerFn(getPremiumDashboard);

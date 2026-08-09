@@ -25,6 +25,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { buildRouteMeta, qaSchema, faqSchema, SPEAKABLE, ORG } from "@/lib/seo";
 import { track, lastCtaSource } from "@/lib/analytics";
+import { DEMO_ANALYSIS, isLocalDemo } from "@/lib/local-demo";
 
 const ANALYSE_ANSWER =
   "Pour obtenir une prédiction football avec LiveFoot, saisissez l'équipe à domicile et l'équipe à l'extérieur, puis lancez l'analyse. Le moteur LiveFoot recoupe forme récente, confrontations directes, blessures, classement, données live et marché disponible, puis renvoie les probabilités 1X2, le score le plus probable et les marchés recommandés avec un niveau de confiance. Une analyse coûte 3 crédits.";
@@ -168,14 +169,15 @@ const POPULAR_TEAMS = [
 ];
 
 function AnalysePage() {
+  const demoMode = isLocalDemo();
   const {
     home: homeParam,
     away: awayParam,
     matchId: matchIdParam,
   } = useSearch({ from: "/analyse" });
-  const [home, setHome] = useState(homeParam ?? "");
-  const [away, setAway] = useState(awayParam ?? "");
-  const [live, setLive] = useState<AnalysisResult | null>(null);
+  const [home, setHome] = useState(homeParam ?? (demoMode ? "Arsenal" : ""));
+  const [away, setAway] = useState(awayParam ?? (demoMode ? "Chelsea" : ""));
+  const [live, setLive] = useState<AnalysisResult | null>(demoMode ? DEMO_ANALYSIS : null);
   const [loading, setLoading] = useState(false);
   const [loadingStep, setLoadingStep] = useState("");
   const [swapping, setSwapping] = useState(false);
@@ -194,10 +196,10 @@ function AnalysePage() {
 
   // Rediriger vers /auth si l'utilisateur n'est pas connecté (après chargement)
   useEffect(() => {
-    if (!sessionLoading && !user) {
+    if (!demoMode && !sessionLoading && !user) {
       navigate({ to: "/auth", search: { redirect: "/analyse" } });
     }
-  }, [sessionLoading, user, navigate]);
+  }, [demoMode, sessionLoading, user, navigate]);
 
   // Auto-lancer l'analyse quand les équipes viennent de la page match
   useEffect(() => {
@@ -226,6 +228,11 @@ function AnalysePage() {
     }
     if (home.trim().length < 2 || away.trim().length < 2) {
       toast.error("Renseignez les deux équipes.");
+      return;
+    }
+    if (demoMode) {
+      setLive(DEMO_ANALYSIS);
+      toast.success("Aperçu local : analyse fictive affichée, aucun crédit débité.");
       return;
     }
     track("analyse_run", { source: lastCtaSource() ?? "direct" });
@@ -349,7 +356,9 @@ function AnalysePage() {
           ) : (
             <>
               <Sparkles className="size-4 text-warn animate-pulse" />
-              <span>Lancer l'analyse (3 crédits)</span>
+              <span>
+                {demoMode ? "Voir l'analyse démo (0 crédit)" : "Lancer l'analyse (3 crédits)"}
+              </span>
             </>
           )}
         </button>

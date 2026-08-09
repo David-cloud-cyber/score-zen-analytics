@@ -21,6 +21,7 @@ import { useSession } from "@/hooks/use-session";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { formatPremiumExpiry, isPremiumActive, premiumDaysRemaining } from "@/lib/premium-status";
+import { DEMO_PROFILE, isLocalDemo } from "@/lib/local-demo";
 
 export const Route = createFileRoute("/premium")({
   head: () =>
@@ -40,11 +41,12 @@ function PremiumPage() {
 }
 
 function PremiumSubscriptionPage() {
+  const demoMode = isLocalDemo();
   const { user } = useSession();
   const navigate = useNavigate();
   const { data: profile } = useQuery({
     queryKey: ["me", "balance"],
-    queryFn: () => getMyBalance(),
+    queryFn: () => (demoMode ? Promise.resolve(DEMO_PROFILE) : getMyBalance()),
     enabled: !!user,
   });
 
@@ -59,6 +61,11 @@ function PremiumSubscriptionPage() {
   const topupCheckoutFn = useServerFn(createTopupCheckout);
 
   const handleSubscribe = async (plan: PremiumPlan) => {
+    if (demoMode) {
+      toast.info("Aperçu local : le paiement est désactivé et aucune donnée n'est envoyée.");
+      navigate({ to: "/premium/tableau-de-bord" });
+      return;
+    }
     if (isPremium) {
       navigate({ to: "/premium/tableau-de-bord" });
       return;
@@ -84,6 +91,10 @@ function PremiumSubscriptionPage() {
   };
 
   const handleBuyPack = async (packId: string) => {
+    if (demoMode) {
+      toast.info("Aperçu local : les paiements sont désactivés dans ce mode.");
+      return;
+    }
     if (!user) {
       toast.info("Veuillez vous connecter.");
       navigate({ to: "/auth" });

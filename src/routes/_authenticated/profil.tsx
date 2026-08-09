@@ -31,6 +31,13 @@ import { useSession } from "@/hooks/use-session";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { formatPremiumExpiry, isPremiumActive, premiumDaysRemaining } from "@/lib/premium-status";
+import {
+  DEMO_HISTORY,
+  DEMO_PAYMENTS,
+  DEMO_PROFILE,
+  DEMO_REFERRAL,
+  isLocalDemo,
+} from "@/lib/local-demo";
 
 const CREDIT_RULES = [
   {
@@ -74,17 +81,18 @@ export const Route = createFileRoute("/_authenticated/profil")({
 
 const balanceQuery = queryOptions({
   queryKey: ["me", "balance"],
-  queryFn: () => getMyBalance(),
+  queryFn: () => (isLocalDemo() ? Promise.resolve(DEMO_PROFILE) : getMyBalance()),
   staleTime: 30_000,
 });
 
 const historyQuery = queryOptions({
   queryKey: ["me", "history"],
-  queryFn: () => getMyAnalysisHistory(),
+  queryFn: () => (isLocalDemo() ? Promise.resolve(DEMO_HISTORY) : getMyAnalysisHistory()),
   staleTime: 60_000,
 });
 
 function ProfilPage() {
+  const demoMode = isLocalDemo();
   const { user, signOut } = useSession();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -92,12 +100,12 @@ function ProfilPage() {
   const { data: rawHistory } = useSuspenseQuery(historyQuery);
   const { data: paymentData = { payments: [], subscriptions: [] } } = useQuery({
     queryKey: ["me", "payments"],
-    queryFn: () => getMyPayments(),
+    queryFn: () => (demoMode ? Promise.resolve(DEMO_PAYMENTS) : getMyPayments()),
     staleTime: 15_000,
   });
   const { data: referralData } = useQuery({
     queryKey: ["me", "referral"],
-    queryFn: () => getMyReferralDetails(),
+    queryFn: () => (demoMode ? Promise.resolve(DEMO_REFERRAL) : getMyReferralDetails()),
     staleTime: 30_000,
   });
 
@@ -125,6 +133,10 @@ function ProfilPage() {
   const verifyFn = useServerFn(verifyTopup);
 
   const handleTopup = async (pack: PricedPack) => {
+    if (demoMode) {
+      toast.info("Aperçu local : aucun paiement ne sera lancé.");
+      return;
+    }
     if (!isPremium) {
       toast.error("Les packs sont réservés aux membres Premium. Passez Premium d'abord !");
       navigate({ to: "/premium" });
@@ -146,6 +158,10 @@ function ProfilPage() {
   };
 
   const handleVerify = async (transId: string) => {
+    if (demoMode) {
+      toast.info("Aperçu local : ce paiement est déjà fictivement validé.");
+      return;
+    }
     try {
       const out = await verifyFn({ data: { transId } });
       if (out.credited) {
@@ -169,6 +185,10 @@ function ProfilPage() {
 
   const runFn = useServerFn(getMyBalance);
   const refresh = async () => {
+    if (demoMode) {
+      toast.success("Aperçu local actualisé.");
+      return;
+    }
     try {
       const fresh = await runFn();
       queryClient.setQueryData(balanceQuery.queryKey, fresh);

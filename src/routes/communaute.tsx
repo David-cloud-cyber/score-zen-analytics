@@ -18,6 +18,7 @@ import { useSession } from "@/hooks/use-session";
 import { supabase } from "@/integrations/supabase/client";
 import { buildRouteMeta } from "@/lib/seo";
 import { cn } from "@/lib/utils";
+import { DEMO_COMMUNITY_POLLS, DEMO_LEADERBOARD, isLocalDemo } from "@/lib/local-demo";
 
 export const Route = createFileRoute("/communaute")({
   head: () =>
@@ -48,20 +49,36 @@ interface MatchPoll {
   votes: { home: number; draw: number; away: number };
 }
 
-const FEATURED_POLLS: MatchPoll[] = [];
+const FEATURED_POLLS: MatchPoll[] = DEMO_COMMUNITY_POLLS;
 
-const LEADERBOARD: {
-  rank: number;
-  name: string;
-  points: number;
-  winRate: string;
-  badge: string;
-}[] = [];
+const LEADERBOARD = DEMO_LEADERBOARD;
+
+const DEMO_MESSAGES: ChatMessage[] = [
+  {
+    id: "demo-msg-1",
+    user_name: "Momo Foot",
+    message: "Arsenal semble mieux armé dans les transitions ce soir.",
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: "demo-msg-2",
+    user_name: "Lina Stats",
+    message: "Le scénario 1X reste le plus cohérent avec les données du jour.",
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: "demo-msg-3",
+    user_name: "Dodo Bien",
+    message: "Je surveille surtout le marché des buts en seconde période.",
+    created_at: new Date().toISOString(),
+  },
+];
 
 function CommunautePage() {
+  const demoMode = isLocalDemo();
   const { session, loading: sessionLoading } = useSession();
   const navigate = useNavigate();
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>(demoMode ? DEMO_MESSAGES : []);
   const [newMessage, setNewMessage] = useState("");
   const [userVotes, setUserVotes] = useState<Record<number, "home" | "draw" | "away">>({});
   const [polls, setPolls] = useState<MatchPoll[]>(FEATURED_POLLS);
@@ -69,10 +86,10 @@ function CommunautePage() {
 
   // Rediriger vers /auth si non connecté (après chargement)
   useEffect(() => {
-    if (!sessionLoading && !session) {
+    if (!demoMode && !sessionLoading && !session) {
       navigate({ to: "/auth", search: { redirect: "/communaute" } });
     }
-  }, [sessionLoading, session, navigate]);
+  }, [demoMode, sessionLoading, session, navigate]);
 
   // Auto-scroll to bottom of chat
   useEffect(() => {
@@ -81,6 +98,7 @@ function CommunautePage() {
 
   // Realtime subscription setup fallback
   useEffect(() => {
+    if (demoMode) return;
     const channel = supabase
       .channel("community_messages_channel")
       .on(
@@ -96,7 +114,7 @@ function CommunautePage() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [demoMode]);
 
   const handleVote = (pollId: number, option: "home" | "draw" | "away") => {
     if (userVotes[pollId]) {

@@ -1,7 +1,12 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
-import { readCookieSnapshot, writeCookie, clearCookie } from "@/integrations/supabase/session-storage";
+import {
+  readCookieSnapshot,
+  writeCookie,
+  clearCookie,
+} from "@/integrations/supabase/session-storage";
+import { clearLocalDemo, DEMO_SESSION, isLocalDemo } from "@/lib/local-demo";
 
 type SessionCtx = {
   session: Session | null;
@@ -10,7 +15,12 @@ type SessionCtx = {
   signOut: () => Promise<void>;
 };
 
-const Ctx = createContext<SessionCtx>({ session: null, user: null, loading: true, signOut: async () => {} });
+const Ctx = createContext<SessionCtx>({
+  session: null,
+  user: null,
+  loading: true,
+  signOut: async () => {},
+});
 
 export function SessionProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
@@ -18,6 +28,16 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let mounted = true;
+
+    // Aperçu local : aucune lecture/écriture Supabase et aucune authentification
+    // réelle ne sont utilisées quand le mode démo est activé en développement.
+    if (isLocalDemo()) {
+      setSession(DEMO_SESSION);
+      setLoading(false);
+      return () => {
+        mounted = false;
+      };
+    }
 
     // ── Initialisation de la session ─────────────────────────────────────────
     // 1. getSession() lit depuis hybridStorage (localStorage + cookie backup).
@@ -118,6 +138,12 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signOut = async () => {
+    if (isLocalDemo()) {
+      clearLocalDemo();
+      setSession(null);
+      setLoading(false);
+      return;
+    }
     await supabase.auth.signOut();
     clearCookie();
   };

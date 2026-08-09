@@ -13,6 +13,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { cn } from "@/lib/utils";
 import { type PopupVariant } from "@/hooks/use-referral-popup";
 import { getMyReferralCode } from "@/lib/referral.functions";
+import { isLocalDemo } from "@/lib/local-demo";
 
 const BASE_URL = "https://www.livefoot.fun";
 
@@ -62,17 +63,23 @@ export function ReferralPopup({ variant, onDismiss }: ReferralPopupProps) {
 /* ── Variante Free : invitation + upsell Premium ───────────────────────────── */
 
 function FreeInviteContent({ onDismiss }: { onDismiss: () => void }) {
+  const demoMode = isLocalDemo();
   const [referralCode, setReferralCode] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(true);
   const fetchCode = useServerFn(getMyReferralCode);
 
   useEffect(() => {
+    if (demoMode) {
+      setReferralCode("LIVE2026");
+      setLoading(false);
+      return;
+    }
     fetchCode()
       .then((res) => setReferralCode(res.code))
       .catch(() => setReferralCode(null))
       .finally(() => setLoading(false));
-  }, [fetchCode]);
+  }, [demoMode, fetchCode]);
 
   const referralLink = referralCode ? `${BASE_URL}/auth?ref=${referralCode}` : null;
 

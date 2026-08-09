@@ -9,6 +9,7 @@ import { getMyBalance } from "@/lib/analyses.functions";
 import { getMyPremiumFavorites, togglePremiumFavorite } from "@/lib/premium-hub.functions";
 import { cn } from "@/lib/utils";
 import { isPremiumActive } from "@/lib/premium-status";
+import { DEMO_FAVORITES, DEMO_PROFILE, isLocalDemo } from "@/lib/local-demo";
 
 export const Route = createFileRoute("/_authenticated/favoris")({
   head: () => ({
@@ -44,11 +45,12 @@ const NOTIF_TYPES = [
 ];
 
 function FavorisPage() {
+  const demoMode = isLocalDemo();
   const navigate = useNavigate();
   const [tab, setTab] = useState<"teams" | "players" | "comps" | "notif">("teams");
   const { data: profile } = useQuery({
     queryKey: ["me", "balance"],
-    queryFn: () => getMyBalance(),
+    queryFn: () => (demoMode ? Promise.resolve(DEMO_PROFILE) : getMyBalance()),
   });
 
   const isPremium = isPremiumActive(profile);
@@ -57,7 +59,7 @@ function FavorisPage() {
   const toggleFavorite = useServerFn(togglePremiumFavorite);
   const favoritesQuery = useQuery({
     queryKey: ["me", "favorites"],
-    queryFn: () => getFavorites(),
+    queryFn: () => (demoMode ? Promise.resolve(DEMO_FAVORITES) : getFavorites()),
   });
   const favoriteTeams = (favoritesQuery.data ?? [])
     .filter((favorite) => favorite.kind === "team")
@@ -69,6 +71,10 @@ function FavorisPage() {
     }));
 
   const handleAddFavorite = async (teamName: string) => {
+    if (demoMode) {
+      toast.info("Aperçu local : les favoris sont fictifs et non enregistrés.");
+      return;
+    }
     try {
       await toggleFavorite({
         data: { kind: "team", refId: teamName, label: teamName, notify: true },
@@ -81,6 +87,10 @@ function FavorisPage() {
   };
 
   const handleRemoveFavorite = async (team: { refId: string; name: string }) => {
+    if (demoMode) {
+      toast.info("Aperçu local : les favoris sont fictifs et non enregistrés.");
+      return;
+    }
     try {
       await toggleFavorite({
         data: { kind: "team", refId: team.refId, label: team.name, notify: true },

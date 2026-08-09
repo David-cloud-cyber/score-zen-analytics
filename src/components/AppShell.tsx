@@ -23,6 +23,7 @@ import { ReferralPopup } from "@/components/ReferralPopup";
 import { useReferralPopup } from "@/hooks/use-referral-popup";
 import { getMyBalance } from "@/lib/analyses.functions";
 import { PremiumStatusBadge } from "@/components/PremiumStatusBadge";
+import { DEMO_PROFILE, isLocalDemo } from "@/lib/local-demo";
 
 const NAV = [
   {
@@ -122,7 +123,7 @@ function DesktopSidebar({ pathname }: { pathname: string }) {
   const { user } = useSession();
   const { data: profile } = useQuery({
     queryKey: ["me", "balance"],
-    queryFn: () => getMyBalance(),
+    queryFn: () => (isLocalDemo() ? Promise.resolve(DEMO_PROFILE) : getMyBalance()),
     enabled: !!user,
     staleTime: 30_000,
   });
@@ -348,7 +349,7 @@ export function TopBar({ onMenuOpen }: { onMenuOpen?: () => void }) {
   const { user } = useSession();
   const { data: profile } = useQuery({
     queryKey: ["me", "balance"],
-    queryFn: () => getMyBalance(),
+    queryFn: () => (isLocalDemo() ? Promise.resolve(DEMO_PROFILE) : getMyBalance()),
     enabled: !!user,
     staleTime: 30_000,
   });
@@ -384,6 +385,11 @@ export function TopBar({ onMenuOpen }: { onMenuOpen?: () => void }) {
       </div>
 
       <div className="flex items-center gap-2">
+        {isLocalDemo() && (
+          <span className="hidden rounded-full bg-brand/10 px-2 py-1 text-[10px] font-black uppercase tracking-wider text-brand ring-1 ring-brand/20 sm:inline-flex">
+            Démo locale
+          </span>
+        )}
         <PremiumStatusBadge profile={profile} compact className="hidden sm:inline-flex" />
         <button
           onClick={() => setOpen(true)}

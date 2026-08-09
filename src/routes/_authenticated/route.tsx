@@ -1,9 +1,11 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
+import { DEMO_USER, isLocalDemo } from "@/lib/local-demo";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
   beforeLoad: async ({ location }) => {
+    if (isLocalDemo()) return { user: DEMO_USER };
     try {
       // Lire la session depuis localStorage (rapide, sans réseau).
       // autoRefreshToken: true garantit que le token est renouvelé si expiré.
@@ -13,7 +15,11 @@ export const Route = createFileRoute("/_authenticated")({
       }
       return { user: sessionData.session.user };
     } catch (err) {
-      if (err && typeof err === "object" && ("isRedirect" in err || "status" in err || "statusCode" in err)) {
+      if (
+        err &&
+        typeof err === "object" &&
+        ("isRedirect" in err || "status" in err || "statusCode" in err)
+      ) {
         throw err;
       }
       throw redirect({ to: "/auth", search: { redirect: location.pathname } });
