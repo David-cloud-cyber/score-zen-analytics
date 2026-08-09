@@ -86,10 +86,17 @@ export function SmartSearchTrigger() {
   return (
     <button
       onClick={() => setOpen(true)}
-      className="group flex w-full max-w-md items-center gap-2 rounded-full bg-surface px-4 py-2.5 text-left ring-1 ring-black/5 transition-all hover:ring-black/10 focus:ring-2 focus:ring-brand dark:ring-white/10"
+      className="group flex w-full max-w-md items-center gap-2 rounded-xl bg-surface px-4 py-2.5 text-left ring-1 ring-black/5 transition-all hover:ring-black/10 focus:ring-2 focus:ring-brand dark:ring-white/10"
       aria-label="Ouvrir la recherche (Ctrl+K)"
     >
-      <svg className="size-4 text-muted-foreground" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden>
+      <svg
+        className="size-4 text-muted-foreground"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        viewBox="0 0 24 24"
+        aria-hidden
+      >
         <circle cx="11" cy="11" r="7" />
         <path d="m20 20-3.5-3.5" strokeLinecap="round" />
       </svg>

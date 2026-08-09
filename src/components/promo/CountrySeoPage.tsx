@@ -10,11 +10,7 @@ import {
   ResponsibleGamblingNotice,
 } from "@/components/promo/PromoUI";
 import { BOOKMAKERS, type Bookmaker } from "@/data/bookmakers";
-import {
-  getCountryBookmakerPath,
-  getCountryPath,
-  type SeoCountry,
-} from "@/data/country-seo";
+import { getCountryBookmakerPath, getCountryPath, type SeoCountry } from "@/data/country-seo";
 import { track } from "@/lib/analytics";
 
 const ANALYSE_CTA = "Analyser un match";
@@ -29,8 +25,8 @@ function CountryAnalyseCta({ location }: { location: string }) {
         <div className="space-y-2">
           <p className="text-sm font-black">Préparez votre prochain pari</p>
           <p className="text-sm leading-relaxed text-muted-foreground">
-            Consultez une analyse statistique claire avant de choisir votre rencontre. Les prédictions restent des
-            estimations et ne garantissent aucun gain.
+            Consultez une analyse statistique claire avant de choisir votre rencontre. Les
+            prédictions restent des estimations et ne garantissent aucun gain.
           </p>
           <Link
             to="/analyse"
@@ -51,15 +47,21 @@ function CountryFacts({ country }: { country: SeoCountry }) {
   return (
     <div className="grid gap-3 sm:grid-cols-3">
       <div className="rounded-2xl border border-border/70 bg-surface/40 p-4">
-        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Devise locale</p>
+        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+          Devise locale
+        </p>
         <p className="mt-1 text-lg font-black">{country.currency}</p>
       </div>
       <div className="rounded-2xl border border-border/70 bg-surface/40 p-4">
-        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Paiements à vérifier</p>
+        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+          Paiements à vérifier
+        </p>
         <p className="mt-1 text-sm font-bold">{country.paymentMethods.join(" · ")}</p>
       </div>
       <div className="rounded-2xl border border-border/70 bg-surface/40 p-4">
-        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Public concerné</p>
+        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+          Public concerné
+        </p>
         <p className="mt-1 text-sm font-bold">Joueurs majeurs résidant au {country.name}</p>
       </div>
     </div>
@@ -89,17 +91,22 @@ function CountryPartnerCard({ bookmaker, country }: { bookmaker: Bookmaker; coun
         </div>
         <div className="min-w-0">
           <h2 className="text-base font-black">{bookmaker.name}</h2>
-          <p className="truncate text-xs text-muted-foreground">Code partenaire : {bookmaker.code}</p>
+          <p className="truncate text-xs text-muted-foreground">
+            Code partenaire : {bookmaker.code}
+          </p>
         </div>
       </div>
       <div className="space-y-3 p-4">
         <p className="text-lg font-black leading-tight">{bookmaker.bonusHeadline}</p>
         <p className="text-sm leading-relaxed text-muted-foreground">
-          Conditions, dépôt minimum et montant final à confirmer selon le compte ouvert au {country.name}.
+          Conditions, dépôt minimum et montant final à confirmer selon le compte ouvert au{" "}
+          {country.name}.
         </p>
         <div className="flex flex-wrap items-center gap-2">
           <CopyCodeButton code={bookmaker.code} size="sm" />
-          <span className="text-[11px] text-muted-foreground">Dépôt min. indicatif : {bookmaker.minDeposit}</span>
+          <span className="text-[11px] text-muted-foreground">
+            Dépôt min. indicatif : {bookmaker.minDeposit}
+          </span>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row">
           <AffiliateButton href={bookmaker.affiliateUrl} className="flex-1">
@@ -118,16 +125,27 @@ function CountryPartnerCard({ bookmaker, country }: { bookmaker: Bookmaker; coun
 }
 
 export function CountryHubPage({ country }: { country: SeoCountry }) {
-  const partners = BOOKMAKERS.filter((bookmaker) => bookmaker.countryPageSlugs?.includes(country.slug));
+  const partners = BOOKMAKERS.filter((bookmaker) =>
+    bookmaker.countryPageSlugs?.includes(country.slug),
+  );
 
   return (
     <AppShell>
       <div className="space-y-8 px-4 pb-12 lg:px-0">
         <div className="pt-4">
-          <Breadcrumb items={[{ label: "Accueil", to: "/" }, { label: "Codes promo", to: "/codes-promo" }, { label: country.name }]} />
+          <Breadcrumb
+            items={[
+              { label: "Accueil", to: "/" },
+              { label: "Codes promo", to: "/codes-promo" },
+              { label: country.name },
+            ]}
+          />
         </div>
 
-        <PageTitle eyebrow={`Offres en ${country.name}`} title={`Codes promo bookmakers au ${country.name}`} />
+        <PageTitle
+          eyebrow={`Offres en ${country.name}`}
+          title={`Codes promo bookmakers au ${country.name}`}
+        />
 
         <AnswerBox
           question={`Quel code promo bookmaker utiliser au ${country.name} ?`}
@@ -138,12 +156,14 @@ export function CountryHubPage({ country }: { country: SeoCountry }) {
 
         <div className="space-y-3 text-sm leading-relaxed text-muted-foreground">
           <p>
-            {country.intro} Cette page compare les offres de manière lisible : <strong className="text-foreground">code promo</strong>,
-            bonus annoncé, dépôt minimum, conditions et lien d’inscription.
+            {country.intro} Cette page compare les offres de manière lisible :{" "}
+            <strong className="text-foreground">code promo</strong>, bonus annoncé, dépôt minimum,
+            conditions et lien d’inscription.
           </p>
           <p>
-            Les moyens de paiement affichés sont des exemples courants pour la zone. La disponibilité, les plafonds et les
-            conditions de retrait peuvent changer selon l’opérateur : vérifiez toujours l’écran de paiement avant de déposer.
+            Les moyens de paiement affichés sont des exemples courants pour la zone. La
+            disponibilité, les plafonds et les conditions de retrait peuvent changer selon
+            l’opérateur : vérifiez toujours l’écran de paiement avant de déposer.
           </p>
         </div>
 
@@ -152,7 +172,9 @@ export function CountryHubPage({ country }: { country: SeoCountry }) {
         <section className="space-y-4" aria-label={`Codes promo au ${country.name}`}>
           <div className="flex items-end justify-between gap-3">
             <div>
-              <p className="text-[11px] font-black uppercase tracking-widest text-brand">Comparatif local</p>
+              <p className="text-[11px] font-black uppercase tracking-widest text-brand">
+                Comparatif local
+              </p>
               <h2 className="mt-1 text-2xl font-black tracking-tight">Les offres à comparer</h2>
             </div>
             <MapPin className="size-6 text-brand" aria-hidden />
@@ -165,7 +187,9 @@ export function CountryHubPage({ country }: { country: SeoCountry }) {
         </section>
 
         <section className="space-y-3">
-          <h2 className="text-xl font-black tracking-tight">Comment choisir une offre au {country.name} ?</h2>
+          <h2 className="text-xl font-black tracking-tight">
+            Comment choisir une offre au {country.name} ?
+          </h2>
           <ul className="space-y-2">
             {[
               "Comparez le bonus réellement affiché avec le dépôt minimum et la cote minimale éventuelle.",
@@ -209,7 +233,13 @@ export function CountryHubPage({ country }: { country: SeoCountry }) {
   );
 }
 
-export function CountryBookmakerPage({ bookmaker, country }: { bookmaker: Bookmaker; country: SeoCountry }) {
+export function CountryBookmakerPage({
+  bookmaker,
+  country,
+}: {
+  bookmaker: Bookmaker;
+  country: SeoCountry;
+}) {
   const answer = `Le code promo ${bookmaker.name} ${bookmaker.code} peut être utilisé par un joueur majeur au ${country.name} si l’offre est disponible pour son compte. Le montant du bonus, la devise ${country.currency}, le dépôt minimum et les moyens de paiement doivent être confirmés sur la page d’inscription.`;
   const faq = [
     {
@@ -240,7 +270,7 @@ export function CountryBookmakerPage({ bookmaker, country }: { bookmaker: Bookma
           />
         </div>
 
-        <header className="space-y-4 rounded-3xl border border-border/70 bg-surface/50 p-5">
+        <header className="animate-rise space-y-4 rounded-xl border border-border/70 bg-surface/50 p-5">
           <div className="flex items-center gap-3">
             <div
               className="relative grid size-14 shrink-0 place-items-center overflow-hidden rounded-2xl text-base font-black text-white"
@@ -269,15 +299,20 @@ export function CountryBookmakerPage({ bookmaker, country }: { bookmaker: Bookma
           </div>
           <p className="text-lg font-black">{bookmaker.bonusHeadline}</p>
           <p className="text-sm text-muted-foreground">
-            Analyse du code {bookmaker.code}, des conditions et du parcours d’inscription pour les joueurs au {country.name}.
+            Analyse du code {bookmaker.code}, des conditions et du parcours d’inscription pour les
+            joueurs au {country.name}.
           </p>
           <div className="flex flex-wrap items-center gap-3">
             <CopyCodeButton code={bookmaker.code} size="lg" />
-            <AffiliateButton href={bookmaker.affiliateUrl}>S’inscrire avec {bookmaker.code}</AffiliateButton>
+            <AffiliateButton href={bookmaker.affiliateUrl}>
+              S’inscrire avec {bookmaker.code}
+            </AffiliateButton>
             <Link
               to="/analyse"
               search={{ home: "", away: "" }}
-              onClick={() => track("cta_click", { location: `country_${bookmaker.slug}_${country.slug}_hero` })}
+              onClick={() =>
+                track("cta_click", { location: `country_${bookmaker.slug}_${country.slug}_hero` })
+              }
               className="inline-flex items-center gap-2 rounded-xl border border-brand/40 px-4 py-3 text-sm font-black text-brand transition-colors hover:bg-brand/10"
             >
               <Sparkles className="size-4" aria-hidden />
@@ -285,7 +320,12 @@ export function CountryBookmakerPage({ bookmaker, country }: { bookmaker: Bookma
             </Link>
           </div>
           {bookmaker.bannerUrl && (
-            <a href={bookmaker.bannerLinkUrl ?? bookmaker.affiliateUrl} target="_blank" rel="nofollow sponsored noopener" className="block overflow-hidden rounded-2xl">
+            <a
+              href={bookmaker.bannerLinkUrl ?? bookmaker.affiliateUrl}
+              target="_blank"
+              rel="nofollow sponsored noopener"
+              className="block overflow-hidden rounded-2xl"
+            >
               <img
                 src={bookmaker.bannerUrl}
                 alt={`Bonus ${bookmaker.name} avec le code ${bookmaker.code} au ${country.name}`}
@@ -294,10 +334,15 @@ export function CountryBookmakerPage({ bookmaker, country }: { bookmaker: Bookma
               />
             </a>
           )}
-          <p className="text-[11px] text-muted-foreground">Contenu partenaire · 18+ · Offre et conditions à vérifier au moment de l’inscription</p>
+          <p className="text-[11px] text-muted-foreground">
+            Contenu partenaire · 18+ · Offre et conditions à vérifier au moment de l’inscription
+          </p>
         </header>
 
-        <AnswerBox question={`Quel est le code promo ${bookmaker.name} au ${country.name} ?`} answer={answer} />
+        <AnswerBox
+          question={`Quel est le code promo ${bookmaker.name} au ${country.name} ?`}
+          answer={answer}
+        />
         <CountryAnalyseCta location={`country_${bookmaker.slug}_${country.slug}_answer`} />
 
         <CountryFacts country={country} />
@@ -313,8 +358,13 @@ export function CountryBookmakerPage({ bookmaker, country }: { bookmaker: Bookma
               `Contrôlez le bonus, la devise ${country.currency}, le dépôt minimum et les conditions de mise affichés.`,
               "Effectuez un dépôt uniquement après avoir vérifié les limites, les frais et le délai de retrait.",
             ].map((step, index) => (
-              <li key={step} className="flex gap-3 rounded-xl border border-border/60 bg-surface/40 p-3">
-                <span className="grid size-6 shrink-0 place-items-center rounded-full bg-brand text-[11px] font-black text-brand-foreground">{index + 1}</span>
+              <li
+                key={step}
+                className="flex gap-3 rounded-xl border border-border/60 bg-surface/40 p-3"
+              >
+                <span className="grid size-6 shrink-0 place-items-center rounded-full bg-brand text-[11px] font-black text-brand-foreground">
+                  {index + 1}
+                </span>
                 <span className="text-sm leading-relaxed">{step}</span>
               </li>
             ))}
@@ -322,28 +372,37 @@ export function CountryBookmakerPage({ bookmaker, country }: { bookmaker: Bookma
         </section>
 
         <section className="space-y-3">
-          <h2 className="border-l-4 border-brand pl-3 text-xl font-black tracking-tight lg:text-2xl">Bonus, dépôt et conditions</h2>
+          <h2 className="border-l-4 border-brand pl-3 text-xl font-black tracking-tight lg:text-2xl">
+            Bonus, dépôt et conditions
+          </h2>
           <p className="text-[15px] leading-relaxed text-muted-foreground">
-            {bookmaker.bonusHeadline} est l’offre communiquée dans la fiche partenaire. Elle peut être ajustée selon la
-            zone géographique, le profil du compte, la devise et la campagne active. Le dépôt minimum indicatif est de {bookmaker.minDeposit}.
+            {bookmaker.bonusHeadline} est l’offre communiquée dans la fiche partenaire. Elle peut
+            être ajustée selon la zone géographique, le profil du compte, la devise et la campagne
+            active. Le dépôt minimum indicatif est de {bookmaker.minDeposit}.
           </p>
           <p className="text-[15px] leading-relaxed text-muted-foreground">
-            Avant toute mise, lisez les conditions de mise, la cote minimale éventuelle, la date d’expiration et les règles
-            de retrait. La page d’inscription de {bookmaker.name} constitue la référence finale.
-          </p>
-        </section>
-
-        <section className="space-y-3">
-          <h2 className="border-l-4 border-brand pl-3 text-xl font-black tracking-tight lg:text-2xl">Paiements au {country.name}</h2>
-          <p className="text-[15px] leading-relaxed text-muted-foreground">
-            Pour les joueurs au {country.name}, les solutions courantes peuvent inclure {country.paymentMethods.join(", ")}.
-            Cette liste est informative : disponibilité, plafonds, frais et délais varient selon {bookmaker.name} et doivent être
-            confirmés depuis l’espace de paiement.
+            Avant toute mise, lisez les conditions de mise, la cote minimale éventuelle, la date
+            d’expiration et les règles de retrait. La page d’inscription de {bookmaker.name}{" "}
+            constitue la référence finale.
           </p>
         </section>
 
         <section className="space-y-3">
-          <h2 className="border-l-4 border-brand pl-3 text-xl font-black tracking-tight lg:text-2xl">Questions fréquentes</h2>
+          <h2 className="border-l-4 border-brand pl-3 text-xl font-black tracking-tight lg:text-2xl">
+            Paiements au {country.name}
+          </h2>
+          <p className="text-[15px] leading-relaxed text-muted-foreground">
+            Pour les joueurs au {country.name}, les solutions courantes peuvent inclure{" "}
+            {country.paymentMethods.join(", ")}. Cette liste est informative : disponibilité,
+            plafonds, frais et délais varient selon {bookmaker.name} et doivent être confirmés
+            depuis l’espace de paiement.
+          </p>
+        </section>
+
+        <section className="space-y-3">
+          <h2 className="border-l-4 border-brand pl-3 text-xl font-black tracking-tight lg:text-2xl">
+            Questions fréquentes
+          </h2>
           <PromoFaq items={faq} />
         </section>
 
@@ -351,7 +410,10 @@ export function CountryBookmakerPage({ bookmaker, country }: { bookmaker: Bookma
         <ResponsibleGamblingNotice />
         <div className="space-y-2 text-center text-sm">
           <p>
-            <a href={`/codes-promo/${bookmaker.slug}`} className="font-bold text-brand hover:underline">
+            <a
+              href={`/codes-promo/${bookmaker.slug}`}
+              className="font-bold text-brand hover:underline"
+            >
               Voir l’analyse générale du code promo {bookmaker.name}
             </a>
           </p>

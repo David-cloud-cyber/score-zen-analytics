@@ -142,7 +142,7 @@ function PromoFilters() {
 
   return (
     <section className="space-y-4" aria-label="Liste des codes promo">
-      <div className="space-y-3 rounded-2xl border border-border/70 bg-surface/40 p-4">
+      <div className="space-y-3 rounded-xl border border-border/70 bg-surface/40 p-4">
         <div className="flex flex-wrap items-center gap-3">
           <label
             htmlFor="filtre-bookmaker"
@@ -195,7 +195,7 @@ function PromoFilters() {
       </p>
 
       {list.length === 0 ? (
-        <p className="rounded-2xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+        <p className="score-empty-state text-sm text-muted-foreground">
           Aucun code promo ne correspond à ces filtres.
         </p>
       ) : (
@@ -224,7 +224,7 @@ function PromoHub() {
           answer={HUB_ANSWER}
         />
 
-        <section className="rounded-2xl border border-brand/30 bg-brand/5 p-5">
+        <section className="animate-rise rounded-xl border border-brand/30 bg-brand/5 p-5">
           <div className="flex items-start gap-3">
             <Sparkles className="mt-0.5 size-5 shrink-0 text-brand" aria-hidden />
             <div className="space-y-2">

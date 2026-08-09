@@ -37,7 +37,8 @@ export function NotificationPopover() {
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
   };
 
-  const filtered = filter === "all" ? notifications : notifications.filter((n) => n.type === filter);
+  const filtered =
+    filter === "all" ? notifications : notifications.filter((n) => n.type === filter);
 
   return (
     <div ref={popoverRef} className="relative">
@@ -55,7 +56,7 @@ export function NotificationPopover() {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full z-50 mt-2 w-80 sm:w-96 rounded-3xl bg-card p-4 shadow-2xl ring-1 ring-black/10 dark:ring-white/10 animate-in fade-in zoom-in-95">
+        <div className="score-popover absolute right-0 top-full z-50 mt-2 w-80 sm:w-96 bg-card p-4 animate-in fade-in zoom-in-95">
           {/* Header */}
           <div className="mb-3 flex items-center justify-between border-b border-border/60 pb-3">
             <div className="flex items-center gap-2">
@@ -80,9 +81,21 @@ export function NotificationPopover() {
           {/* Filters */}
           <div className="mb-3 flex items-center gap-1.5 overflow-x-auto pb-1 text-[11px]">
             <FilterChip active={filter === "all"} onClick={() => setFilter("all")} label="Toutes" />
-            <FilterChip active={filter === "match"} onClick={() => setFilter("match")} label="Matchs ⚽" />
-            <FilterChip active={filter === "ai"} onClick={() => setFilter("ai")} label="Analyses ✨" />
-            <FilterChip active={filter === "credit"} onClick={() => setFilter("credit")} label="Crédits 🪙" />
+            <FilterChip
+              active={filter === "match"}
+              onClick={() => setFilter("match")}
+              label="Matchs ⚽"
+            />
+            <FilterChip
+              active={filter === "ai"}
+              onClick={() => setFilter("ai")}
+              label="Analyses ✨"
+            />
+            <FilterChip
+              active={filter === "credit"}
+              onClick={() => setFilter("credit")}
+              label="Crédits 🪙"
+            />
           </div>
 
           {/* Notification List */}
@@ -96,11 +109,15 @@ export function NotificationPopover() {
                 <div
                   key={item.id}
                   onClick={() => {
-                    setNotifications((prev) => prev.map((n) => (n.id === item.id ? { ...n, read: true } : n)));
+                    setNotifications((prev) =>
+                      prev.map((n) => (n.id === item.id ? { ...n, read: true } : n)),
+                    );
                   }}
                   className={cn(
-                    "group relative flex items-start gap-3 rounded-2xl p-2.5 transition-colors",
-                    item.read ? "bg-transparent hover:bg-surface" : "bg-brand/5 ring-1 ring-brand/10 hover:bg-brand/10",
+                    "group relative flex items-start gap-3 rounded-xl p-2.5 transition-colors",
+                    item.read
+                      ? "bg-transparent hover:bg-surface"
+                      : "bg-brand/5 ring-1 ring-brand/10 hover:bg-brand/10",
                   )}
                 >
                   <div
@@ -118,10 +135,14 @@ export function NotificationPopover() {
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
-                      <span className="truncate text-xs font-bold text-foreground">{item.title}</span>
+                      <span className="truncate text-xs font-bold text-foreground">
+                        {item.title}
+                      </span>
                       <span className="text-[10px] text-muted-foreground">{item.time}</span>
                     </div>
-                    <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground line-clamp-2">{item.message}</p>
+                    <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground line-clamp-2">
+                      {item.message}
+                    </p>
                     {item.link && (
                       <Link
                         to={item.link}
@@ -143,7 +164,15 @@ export function NotificationPopover() {
   );
 }
 
-function FilterChip({ active, onClick, label }: { active: boolean; onClick: () => void; label: string }) {
+function FilterChip({
+  active,
+  onClick,
+  label,
+}: {
+  active: boolean;
+  onClick: () => void;
+  label: string;
+}) {
   return (
     <button
       onClick={onClick}

@@ -1,7 +1,25 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useSuspenseQuery, useQuery, queryOptions, useQueryClient } from "@tanstack/react-query";
-import { Crown, History, Settings, LogOut, ChevronRight, Coins, Sparkles, Plus, TrendingDown, TrendingUp, Check, Info, X, Lock, ShieldCheck, Users, Copy } from "lucide-react";
+import {
+  Crown,
+  History,
+  Settings,
+  LogOut,
+  ChevronRight,
+  Coins,
+  Sparkles,
+  Plus,
+  TrendingDown,
+  TrendingUp,
+  Check,
+  Info,
+  X,
+  Lock,
+  ShieldCheck,
+  Users,
+  Copy,
+} from "lucide-react";
 import { AppShell, PageTitle } from "@/components/AppShell";
 import { PRICED_PACKS, formatXaf, type PricedPack } from "@/lib/pricing";
 import { createTopupCheckout, verifyTopup, getMyPayments } from "@/lib/payments.functions";
@@ -15,18 +33,37 @@ import { cn } from "@/lib/utils";
 import { formatPremiumExpiry, isPremiumActive, premiumDaysRemaining } from "@/lib/premium-status";
 
 const CREDIT_RULES = [
-  { cost: 3, label: "Analyse IA d'un match", desc: "Probabilités 1X2, score probable et 5 marchés recommandés" },
-  { cost: 3, label: "Prédiction personnalisée", desc: "Analyse avancée de deux équipes de votre choix" },
-  { cost: 0, label: "Livescore & statistiques", desc: "Toujours gratuit — mises à jour temps réel" },
+  {
+    cost: 3,
+    label: "Analyse IA d'un match",
+    desc: "Probabilités 1X2, score probable et 5 marchés recommandés",
+  },
+  {
+    cost: 3,
+    label: "Prédiction personnalisée",
+    desc: "Analyse avancée de deux équipes de votre choix",
+  },
+  {
+    cost: 0,
+    label: "Livescore & statistiques",
+    desc: "Toujours gratuit — mises à jour temps réel",
+  },
 ];
 
 export const Route = createFileRoute("/_authenticated/profil")({
   head: () => ({
     meta: [
       { title: "Mon profil & crédits — Livefoot IA" },
-      { name: "description", content: "Votre tableau de bord Livefoot IA : solde de crédits, historique d'analyses, packs de recharge et abonnement Premium." },
+      {
+        name: "description",
+        content:
+          "Votre tableau de bord Livefoot IA : solde de crédits, historique d'analyses, packs de recharge et abonnement Premium.",
+      },
       { property: "og:title", content: "Mon profil & crédits — Livefoot IA" },
-      { property: "og:description", content: "Gérez vos crédits d'analyse IA, votre historique et votre abonnement Premium." },
+      {
+        property: "og:description",
+        content: "Gérez vos crédits d'analyse IA, votre historique et votre abonnement Premium.",
+      },
       { property: "og:url", content: "https://www.livefoot.fun/profil" },
       { name: "robots", content: "noindex" },
     ],
@@ -76,7 +113,12 @@ function ProfilPage() {
   const monthlyLimit = isPremium ? 100 : 5;
   const usedPct = Math.min(100, Math.round((balance / monthlyLimit) * 100));
   const displayName = profile.display_name ?? user?.email?.split("@")[0] ?? "Utilisateur";
-  const initials = displayName.split(/[\s.]+/).map((s) => s[0]).slice(0, 2).join("").toUpperCase();
+  const initials = displayName
+    .split(/[\s.]+/)
+    .map((s) => s[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
 
   const [busyPack, setBusyPack] = useState<string | null>(null);
   const checkoutFn = useServerFn(createTopupCheckout);
@@ -164,7 +206,7 @@ function ProfilPage() {
 
       {/* Profil Header */}
       <div className="px-4 lg:px-0">
-        <div className="flex items-center gap-4 rounded-3xl bg-card p-4 ring-1 ring-black/5 dark:ring-white/5">
+        <div className="animate-rise flex items-center gap-4 rounded-xl border border-border/70 bg-card p-4">
           <div className="grid size-16 place-items-center rounded-full bg-foreground text-2xl font-black text-background">
             {initials || "?"}
           </div>
@@ -184,7 +226,11 @@ function ProfilPage() {
           </div>
         </div>
         {isPremium && (
-          <div className="mt-3 flex items-center gap-3 rounded-2xl border border-brand/25 bg-brand/5 p-3" role="status" aria-live="polite">
+          <div
+            className="mt-3 flex items-center gap-3 rounded-2xl border border-brand/25 bg-brand/5 p-3"
+            role="status"
+            aria-live="polite"
+          >
             <div className="grid size-9 shrink-0 place-items-center rounded-xl bg-brand/15 text-brand">
               <ShieldCheck className="size-5" aria-hidden />
             </div>
@@ -192,10 +238,14 @@ function ProfilPage() {
               <div className="text-xs font-black text-brand">Premium actif et confirmé</div>
               <div className="mt-0.5 text-[11px] text-muted-foreground">
                 {premiumExpiry ? `Accès annuel jusqu’au ${premiumExpiry}` : "Accès Premium actif"}
-                {premiumDays !== null && ` · ${premiumDays} jour${premiumDays > 1 ? "s" : ""} restant${premiumDays > 1 ? "s" : ""}`}
+                {premiumDays !== null &&
+                  ` · ${premiumDays} jour${premiumDays > 1 ? "s" : ""} restant${premiumDays > 1 ? "s" : ""}`}
               </div>
             </div>
-            <Link to="/premium/tableau-de-bord" className="shrink-0 rounded-xl bg-brand px-3 py-2 text-[10px] font-black text-brand-foreground">
+            <Link
+              to="/premium/tableau-de-bord"
+              className="shrink-0 rounded-xl bg-brand px-3 py-2 text-[10px] font-black text-brand-foreground"
+            >
               Ouvrir le Hub
             </Link>
           </div>
@@ -204,9 +254,15 @@ function ProfilPage() {
 
       {/* Credits Wallet */}
       <section aria-labelledby="wallet-title" className="mt-4 px-4 lg:px-0">
-        <div className="relative overflow-hidden rounded-3xl bg-foreground p-5 text-background">
-          <div className="pointer-events-none absolute -right-10 -top-16 size-48 rounded-full bg-warn/25 blur-3xl" aria-hidden />
-          <div className="pointer-events-none absolute -bottom-16 -left-10 size-40 rounded-full bg-brand/20 blur-3xl" aria-hidden />
+        <div className="relative animate-rise overflow-hidden rounded-xl bg-[#181818] p-5 text-[#f7f7f7]">
+          <div
+            className="pointer-events-none absolute -right-10 -top-16 size-48 rounded-full bg-warn/25 blur-3xl"
+            aria-hidden
+          />
+          <div
+            className="pointer-events-none absolute -bottom-16 -left-10 size-40 rounded-full bg-brand/20 blur-3xl"
+            aria-hidden
+          />
           <div className="relative">
             <div className="flex items-start justify-between">
               <div>
@@ -216,13 +272,15 @@ function ProfilPage() {
                 <h2 id="wallet-title" className="text-4xl font-black tabular-nums leading-none">
                   {balance}
                 </h2>
-                <p className="mt-1 text-[11px] text-background/60">≈ {Math.floor(balance / 3)} analyses IA restantes (3 crédits / analyse)</p>
+                <p className="mt-1 text-[11px] text-background/60">
+                  ≈ {Math.floor(balance / 3)} analyses IA restantes (3 crédits / analyse)
+                </p>
               </div>
 
               {isPremium ? (
                 <button
                   onClick={() => setShowTopup(true)}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-warn px-3 py-2 text-xs font-black text-neutral-900 transition-transform hover:scale-105 active:scale-95"
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-brand px-3 py-2 text-xs font-black text-brand-foreground transition-transform hover:scale-105 active:scale-95"
                 >
                   <Plus className="size-3.5" /> Recharger
                 </button>
@@ -239,10 +297,15 @@ function ProfilPage() {
             <div className="mt-4">
               <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-widest text-background/60">
                 <span>{isPremium ? "Crédits Mensuels Premium" : "Crédits de bienvenue"}</span>
-                <span className="tabular-nums text-background">{balance} / {monthlyLimit}</span>
+                <span className="tabular-nums text-background">
+                  {balance} / {monthlyLimit}
+                </span>
               </div>
               <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-background/10">
-                <div className="h-full rounded-full bg-warn transition-all" style={{ width: `${usedPct}%` }} />
+                <div
+                  className="h-full rounded-full bg-brand transition-all"
+                  style={{ width: `${usedPct}%` }}
+                />
               </div>
             </div>
           </div>
@@ -251,22 +314,29 @@ function ProfilPage() {
 
       {/* Quick stats */}
       <div className="mt-4 grid grid-cols-3 gap-3 px-4 lg:px-0">
-        <StatCard value={String(rawHistory.filter((h) => h.kind === "analysis").length)} label="Analyses" icon={<Sparkles className="size-3.5 text-brand" />} />
+        <StatCard
+          value={String(rawHistory.filter((h) => h.kind === "analysis").length)}
+          label="Analyses"
+          icon={<Sparkles className="size-3.5 text-brand" />}
+        />
         <StatCard value={isPremium ? "Premium" : "Gratuit"} label="Plan" />
         <StatCard value={String(balance)} label="Crédits" />
       </div>
 
       {/* Referral dashboard */}
       <section aria-labelledby="referral-title" className="mt-6 px-4 lg:px-0">
-        <div className="overflow-hidden rounded-3xl border border-brand/25 bg-brand/5 p-5">
+        <div className="animate-rise overflow-hidden rounded-xl border border-brand/25 bg-brand/5 p-5">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <div className="mb-1.5 inline-flex items-center gap-1.5 rounded-full bg-brand/15 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-brand">
                 <Users className="size-3" aria-hidden /> Parrainage
               </div>
-              <h2 id="referral-title" className="text-xl font-black tracking-tight">Invitez, suivez, gagnez</h2>
+              <h2 id="referral-title" className="text-xl font-black tracking-tight">
+                Invitez, suivez, gagnez
+              </h2>
               <p className="mt-1 max-w-xl text-xs leading-relaxed text-muted-foreground">
-                Retrouvez ici votre lien, le nombre de filleuls inscrits et les crédits attribués. Le popup ne s'ouvre plus automatiquement : vous le contrôlez depuis ce tableau.
+                Retrouvez ici votre lien, le nombre de filleuls inscrits et les crédits attribués.
+                Le popup ne s'ouvre plus automatiquement : vous le contrôlez depuis ce tableau.
               </p>
             </div>
             <button
@@ -288,7 +358,9 @@ function ProfilPage() {
 
               {referralData.referralLink && (
                 <div className="mt-3 flex items-center gap-2 rounded-2xl bg-background px-3 py-2.5 ring-1 ring-black/5 dark:ring-white/10">
-                  <span className="min-w-0 flex-1 truncate font-mono text-[11px] text-muted-foreground">{referralData.referralLink}</span>
+                  <span className="min-w-0 flex-1 truncate font-mono text-[11px] text-muted-foreground">
+                    {referralData.referralLink}
+                  </span>
                   <button
                     type="button"
                     onClick={copyReferralLink}
@@ -302,23 +374,35 @@ function ProfilPage() {
               <div className="mt-4">
                 <div className="mb-2 flex items-center justify-between">
                   <h3 className="text-[11px] font-black uppercase tracking-widest">Mes filleuls</h3>
-                  <span className="text-[10px] text-muted-foreground">{referralData.referralCount} inscription{referralData.referralCount > 1 ? "s" : ""}</span>
+                  <span className="text-[10px] text-muted-foreground">
+                    {referralData.referralCount} inscription
+                    {referralData.referralCount > 1 ? "s" : ""}
+                  </span>
                 </div>
                 {referralData.referrals.length === 0 ? (
                   <p className="rounded-2xl border border-dashed border-brand/30 px-3 py-3 text-xs text-muted-foreground">
                     Aucun filleul pour le moment. Partagez votre lien pour commencer.
                   </p>
                 ) : (
-                  <ul className="divide-y divide-border/60 rounded-2xl bg-background ring-1 ring-black/5 dark:ring-white/10" role="list">
+                  <ul
+                    className="divide-y divide-border/60 rounded-2xl bg-background ring-1 ring-black/5 dark:ring-white/10"
+                    role="list"
+                  >
                     {referralData.referrals.map((referral) => (
-                      <li key={`${referral.displayName}-${referral.joinedAt}`} className="flex items-center justify-between gap-3 px-3 py-2.5">
+                      <li
+                        key={`${referral.displayName}-${referral.joinedAt}`}
+                        className="flex items-center justify-between gap-3 px-3 py-2.5"
+                      >
                         <div className="flex min-w-0 items-center gap-2">
                           <span className="grid size-7 shrink-0 place-items-center rounded-full bg-brand/15 text-brand">
                             <Users className="size-3.5" aria-hidden />
                           </span>
                           <span className="truncate text-xs font-bold">{referral.displayName}</span>
                         </div>
-                        <time className="shrink-0 text-[10px] text-muted-foreground" dateTime={referral.joinedAt}>
+                        <time
+                          className="shrink-0 text-[10px] text-muted-foreground"
+                          dateTime={referral.joinedAt}
+                        >
                           {new Date(referral.joinedAt).toLocaleDateString("fr-FR")}
                         </time>
                       </li>
@@ -328,7 +412,10 @@ function ProfilPage() {
               </div>
             </>
           ) : (
-            <div className="mt-4 h-24 animate-pulse rounded-2xl bg-background/70" aria-label="Chargement du parrainage" />
+            <div
+              className="mt-4 h-24 animate-pulse rounded-2xl bg-background/70"
+              aria-label="Chargement du parrainage"
+            />
           )}
         </div>
       </section>
@@ -341,9 +428,15 @@ function ProfilPage() {
             Règles d'utilisation des crédits
           </h3>
         </div>
-        <ul className="space-y-2 rounded-2xl bg-card ring-1 ring-black/5 dark:ring-white/5" role="list">
+        <ul
+          className="space-y-2 rounded-2xl bg-card ring-1 ring-black/5 dark:ring-white/5"
+          role="list"
+        >
           {CREDIT_RULES.map((r) => (
-            <li key={r.label} className="flex items-start gap-3 border-b border-border/60 px-4 py-3 last:border-b-0">
+            <li
+              key={r.label}
+              className="flex items-start gap-3 border-b border-border/60 px-4 py-3 last:border-b-0"
+            >
               <div
                 className={cn(
                   "grid size-9 shrink-0 place-items-center rounded-full text-[11px] font-black tabular-nums ring-1",
@@ -381,23 +474,43 @@ function ProfilPage() {
           <ul className="rounded-2xl bg-card ring-1 ring-black/5 dark:ring-white/5" role="list">
             {history.map((h) => {
               const positive = h.amount > 0;
-              const date = new Date(h.created_at).toLocaleString("fr-FR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
+              const date = new Date(h.created_at).toLocaleString("fr-FR", {
+                day: "2-digit",
+                month: "short",
+                hour: "2-digit",
+                minute: "2-digit",
+              });
               return (
-                <li key={h.id} className="flex items-center gap-3 border-b border-border/60 px-4 py-3 last:border-b-0">
+                <li
+                  key={h.id}
+                  className="flex items-center gap-3 border-b border-border/60 px-4 py-3 last:border-b-0"
+                >
                   <div
                     className={cn(
                       "grid size-9 shrink-0 place-items-center rounded-full",
                       positive ? "bg-brand/10 text-brand" : "bg-alert/10 text-alert",
                     )}
                   >
-                    {positive ? <TrendingUp className="size-4" /> : <TrendingDown className="size-4" />}
+                    {positive ? (
+                      <TrendingUp className="size-4" />
+                    ) : (
+                      <TrendingDown className="size-4" />
+                    )}
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="text-xs font-black">{h.label ?? h.kind}</div>
-                    <div className="truncate text-[11px] text-muted-foreground">Solde après : {h.balance_after} · {date}</div>
+                    <div className="truncate text-[11px] text-muted-foreground">
+                      Solde après : {h.balance_after} · {date}
+                    </div>
                   </div>
-                  <div className={cn("shrink-0 tabular-nums text-sm font-black", positive ? "text-brand" : "text-alert")}>
-                    {positive ? "+" : ""}{h.amount}
+                  <div
+                    className={cn(
+                      "shrink-0 tabular-nums text-sm font-black",
+                      positive ? "text-brand" : "text-alert",
+                    )}
+                  >
+                    {positive ? "+" : ""}
+                    {h.amount}
                   </div>
                 </li>
               );
@@ -413,9 +526,12 @@ function ProfilPage() {
             <div className="mb-3 inline-flex items-center gap-1.5 rounded-full bg-brand/20 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-brand">
               <Crown className="size-3" /> Offre Premium
             </div>
-            <h3 className="text-lg font-black leading-tight">100 crédits d'analyse mensuels & Favoris illimités</h3>
+            <h3 className="text-lg font-black leading-tight">
+              100 crédits d'analyse mensuels & Favoris illimités
+            </h3>
             <p className="mt-2 text-xs text-muted-foreground leading-relaxed">
-              Pour seulement 4 900 FCFA/mois, obtenez 100 crédits par mois et débloquez la possibilité de télécharger des packs de recharges.
+              Pour seulement 4 900 FCFA/mois, obtenez 100 crédits par mois et débloquez la
+              possibilité de télécharger des packs de recharges.
             </p>
             <Link
               to="/premium"
@@ -445,12 +561,19 @@ function ProfilPage() {
       {/* Payment History */}
       {(paymentData.payments.length > 0 || paymentData.subscriptions.length > 0) && (
         <section className="mt-6 px-4 lg:px-0">
-          <h2 className="mb-3 text-[11px] font-black uppercase tracking-widest text-muted-foreground">Mes paiements & abonnements</h2>
+          <h2 className="mb-3 text-[11px] font-black uppercase tracking-widest text-muted-foreground">
+            Mes paiements & abonnements
+          </h2>
           <div className="space-y-2">
             {paymentData.subscriptions.map((s) => (
-              <div key={s.id} className="flex items-center justify-between gap-3 rounded-2xl bg-card p-3 ring-1 ring-black/5 dark:ring-white/5">
+              <div
+                key={s.id}
+                className="flex items-center justify-between gap-3 rounded-2xl bg-card p-3 ring-1 ring-black/5 dark:ring-white/5"
+              >
                 <div className="min-w-0">
-                  <div className="text-[13px] font-bold">Abonnement Premium · {formatXaf(s.amount_xaf)}</div>
+                  <div className="text-[13px] font-bold">
+                    Abonnement Premium · {formatXaf(s.amount_xaf)}
+                  </div>
                   <div className="text-[10px] text-muted-foreground">
                     {new Date(s.created_at).toLocaleString("fr-FR")} · Statut : {s.status}
                   </div>
@@ -466,9 +589,14 @@ function ProfilPage() {
               </div>
             ))}
             {paymentData.payments.map((p) => (
-              <div key={p.id} className="flex items-center justify-between gap-3 rounded-2xl bg-card p-3 ring-1 ring-black/5 dark:ring-white/5">
+              <div
+                key={p.id}
+                className="flex items-center justify-between gap-3 rounded-2xl bg-card p-3 ring-1 ring-black/5 dark:ring-white/5"
+              >
                 <div className="min-w-0">
-                  <div className="text-[13px] font-bold">{p.credits} crédits · {formatXaf(p.amount_xaf)}</div>
+                  <div className="text-[13px] font-bold">
+                    {p.credits} crédits · {formatXaf(p.amount_xaf)}
+                  </div>
                   <div className="text-[10px] text-muted-foreground">
                     {new Date(p.created_at).toLocaleString("fr-FR")} · {p.status}
                   </div>
@@ -494,34 +622,76 @@ function ProfilPage() {
       </div>
 
       {showTopup && (
-        <TopupDialog onClose={() => setShowTopup(false)} onBuy={handleTopup} busyPack={busyPack} isPremium={isPremium} />
+        <TopupDialog
+          onClose={() => setShowTopup(false)}
+          onBuy={handleTopup}
+          busyPack={busyPack}
+          isPremium={isPremium}
+        />
       )}
     </AppShell>
   );
 }
 
-function StatCard({ value, label, icon }: { value: string; label: string; icon?: React.ReactNode }) {
+function StatCard({
+  value,
+  label,
+  icon,
+}: {
+  value: string;
+  label: string;
+  icon?: React.ReactNode;
+}) {
   return (
     <div className="rounded-2xl bg-card p-3 ring-1 ring-black/5 dark:ring-white/5">
       <div className="flex items-center gap-1">
         {icon}
-        <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">{label}</span>
+        <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">
+          {label}
+        </span>
       </div>
       <div className="mt-1 text-xl font-black tabular-nums leading-none">{value}</div>
     </div>
   );
 }
 
-function ReferralStat({ value, label, compact = false }: { value: string; label: string; compact?: boolean }) {
+function ReferralStat({
+  value,
+  label,
+  compact = false,
+}: {
+  value: string;
+  label: string;
+  compact?: boolean;
+}) {
   return (
     <div className="min-w-0 rounded-2xl bg-background p-3 ring-1 ring-black/5 dark:ring-white/10">
-      <div className={cn("truncate font-black leading-none", compact ? "text-sm tracking-wider" : "text-xl tabular-nums")}>{value}</div>
-      <div className="mt-1 truncate text-[9px] font-black uppercase tracking-widest text-muted-foreground">{label}</div>
+      <div
+        className={cn(
+          "truncate font-black leading-none",
+          compact ? "text-sm tracking-wider" : "text-xl tabular-nums",
+        )}
+      >
+        {value}
+      </div>
+      <div className="mt-1 truncate text-[9px] font-black uppercase tracking-widest text-muted-foreground">
+        {label}
+      </div>
     </div>
   );
 }
 
-function MenuRow({ icon, label, tone, onClick }: { icon: React.ReactNode; label: string; tone?: "alert"; onClick?: () => void }) {
+function MenuRow({
+  icon,
+  label,
+  tone,
+  onClick,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  tone?: "alert";
+  onClick?: () => void;
+}) {
   return (
     <button
       onClick={onClick}
@@ -530,27 +700,55 @@ function MenuRow({ icon, label, tone, onClick }: { icon: React.ReactNode; label:
         tone === "alert" && "text-alert",
       )}
     >
-      <span className={cn("grid size-8 place-items-center rounded-full", tone === "alert" ? "bg-alert/10" : "bg-surface")}>{icon}</span>
+      <span
+        className={cn(
+          "grid size-8 place-items-center rounded-full",
+          tone === "alert" ? "bg-alert/10" : "bg-surface",
+        )}
+      >
+        {icon}
+      </span>
       <span className="flex-1">{label}</span>
       <ChevronRight className="size-4 text-muted-foreground" aria-hidden />
     </button>
   );
 }
 
-function TopupDialog({ onClose, onBuy, busyPack, isPremium }: { onClose: () => void; onBuy: (pack: PricedPack) => void; busyPack: string | null; isPremium: boolean }) {
+function TopupDialog({
+  onClose,
+  onBuy,
+  busyPack,
+  isPremium,
+}: {
+  onClose: () => void;
+  onBuy: (pack: PricedPack) => void;
+  busyPack: string | null;
+  isPremium: boolean;
+}) {
   const navigate = useNavigate();
   return (
-    <div className="fixed inset-0 z-50 grid place-items-end bg-foreground/60 backdrop-blur-sm sm:place-items-center" onClick={onClose}>
-      <div onClick={(e) => e.stopPropagation()} className="w-full max-w-[440px] rounded-t-3xl bg-background p-5 shadow-2xl sm:rounded-3xl">
+    <div
+      className="fixed inset-0 z-50 grid place-items-end bg-foreground/60 backdrop-blur-sm sm:place-items-center"
+      onClick={onClose}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="score-modal w-full max-w-[440px] rounded-t-2xl bg-background p-5 sm:rounded-2xl"
+      >
         <div className="flex items-start justify-between">
           <div>
             <div className="mb-1 inline-flex items-center gap-1.5 rounded-full bg-warn/15 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-warn">
               <Coins className="size-3" /> Recharge de crédits
             </div>
             <h2 className="text-xl font-black leading-tight">Choisir un pack</h2>
-            <p className="mt-1 text-xs text-muted-foreground">Paiement MTN MoMo / Orange Money via Fapshi.</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Paiement MTN MoMo / Orange Money via Fapshi.
+            </p>
           </div>
-          <button onClick={onClose} className="grid size-8 place-items-center rounded-full bg-surface ring-1 ring-black/5 dark:ring-white/10">
+          <button
+            onClick={onClose}
+            className="grid size-8 place-items-center rounded-full bg-surface ring-1 ring-black/5 dark:ring-white/10"
+          >
             <X className="size-4" />
           </button>
         </div>
@@ -564,7 +762,10 @@ function TopupDialog({ onClose, onBuy, busyPack, isPremium }: { onClose: () => v
               Vous devez disposer d'un abonnement Premium actif pour recharger des crédits.
             </p>
             <button
-              onClick={() => { onClose(); navigate({ to: "/premium" }); }}
+              onClick={() => {
+                onClose();
+                navigate({ to: "/premium" });
+              }}
               className="mt-2 w-full rounded-xl bg-brand py-2 text-xs font-black text-brand-foreground"
             >
               Passer Premium

@@ -1,7 +1,16 @@
 import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Crown, Check, Zap, Sparkles, ShieldCheck, HelpCircle, Lock, ArrowRight } from "lucide-react";
+import {
+  Crown,
+  Check,
+  Zap,
+  Sparkles,
+  ShieldCheck,
+  HelpCircle,
+  Lock,
+  ArrowRight,
+} from "lucide-react";
 import { AppShell, PageTitle } from "@/components/AppShell";
 import { buildRouteMeta } from "@/lib/seo";
 import { PREMIUM_PLANS, PRICED_PACKS, formatXaf, type PremiumPlan } from "@/lib/pricing";
@@ -82,7 +91,9 @@ function PremiumSubscriptionPage() {
     }
 
     if (!isPremium) {
-      toast.error("Les packs de crédits sont réservés aux membres Premium. Choisissez une formule ci-dessous !");
+      toast.error(
+        "Les packs de crédits sont réservés aux membres Premium. Choisissez une formule ci-dessous !",
+      );
       return;
     }
 
@@ -102,9 +113,15 @@ function PremiumSubscriptionPage() {
 
       {/* Hero Banner */}
       <div className="px-4 lg:px-0">
-        <div className="relative overflow-hidden rounded-3xl bg-foreground p-6 text-background shadow-xl">
-          <div className="pointer-events-none absolute -right-12 -top-16 size-56 rounded-full bg-brand/35 blur-3xl" aria-hidden />
-          <div className="pointer-events-none absolute -bottom-16 -left-12 size-48 rounded-full bg-warn/30 blur-3xl" aria-hidden />
+        <div className="relative animate-rise overflow-hidden rounded-xl bg-[#181818] p-6 text-[#f7f7f7] shadow-none">
+          <div
+            className="pointer-events-none absolute -right-12 -top-16 size-56 rounded-full bg-brand/35 blur-3xl"
+            aria-hidden
+          />
+          <div
+            className="pointer-events-none absolute -bottom-16 -left-12 size-48 rounded-full bg-warn/30 blur-3xl"
+            aria-hidden
+          />
 
           <div className="relative">
             <div className="inline-flex items-center gap-1.5 rounded-full bg-brand/20 px-3 py-1 text-xs font-black uppercase tracking-widest text-brand">
@@ -115,13 +132,22 @@ function PremiumSubscriptionPage() {
               Débloquez la puissance maximale des prédictions IA
             </h1>
             <p className="mt-2 text-xs leading-relaxed text-background/75 sm:text-sm">
-              100 crédits par mois réinitialisés à chaque cycle, favoris illimités, et accès exclusif aux packs de recharge pour ne jamais tomber à court.
+              100 crédits par mois réinitialisés à chaque cycle, favoris illimités, et accès
+              exclusif aux packs de recharge pour ne jamais tomber à court.
             </p>
 
             {isPremium && (
-              <div className="mt-4 flex flex-wrap items-center gap-2 rounded-2xl bg-brand/20 px-3 py-2 text-xs font-black text-brand ring-1 ring-brand/30" role="status">
+              <div
+                className="mt-4 flex flex-wrap items-center gap-2 rounded-2xl bg-brand/20 px-3 py-2 text-xs font-black text-brand ring-1 ring-brand/30"
+                role="status"
+              >
                 <Check className="size-4" /> Premium actif
-                {premiumExpiry && <span className="font-medium text-brand/80">jusqu’au {premiumExpiry}{premiumDays !== null ? ` · ${premiumDays} j` : ""}</span>}
+                {premiumExpiry && (
+                  <span className="font-medium text-brand/80">
+                    jusqu’au {premiumExpiry}
+                    {premiumDays !== null ? ` · ${premiumDays} j` : ""}
+                  </span>
+                )}
               </div>
             )}
           </div>
@@ -135,10 +161,14 @@ function PremiumSubscriptionPage() {
           className="flex items-center justify-between gap-3 rounded-2xl border border-brand/30 bg-brand/5 p-4 transition-colors hover:bg-brand/10"
         >
           <span className="flex items-center gap-3">
-            <span className="grid size-9 place-items-center rounded-xl bg-brand/15 text-brand"><Sparkles className="size-4" /></span>
+            <span className="grid size-9 place-items-center rounded-xl bg-brand/15 text-brand">
+              <Sparkles className="size-4" />
+            </span>
             <span>
               <span className="block text-sm font-black">Premium Intelligence Hub</span>
-              <span className="block text-xs text-muted-foreground">Radar value, alertes intelligentes et scorecard personnel</span>
+              <span className="block text-xs text-muted-foreground">
+                Radar value, alertes intelligentes et scorecard personnel
+              </span>
             </span>
           </span>
           <ArrowRight className="size-4 shrink-0 text-brand" aria-hidden />
@@ -149,7 +179,9 @@ function PremiumSubscriptionPage() {
       <section className="mt-8 px-4 lg:px-0">
         <div className="mb-4 text-center">
           <h2 className="text-xl font-black">Choisissez votre formule</h2>
-          <p className="text-xs text-muted-foreground">Sans engagement · Paiement sécurisé Fapshi Mobile Money</p>
+          <p className="text-xs text-muted-foreground">
+            Sans engagement · Paiement sécurisé Fapshi Mobile Money
+          </p>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
@@ -157,7 +189,7 @@ function PremiumSubscriptionPage() {
             <div
               key={plan.id}
               className={cn(
-                "relative flex flex-col justify-between rounded-3xl bg-card p-6 ring-1 transition-all",
+                "relative flex animate-rise flex-col justify-between rounded-xl border border-border/70 bg-card p-6 transition-all",
                 plan.badge
                   ? "ring-brand shadow-lg shadow-brand/10"
                   : "ring-black/5 dark:ring-white/5",
@@ -170,17 +202,27 @@ function PremiumSubscriptionPage() {
               )}
 
               <div>
-                <div className="text-sm font-black text-muted-foreground uppercase tracking-wider">{plan.name}</div>
-                <div className="mt-2 flex items-baseline gap-1">
-                  <span className="text-3xl font-black tabular-nums">{formatXaf(plan.priceXaf)}</span>
-                  <span className="text-xs text-muted-foreground">/{plan.interval === "year" ? "an" : "mois"}</span>
+                <div className="text-sm font-black text-muted-foreground uppercase tracking-wider">
+                  {plan.name}
                 </div>
-                <p className="mt-2 text-xs text-muted-foreground leading-relaxed">{plan.description}</p>
+                <div className="mt-2 flex items-baseline gap-1">
+                  <span className="text-3xl font-black tabular-nums">
+                    {formatXaf(plan.priceXaf)}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    /{plan.interval === "year" ? "an" : "mois"}
+                  </span>
+                </div>
+                <p className="mt-2 text-xs text-muted-foreground leading-relaxed">
+                  {plan.description}
+                </p>
 
                 <ul className="mt-5 space-y-2.5 text-xs font-medium">
                   <li className="flex items-center gap-2">
                     <Sparkles className="size-4 text-brand shrink-0" />
-                    <span><strong>100 crédits/mois</strong> (33+ analyses IA)</span>
+                    <span>
+                      <strong>100 crédits/mois</strong> (33+ analyses IA)
+                    </span>
                   </li>
                   <li className="flex items-center gap-2">
                     <Check className="size-4 text-brand shrink-0" />
@@ -207,7 +249,11 @@ function PremiumSubscriptionPage() {
                     : "bg-foreground text-background",
                 )}
               >
-                {isPremium ? "Accéder au Hub" : busyPlan === plan.id ? "Redirection..." : `Souscrire (${formatXaf(plan.priceXaf)})`}
+                {isPremium
+                  ? "Accéder au Hub"
+                  : busyPlan === plan.id
+                    ? "Redirection..."
+                    : `Souscrire (${formatXaf(plan.priceXaf)})`}
                 <ArrowRight className="size-4" />
               </button>
             </div>
@@ -218,7 +264,7 @@ function PremiumSubscriptionPage() {
       {/* Comparison Table */}
       <section className="mt-10 px-4 lg:px-0">
         <h2 className="mb-4 text-center text-lg font-black">Comparatif Gratuit vs Premium</h2>
-        <div className="overflow-hidden rounded-3xl bg-card ring-1 ring-black/5 dark:ring-white/5">
+        <div className="overflow-hidden rounded-xl border border-border/70 bg-card">
           <table className="w-full text-left text-xs">
             <thead>
               <tr className="border-b border-border/60 bg-surface">
@@ -263,7 +309,9 @@ function PremiumSubscriptionPage() {
         <div className="mb-4 flex items-center justify-between">
           <div>
             <h2 className="text-lg font-black">Packs de crédits supplémentaires</h2>
-            <p className="text-xs text-muted-foreground">Rechargez vos crédits à tout moment (réservé aux abonnés Premium).</p>
+            <p className="text-xs text-muted-foreground">
+              Rechargez vos crédits à tout moment (réservé aux abonnés Premium).
+            </p>
           </div>
           {!isPremium && (
             <span className="inline-flex items-center gap-1 rounded-full bg-warn/15 px-2.5 py-1 text-[10px] font-black uppercase text-warn">
@@ -283,7 +331,9 @@ function PremiumSubscriptionPage() {
               )}
             >
               <div>
-                <div className="text-[10px] font-black uppercase tracking-widest text-warn">{pack.name}</div>
+                <div className="text-[10px] font-black uppercase tracking-widest text-warn">
+                  {pack.name}
+                </div>
                 <div className="mt-1 text-2xl font-black tabular-nums">{pack.credits} crédits</div>
                 <div className="text-xs font-bold mt-0.5">{pack.priceLabel}</div>
                 <div className="text-[10px] text-muted-foreground">{pack.perAnalysisLabel}</div>
@@ -336,7 +386,9 @@ function FaqItem({ q, r }: { q: string; r: string }) {
         className="flex w-full items-center justify-between text-left text-xs font-black"
       >
         <span>{q}</span>
-        <HelpCircle className={cn("size-4 text-muted-foreground transition-transform", open && "rotate-180")} />
+        <HelpCircle
+          className={cn("size-4 text-muted-foreground transition-transform", open && "rotate-180")}
+        />
       </button>
       {open && <p className="mt-2 text-xs text-muted-foreground leading-relaxed">{r}</p>}
     </div>

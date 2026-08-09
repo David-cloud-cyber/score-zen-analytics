@@ -43,7 +43,8 @@ export const Route = createFileRoute("/premium/tableau-de-bord")({
     buildRouteMeta({
       path: "/premium/tableau-de-bord",
       title: "Premium Intelligence Hub — Radar et alertes football",
-      description: "Tableau de bord Premium Livefoot : radar value, alertes personnalisées, analyses et scorecard de performance.",
+      description:
+        "Tableau de bord Premium Livefoot : radar value, alertes personnalisées, analyses et scorecard de performance.",
       noindex: true,
     }),
   component: PremiumHubPage,
@@ -67,14 +68,17 @@ function PremiumHubPage() {
   });
 
   useEffect(() => {
-    if (!sessionLoading && !user) navigate({ to: "/auth", search: { redirect: "/premium/tableau-de-bord" } });
+    if (!sessionLoading && !user)
+      navigate({ to: "/auth", search: { redirect: "/premium/tableau-de-bord" } });
   }, [sessionLoading, user, navigate]);
 
   async function handleToggleFavorite(item: RadarOpportunity) {
     const key = item.fixtureId;
     setBusyFavorite(key);
     try {
-      await toggleFavorite({ data: { kind: "team", refId: item.home.name, label: item.home.name, notify: true } });
+      await toggleFavorite({
+        data: { kind: "team", refId: item.home.name, label: item.home.name, notify: true },
+      });
       await queryClient.invalidateQueries({ queryKey: ["premium", "intelligence-hub"] });
       toast.success(`Suivi de ${item.home.name} mis à jour.`);
     } catch (error) {
@@ -130,7 +134,11 @@ function PremiumHubPage() {
                 <RadarCard
                   key={item.fixtureId}
                   item={item}
-                  followed={data.favorites.some((favorite) => favorite.kind === "team" && favorite.refId.toLowerCase() === item.home.name.toLowerCase())}
+                  followed={data.favorites.some(
+                    (favorite) =>
+                      favorite.kind === "team" &&
+                      favorite.refId.toLowerCase() === item.home.name.toLowerCase(),
+                  )}
                   busy={busyFavorite === item.fixtureId}
                   onToggle={() => handleToggleFavorite(item)}
                 />
@@ -175,7 +183,7 @@ function PremiumHubPage() {
           <FollowedTeams favorites={data.favorites} onNotification={handleNotification} />
         </section>
 
-        <div className="rounded-3xl bg-foreground p-5 text-background shadow-xl sm:p-6">
+        <div className="animate-score-pop rounded-xl bg-[#181818] p-5 text-[#f7f7f7] shadow-none sm:p-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-brand">
@@ -183,7 +191,8 @@ function PremiumHubPage() {
               </p>
               <h2 className="mt-1 text-xl font-black">Passez du signal à l’explication</h2>
               <p className="mt-1 max-w-xl text-sm leading-relaxed text-background/65">
-                Ouvrez une analyse complète pour voir la forme, le H2H, les absences et les marchés recommandés.
+                Ouvrez une analyse complète pour voir la forme, le H2H, les absences et les marchés
+                recommandés.
               </p>
             </div>
             <Link
@@ -199,19 +208,34 @@ function PremiumHubPage() {
 
         <p className="flex items-start gap-2 text-[11px] leading-relaxed text-muted-foreground">
           <ShieldAlert className="mt-0.5 size-3.5 shrink-0 text-alert" aria-hidden />
-          Les probabilités sont des estimations statistiques. Elles ne constituent pas un conseil financier et ne garantissent
-          ni résultat ni gain. Ne misez jamais de l’argent nécessaire à vos dépenses.
+          Les probabilités sont des estimations statistiques. Elles ne constituent pas un conseil
+          financier et ne garantissent ni résultat ni gain. Ne misez jamais de l’argent nécessaire à
+          vos dépenses.
         </p>
       </div>
     </AppShell>
   );
 }
 
-function HubHeader({ data, onRefresh, refreshing }: { data: PremiumHubData; onRefresh: () => void; refreshing: boolean }) {
+function HubHeader({
+  data,
+  onRefresh,
+  refreshing,
+}: {
+  data: PremiumHubData;
+  onRefresh: () => void;
+  refreshing: boolean;
+}) {
   return (
-    <header className="relative overflow-hidden rounded-3xl bg-foreground p-5 text-background shadow-xl sm:p-6">
-      <div className="pointer-events-none absolute -right-16 -top-24 size-64 rounded-full bg-brand/35 blur-3xl" aria-hidden />
-      <div className="pointer-events-none absolute -bottom-24 left-1/3 size-56 rounded-full bg-warn/20 blur-3xl" aria-hidden />
+    <header className="relative animate-rise overflow-hidden rounded-xl bg-[#181818] p-5 text-[#f7f7f7] shadow-none sm:p-6">
+      <div
+        className="pointer-events-none absolute -right-16 -top-24 size-64 rounded-full bg-brand/35 blur-3xl"
+        aria-hidden
+      />
+      <div
+        className="pointer-events-none absolute -bottom-24 left-1/3 size-56 rounded-full bg-warn/20 blur-3xl"
+        aria-hidden
+      />
       <div className="relative flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <span className="inline-flex items-center gap-1.5 rounded-full bg-brand/20 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-brand">
@@ -220,14 +244,19 @@ function HubHeader({ data, onRefresh, refreshing }: { data: PremiumHubData; onRe
           <span className="ml-2 inline-flex items-center gap-1.5 rounded-full bg-background/10 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-background/80">
             <span className="size-1.5 rounded-full bg-brand" /> Premium actif
           </span>
-          <h1 className="mt-3 text-2xl font-black tracking-tight sm:text-3xl">Votre centre de décision</h1>
+          <h1 className="mt-3 text-2xl font-black tracking-tight sm:text-3xl">
+            Votre centre de décision
+          </h1>
           <p className="mt-2 max-w-xl text-sm leading-relaxed text-background/70">
-            Repérez les signaux intéressants, suivez vos équipes et comprenez chaque projection avant de prendre une décision.
+            Repérez les signaux intéressants, suivez vos équipes et comprenez chaque projection
+            avant de prendre une décision.
           </p>
         </div>
         <div className="flex items-center gap-2">
           <div className="rounded-2xl bg-background/10 px-3 py-2 text-right">
-            <p className="text-[10px] font-black uppercase tracking-widest text-background/55">Crédits</p>
+            <p className="text-[10px] font-black uppercase tracking-widest text-background/55">
+              Crédits
+            </p>
             <p className="text-lg font-black tabular-nums text-brand">{data.profile.credits}</p>
           </div>
           <button
@@ -241,8 +270,16 @@ function HubHeader({ data, onRefresh, refreshing }: { data: PremiumHubData; onRe
         </div>
       </div>
       <div className="relative mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-[11px] text-background/55">
-        <span className="inline-flex items-center gap-1.5"><span className="size-1.5 rounded-full bg-brand" /> Données actualisées automatiquement</span>
-        <span>Dernière mise à jour : {new Date(data.fetchedAt).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}</span>
+        <span className="inline-flex items-center gap-1.5">
+          <span className="size-1.5 rounded-full bg-brand" /> Données actualisées automatiquement
+        </span>
+        <span>
+          Dernière mise à jour :{" "}
+          {new Date(data.fetchedAt).toLocaleTimeString("fr-FR", {
+            hour: "2-digit",
+            minute: "2-digit",
+          })}
+        </span>
       </div>
     </header>
   );
@@ -250,17 +287,45 @@ function HubHeader({ data, onRefresh, refreshing }: { data: PremiumHubData; onRe
 
 function HubOverview({ data }: { data: PremiumHubData }) {
   const metrics = [
-    { label: "Opportunités", value: String(data.radar.length), hint: "à étudier aujourd'hui", icon: <Target className="size-4" /> },
-    { label: "Alertes actives", value: String(data.alerts.length), hint: "signaux personnalisés", icon: <BellRing className="size-4" /> },
-    { label: "Taux de réussite", value: data.scorecard.hitRate === null ? "—" : `${data.scorecard.hitRate}%`, hint: `${data.scorecard.settledAnalyses} analyse(s) réglée(s)`, icon: <Gauge className="size-4" /> },
-    { label: "Équipes suivies", value: String(data.favorites.filter((favorite) => favorite.kind === "team").length), hint: "notifications configurables", icon: <Users className="size-4" /> },
+    {
+      label: "Opportunités",
+      value: String(data.radar.length),
+      hint: "à étudier aujourd'hui",
+      icon: <Target className="size-4" />,
+    },
+    {
+      label: "Alertes actives",
+      value: String(data.alerts.length),
+      hint: "signaux personnalisés",
+      icon: <BellRing className="size-4" />,
+    },
+    {
+      label: "Taux de réussite",
+      value: data.scorecard.hitRate === null ? "—" : `${data.scorecard.hitRate}%`,
+      hint: `${data.scorecard.settledAnalyses} analyse(s) réglée(s)`,
+      icon: <Gauge className="size-4" />,
+    },
+    {
+      label: "Équipes suivies",
+      value: String(data.favorites.filter((favorite) => favorite.kind === "team").length),
+      hint: "notifications configurables",
+      icon: <Users className="size-4" />,
+    },
   ];
 
   return (
     <section aria-label="Résumé du Hub" className="grid grid-cols-2 gap-2 sm:grid-cols-4">
       {metrics.map((metric) => (
-        <div key={metric.label} className="rounded-2xl border border-border/70 bg-card p-3 shadow-sm">
-          <div className="flex items-center gap-1.5 text-brand">{metric.icon}<span className="text-[9px] font-black uppercase tracking-wider text-muted-foreground">{metric.label}</span></div>
+        <div
+          key={metric.label}
+          className="rounded-2xl border border-border/70 bg-card p-3 shadow-sm"
+        >
+          <div className="flex items-center gap-1.5 text-brand">
+            {metric.icon}
+            <span className="text-[9px] font-black uppercase tracking-wider text-muted-foreground">
+              {metric.label}
+            </span>
+          </div>
           <p className="mt-2 text-2xl font-black tabular-nums">{metric.value}</p>
           <p className="mt-1 text-[10px] leading-tight text-muted-foreground">{metric.hint}</p>
         </div>
@@ -277,9 +342,16 @@ function HubQuickNav() {
     ["#teams-title", "Équipes"],
   ] as const;
   return (
-    <nav aria-label="Navigation du Hub" className="sticky top-[4.25rem] z-20 -mx-1 flex gap-2 overflow-x-auto rounded-2xl border border-border/70 bg-background/90 p-1.5 shadow-sm backdrop-blur-xl lg:top-2">
+    <nav
+      aria-label="Navigation du Hub"
+      className="sticky top-[4.25rem] z-20 -mx-1 flex gap-2 overflow-x-auto rounded-2xl border border-border/70 bg-background/90 p-1.5 shadow-sm backdrop-blur-xl lg:top-2"
+    >
       {links.map(([href, label]) => (
-        <a key={href} href={href} className="shrink-0 rounded-xl px-3 py-2 text-[11px] font-black text-muted-foreground transition-colors hover:bg-surface hover:text-foreground">
+        <a
+          key={href}
+          href={href}
+          className="shrink-0 rounded-xl px-3 py-2 text-[11px] font-black text-muted-foreground transition-colors hover:bg-surface hover:text-foreground"
+        >
           {label}
         </a>
       ))}
@@ -287,27 +359,62 @@ function HubQuickNav() {
   );
 }
 
-function SectionHeading({ id, eyebrow, title, description, icon }: { id: string; eyebrow: string; title: string; description: string; icon: React.ReactNode }) {
+function SectionHeading({
+  id,
+  eyebrow,
+  title,
+  description,
+  icon,
+}: {
+  id: string;
+  eyebrow: string;
+  title: string;
+  description: string;
+  icon: React.ReactNode;
+}) {
   return (
     <div className="flex items-start gap-3">
-      <span className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-xl bg-brand/10 text-brand">{icon}</span>
+      <span className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-xl bg-brand/10 text-brand">
+        {icon}
+      </span>
       <div>
         <p className="text-[10px] font-black uppercase tracking-widest text-brand">{eyebrow}</p>
-        <h2 id={id} className="mt-0.5 text-xl font-black tracking-tight">{title}</h2>
-        <p className="mt-1 max-w-2xl text-xs leading-relaxed text-muted-foreground">{description}</p>
+        <h2 id={id} className="mt-0.5 text-xl font-black tracking-tight">
+          {title}
+        </h2>
+        <p className="mt-1 max-w-2xl text-xs leading-relaxed text-muted-foreground">
+          {description}
+        </p>
       </div>
     </div>
   );
 }
 
-function RadarCard({ item, followed, busy, onToggle }: { item: RadarOpportunity; followed: boolean; busy: boolean; onToggle: () => void }) {
-  const riskLabel = item.risk === "bas" ? "Risque bas" : item.risk === "moyen" ? "Risque moyen" : "Risque élevé";
+function RadarCard({
+  item,
+  followed,
+  busy,
+  onToggle,
+}: {
+  item: RadarOpportunity;
+  followed: boolean;
+  busy: boolean;
+  onToggle: () => void;
+}) {
+  const riskLabel =
+    item.risk === "bas" ? "Risque bas" : item.risk === "moyen" ? "Risque moyen" : "Risque élevé";
   return (
-    <article className="overflow-hidden rounded-3xl border border-border/70 bg-card shadow-sm transition-shadow hover:shadow-md">
+    <article className="animate-rise overflow-hidden rounded-xl border border-border/70 bg-card shadow-none transition-shadow hover:shadow-md">
       <div className="border-b border-border/60 bg-surface/40 p-4">
         <div className="flex items-center justify-between gap-3 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
           <span className="truncate">{item.league}</span>
-          <span className="inline-flex shrink-0 items-center gap-1"><Clock3 className="size-3" /> {new Date(item.kickoff).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}</span>
+          <span className="inline-flex shrink-0 items-center gap-1">
+            <Clock3 className="size-3" />{" "}
+            {new Date(item.kickoff).toLocaleTimeString("fr-FR", {
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
+          </span>
         </div>
         <div className="mt-4 grid grid-cols-[1fr_auto_1fr] items-center gap-3">
           <TeamMini name={item.home.name} logo={item.home.logo} align="left" />
@@ -318,35 +425,55 @@ function RadarCard({ item, followed, busy, onToggle }: { item: RadarOpportunity;
       <div className="space-y-4 p-4">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Signal principal · {item.market}</p>
+            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+              Signal principal · {item.market}
+            </p>
             <p className="mt-1 text-lg font-black">{item.pick}</p>
           </div>
           <div className="text-right">
             <p className="text-2xl font-black tabular-nums text-brand">{item.probability}%</p>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">probabilité</p>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              probabilité
+            </p>
           </div>
         </div>
 
         <div className="grid grid-cols-3 gap-2">
           <Metric label="Confiance" value={`${item.confidence}%`} tone="brand" />
           <Metric label="Cote" value={item.odd ? item.odd.toFixed(2) : "—"} />
-          <Metric label="Écart" value={item.edge === null ? "—" : `${item.edge >= 0 ? "+" : ""}${item.edge} pts`} tone={item.edge !== null && item.edge >= 3 ? "brand" : undefined} />
+          <Metric
+            label="Écart"
+            value={item.edge === null ? "—" : `${item.edge >= 0 ? "+" : ""}${item.edge} pts`}
+            tone={item.edge !== null && item.edge >= 3 ? "brand" : undefined}
+          />
         </div>
 
         <div className="rounded-2xl bg-surface/50 p-3">
           <div className="flex items-center justify-between gap-2">
-            <span className="inline-flex items-center gap-1.5 text-xs font-black"><Zap className="size-3.5 text-warn" /> {riskLabel}</span>
-            <span className="text-[10px] font-bold text-muted-foreground">Implicite : {item.impliedProbability === null ? "—" : `${item.impliedProbability}%`}</span>
+            <span className="inline-flex items-center gap-1.5 text-xs font-black">
+              <Zap className="size-3.5 text-warn" /> {riskLabel}
+            </span>
+            <span className="text-[10px] font-bold text-muted-foreground">
+              Implicite : {item.impliedProbability === null ? "—" : `${item.impliedProbability}%`}
+            </span>
           </div>
           <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{item.reason}</p>
         </div>
 
         <details className="group rounded-2xl border border-border/60 px-3 py-2">
           <summary className="flex cursor-pointer list-none items-center justify-between text-xs font-bold marker:hidden">
-            Pourquoi ce signal ? <ChevronRight className="size-4 transition-transform group-open:rotate-90" aria-hidden />
+            Pourquoi ce signal ?{" "}
+            <ChevronRight
+              className="size-4 transition-transform group-open:rotate-90"
+              aria-hidden
+            />
           </summary>
           <ul className="mt-2 space-y-1.5 border-t border-border/50 pt-2">
-            {item.factors.map((factor) => <li key={factor} className="text-[11px] leading-relaxed text-muted-foreground">• {factor}</li>)}
+            {item.factors.map((factor) => (
+              <li key={factor} className="text-[11px] leading-relaxed text-muted-foreground">
+                • {factor}
+              </li>
+            ))}
           </ul>
         </details>
 
@@ -363,9 +490,13 @@ function RadarCard({ item, followed, busy, onToggle }: { item: RadarOpportunity;
             type="button"
             onClick={onToggle}
             disabled={busy}
-            className={cn("inline-flex items-center justify-center gap-2 rounded-xl border px-4 py-3 text-xs font-black transition-colors disabled:opacity-50", followed ? "border-warn/40 bg-warn/10 text-warn" : "border-border hover:bg-surface")}
+            className={cn(
+              "inline-flex items-center justify-center gap-2 rounded-xl border px-4 py-3 text-xs font-black transition-colors disabled:opacity-50",
+              followed ? "border-warn/40 bg-warn/10 text-warn" : "border-border hover:bg-surface",
+            )}
           >
-            <Star className={cn("size-3.5", followed && "fill-current")} aria-hidden /> {followed ? "Suivie" : "Suivre"}
+            <Star className={cn("size-3.5", followed && "fill-current")} aria-hidden />{" "}
+            {followed ? "Suivie" : "Suivre"}
           </button>
         </div>
       </div>
@@ -375,8 +506,18 @@ function RadarCard({ item, followed, busy, onToggle }: { item: RadarOpportunity;
 
 function TeamMini({ name, logo, align }: { name: string; logo: string; align: "left" | "right" }) {
   return (
-    <div className={cn("flex min-w-0 items-center gap-2", align === "right" && "flex-row-reverse text-right")}>
-      <img src={logo} alt={`Logo ${name}`} className="size-9 shrink-0 object-contain" loading="lazy" />
+    <div
+      className={cn(
+        "flex min-w-0 items-center gap-2",
+        align === "right" && "flex-row-reverse text-right",
+      )}
+    >
+      <img
+        src={logo}
+        alt={`Logo ${name}`}
+        className="size-9 shrink-0 object-contain"
+        loading="lazy"
+      />
       <span className="line-clamp-2 text-xs font-black leading-tight">{name}</span>
     </div>
   );
@@ -386,24 +527,59 @@ function Metric({ label, value, tone }: { label: string; value: string; tone?: "
   return (
     <div className="rounded-xl bg-surface px-2 py-2 text-center">
       <p className="text-[9px] font-bold uppercase tracking-wide text-muted-foreground">{label}</p>
-      <p className={cn("mt-0.5 text-sm font-black tabular-nums", tone === "brand" && "text-brand")}>{value}</p>
+      <p className={cn("mt-0.5 text-sm font-black tabular-nums", tone === "brand" && "text-brand")}>
+        {value}
+      </p>
     </div>
   );
 }
 
 function AlertsPanel({ alerts }: { alerts: HubAlert[] }) {
   if (!alerts.length) {
-    return <div className="rounded-3xl border border-dashed border-border p-8 text-center"><Bell className="mx-auto size-7 text-muted-foreground" /><p className="mt-2 text-sm font-bold">Aucune alerte active</p><p className="mt-1 text-xs text-muted-foreground">Suivez une équipe ou attendez un nouveau signal du radar.</p></div>;
+    return (
+      <div className="rounded-3xl border border-dashed border-border p-8 text-center">
+        <Bell className="mx-auto size-7 text-muted-foreground" />
+        <p className="mt-2 text-sm font-bold">Aucune alerte active</p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Suivez une équipe ou attendez un nouveau signal du radar.
+        </p>
+      </div>
+    );
   }
   return (
     <div className="space-y-2">
       {alerts.map((alert) => (
-        <div key={alert.id} className={cn("flex items-start gap-3 rounded-2xl border p-3", alert.kind === "value" ? "border-brand/25 bg-brand/5" : "border-border/70 bg-card")}>
-          <span className={cn("grid size-9 shrink-0 place-items-center rounded-xl", alert.kind === "value" ? "bg-brand/10 text-brand" : "bg-surface text-muted-foreground")}>
-            {alert.kind === "value" ? <TrendingUp className="size-4" /> : <Clock3 className="size-4" />}
+        <div
+          key={alert.id}
+          className={cn(
+            "flex items-start gap-3 rounded-2xl border p-3",
+            alert.kind === "value" ? "border-brand/25 bg-brand/5" : "border-border/70 bg-card",
+          )}
+        >
+          <span
+            className={cn(
+              "grid size-9 shrink-0 place-items-center rounded-xl",
+              alert.kind === "value"
+                ? "bg-brand/10 text-brand"
+                : "bg-surface text-muted-foreground",
+            )}
+          >
+            {alert.kind === "value" ? (
+              <TrendingUp className="size-4" />
+            ) : (
+              <Clock3 className="size-4" />
+            )}
           </span>
           <div className="min-w-0 flex-1">
-            <div className="flex items-center justify-between gap-2"><p className="text-xs font-black">{alert.title}</p><span className="text-[10px] text-muted-foreground">{new Date(alert.time).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}</span></div>
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs font-black">{alert.title}</p>
+              <span className="text-[10px] text-muted-foreground">
+                {new Date(alert.time).toLocaleTimeString("fr-FR", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </span>
+            </div>
             <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{alert.message}</p>
           </div>
         </div>
@@ -415,21 +591,33 @@ function AlertsPanel({ alerts }: { alerts: HubAlert[] }) {
 function BrowserNotificationControl({ alerts }: { alerts: HubAlert[] }) {
   const [permission, setPermission] = useState<NotificationPermission | "unsupported">("default");
   useEffect(() => {
-    if (typeof window !== "undefined" && "Notification" in window) setPermission(window.Notification.permission);
+    if (typeof window !== "undefined" && "Notification" in window)
+      setPermission(window.Notification.permission);
   }, []);
   useEffect(() => {
     if (permission !== "granted" || !alerts.length || typeof window === "undefined") return;
     const seenKey = "livefoot_premium_alerts_seen";
     const seen = new Set(JSON.parse(window.sessionStorage.getItem(seenKey) ?? "[]") as string[]);
     const fresh = alerts.filter((alert) => !seen.has(alert.id)).slice(0, 2);
-    fresh.forEach((alert) => new window.Notification(alert.title, { body: alert.message, tag: alert.id }));
+    fresh.forEach(
+      (alert) => new window.Notification(alert.title, { body: alert.message, tag: alert.id }),
+    );
     alerts.forEach((alert) => seen.add(alert.id));
     window.sessionStorage.setItem(seenKey, JSON.stringify([...seen].slice(-50)));
   }, [alerts, permission]);
   if (permission === "unsupported") return null;
-  if (permission === "granted") return <p className="flex items-center gap-2 text-[11px] font-bold text-brand"><BellRing className="size-3.5" /> Notifications navigateur activées</p>;
+  if (permission === "granted")
+    return (
+      <p className="flex items-center gap-2 text-[11px] font-bold text-brand">
+        <BellRing className="size-3.5" /> Notifications navigateur activées
+      </p>
+    );
   return (
-    <button type="button" onClick={async () => setPermission(await window.Notification.requestPermission())} className="inline-flex items-center gap-2 text-[11px] font-black text-brand hover:underline">
+    <button
+      type="button"
+      onClick={async () => setPermission(await window.Notification.requestPermission())}
+      className="inline-flex items-center gap-2 text-[11px] font-black text-brand hover:underline"
+    >
       <Bell className="size-3.5" /> Activer les notifications navigateur
     </button>
   );
@@ -438,40 +626,239 @@ function BrowserNotificationControl({ alerts }: { alerts: HubAlert[] }) {
 function Scorecard({ scorecard }: { scorecard: PremiumHubData["scorecard"] }) {
   return (
     <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 xl:grid-cols-2">
-      <ScoreMetric label="Analyses" value={String(scorecard.totalAnalyses)} icon={<Activity className="size-4" />} />
-      <ScoreMetric label="Réglées" value={String(scorecard.settledAnalyses)} icon={<Check className="size-4" />} />
-      <ScoreMetric label="Taux réussite" value={scorecard.hitRate === null ? "—" : `${scorecard.hitRate}%`} icon={<Target className="size-4" />} />
-      <ScoreMetric label="ROI théorique" value={scorecard.theoreticalRoi === null ? "À venir" : `${scorecard.theoreticalRoi}%`} icon={<TrendingUp className="size-4" />} />
+      <ScoreMetric
+        label="Analyses"
+        value={String(scorecard.totalAnalyses)}
+        icon={<Activity className="size-4" />}
+      />
+      <ScoreMetric
+        label="Réglées"
+        value={String(scorecard.settledAnalyses)}
+        icon={<Check className="size-4" />}
+      />
+      <ScoreMetric
+        label="Taux réussite"
+        value={scorecard.hitRate === null ? "—" : `${scorecard.hitRate}%`}
+        icon={<Target className="size-4" />}
+      />
+      <ScoreMetric
+        label="ROI théorique"
+        value={scorecard.theoreticalRoi === null ? "À venir" : `${scorecard.theoreticalRoi}%`}
+        icon={<TrendingUp className="size-4" />}
+      />
       <div className="col-span-2 rounded-2xl bg-surface/60 p-3 text-xs text-muted-foreground">
         <p className="font-bold text-foreground">Vos habitudes</p>
-        <p className="mt-1">Marché le plus analysé : <strong className="text-foreground">{scorecard.favoriteMarket ?? "Pas encore assez de données"}</strong></p>
-        <p className="mt-1">Équipe la plus suivie dans l’historique : <strong className="text-foreground">{scorecard.favoriteTeam ?? "Pas encore assez de données"}</strong></p>
-        {scorecard.theoreticalRoi === null && <p className="mt-2 text-[10px]">Le ROI sera calculé lorsque des cotes et résultats suffisants seront disponibles.</p>}
+        <p className="mt-1">
+          Marché le plus analysé :{" "}
+          <strong className="text-foreground">
+            {scorecard.favoriteMarket ?? "Pas encore assez de données"}
+          </strong>
+        </p>
+        <p className="mt-1">
+          Équipe la plus suivie dans l’historique :{" "}
+          <strong className="text-foreground">
+            {scorecard.favoriteTeam ?? "Pas encore assez de données"}
+          </strong>
+        </p>
+        {scorecard.theoreticalRoi === null && (
+          <p className="mt-2 text-[10px]">
+            Le ROI sera calculé lorsque des cotes et résultats suffisants seront disponibles.
+          </p>
+        )}
       </div>
     </div>
   );
 }
 
-function ScoreMetric({ label, value, icon }: { label: string; value: string; icon: React.ReactNode }) {
-  return <div className="rounded-2xl border border-border/70 bg-card p-3"><span className="text-brand">{icon}</span><p className="mt-2 text-xl font-black tabular-nums">{value}</p><p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">{label}</p></div>;
+function ScoreMetric({
+  label,
+  value,
+  icon,
+}: {
+  label: string;
+  value: string;
+  icon: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-2xl border border-border/70 bg-card p-3">
+      <span className="text-brand">{icon}</span>
+      <p className="mt-2 text-xl font-black tabular-nums">{value}</p>
+      <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">{label}</p>
+    </div>
+  );
 }
 
-function FollowedTeams({ favorites, onNotification }: { favorites: HubFavorite[]; onNotification: (favorite: HubFavorite) => void }) {
+function FollowedTeams({
+  favorites,
+  onNotification,
+}: {
+  favorites: HubFavorite[];
+  onNotification: (favorite: HubFavorite) => void;
+}) {
   const teams = favorites.filter((favorite) => favorite.kind === "team");
-  if (!teams.length) return <div className="rounded-3xl border border-dashed border-border p-7 text-center"><Star className="mx-auto size-7 text-muted-foreground" /><p className="mt-2 text-sm font-bold">Aucune équipe suivie</p><p className="mt-1 text-xs text-muted-foreground">Utilisez le bouton « Suivre » sur une carte du radar.</p></div>;
-  return <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{teams.map((favorite) => <div key={favorite.id} className="flex items-center gap-3 rounded-2xl border border-border/70 bg-card p-3"><span className="grid size-9 place-items-center rounded-xl bg-warn/10 text-warn"><Star className="size-4 fill-current" /></span><span className="min-w-0 flex-1 truncate text-sm font-black">{favorite.label ?? favorite.refId}</span><button type="button" onClick={() => onNotification(favorite)} className={cn("grid size-8 place-items-center rounded-xl", favorite.notify ? "bg-brand/10 text-brand" : "bg-surface text-muted-foreground")} aria-label={favorite.notify ? "Désactiver les alertes" : "Activer les alertes"}><Bell className="size-4" /></button></div>)}</div>;
+  if (!teams.length)
+    return (
+      <div className="rounded-3xl border border-dashed border-border p-7 text-center">
+        <Star className="mx-auto size-7 text-muted-foreground" />
+        <p className="mt-2 text-sm font-bold">Aucune équipe suivie</p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Utilisez le bouton « Suivre » sur une carte du radar.
+        </p>
+      </div>
+    );
+  return (
+    <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+      {teams.map((favorite) => (
+        <div
+          key={favorite.id}
+          className="flex items-center gap-3 rounded-2xl border border-border/70 bg-card p-3"
+        >
+          <span className="grid size-9 place-items-center rounded-xl bg-warn/10 text-warn">
+            <Star className="size-4 fill-current" />
+          </span>
+          <span className="min-w-0 flex-1 truncate text-sm font-black">
+            {favorite.label ?? favorite.refId}
+          </span>
+          <button
+            type="button"
+            onClick={() => onNotification(favorite)}
+            className={cn(
+              "grid size-8 place-items-center rounded-xl",
+              favorite.notify ? "bg-brand/10 text-brand" : "bg-surface text-muted-foreground",
+            )}
+            aria-label={favorite.notify ? "Désactiver les alertes" : "Activer les alertes"}
+          >
+            <Bell className="size-4" />
+          </button>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 function EmptyRadar() {
-  return <div className="rounded-3xl border border-dashed border-border p-8 text-center"><Target className="mx-auto size-8 text-muted-foreground" /><p className="mt-2 text-sm font-bold">Aucune opportunité calculable pour le moment</p><p className="mx-auto mt-1 max-w-md text-xs leading-relaxed text-muted-foreground">Nous n’affichons pas de probabilité sans données suffisantes. Vous pouvez lancer une analyse manuelle depuis la page Analyse.</p><Link to="/analyse" search={{ home: "", away: "" }} className="mt-4 inline-flex items-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-xs font-black text-brand-foreground">Ouvrir Analyse <ChevronRight className="size-4" /></Link></div>;
+  return (
+    <div className="rounded-3xl border border-dashed border-border p-8 text-center">
+      <Target className="mx-auto size-8 text-muted-foreground" />
+      <p className="mt-2 text-sm font-bold">Aucune opportunité calculable pour le moment</p>
+      <p className="mx-auto mt-1 max-w-md text-xs leading-relaxed text-muted-foreground">
+        Nous n’affichons pas de probabilité sans données suffisantes. Vous pouvez lancer une analyse
+        manuelle depuis la page Analyse.
+      </p>
+      <Link
+        to="/analyse"
+        search={{ home: "", away: "" }}
+        className="mt-4 inline-flex items-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-xs font-black text-brand-foreground"
+      >
+        Ouvrir Analyse <ChevronRight className="size-4" />
+      </Link>
+    </div>
+  );
 }
 
 function PremiumGate({ credits }: { credits: number }) {
-  return <AppShell><div className="space-y-6 px-4 pb-12 pt-6 lg:px-0"><div className="relative overflow-hidden rounded-3xl bg-foreground p-6 text-background shadow-xl"><Lock className="size-7 text-warn" /><h1 className="mt-4 text-2xl font-black">Le Premium Intelligence Hub vous attend</h1><p className="mt-2 max-w-xl text-sm leading-relaxed text-background/70">Débloquez le radar value, les alertes personnalisées, le suivi des performances et les explications avancées.</p><div className="mt-5 flex flex-wrap gap-2"><Link to="/premium" className="inline-flex items-center gap-2 rounded-xl bg-brand px-4 py-3 text-sm font-black text-brand-foreground">Passer Premium <ChevronRight className="size-4" /></Link><span className="inline-flex items-center rounded-xl bg-background/10 px-3 py-3 text-xs font-bold text-background/70">{credits} crédits disponibles</span></div></div><div className="grid gap-3 sm:grid-cols-2"><FeaturePreview icon={<Target />} title="Radar Value" text="Probabilités, cotes et écarts statistiques lisibles." /><FeaturePreview icon={<BellRing />} title="Alertes intelligentes" text="Suivi des équipes et signaux importants." /><FeaturePreview icon={<Gauge />} title="Scorecard" text="Mesurez vos analyses et votre progression." /><FeaturePreview icon={<Sparkles />} title="Explications avancées" text="Comprenez les facteurs derrière chaque signal." /></div></div></AppShell>;
+  return (
+    <AppShell>
+      <div className="space-y-6 px-4 pb-12 pt-6 lg:px-0">
+        <div className="relative overflow-hidden rounded-3xl bg-foreground p-6 text-background shadow-xl">
+          <Lock className="size-7 text-warn" />
+          <h1 className="mt-4 text-2xl font-black">Le Premium Intelligence Hub vous attend</h1>
+          <p className="mt-2 max-w-xl text-sm leading-relaxed text-background/70">
+            Débloquez le radar value, les alertes personnalisées, le suivi des performances et les
+            explications avancées.
+          </p>
+          <div className="mt-5 flex flex-wrap gap-2">
+            <Link
+              to="/premium"
+              className="inline-flex items-center gap-2 rounded-xl bg-brand px-4 py-3 text-sm font-black text-brand-foreground"
+            >
+              Passer Premium <ChevronRight className="size-4" />
+            </Link>
+            <span className="inline-flex items-center rounded-xl bg-background/10 px-3 py-3 text-xs font-bold text-background/70">
+              {credits} crédits disponibles
+            </span>
+          </div>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <FeaturePreview
+            icon={<Target />}
+            title="Radar Value"
+            text="Probabilités, cotes et écarts statistiques lisibles."
+          />
+          <FeaturePreview
+            icon={<BellRing />}
+            title="Alertes intelligentes"
+            text="Suivi des équipes et signaux importants."
+          />
+          <FeaturePreview
+            icon={<Gauge />}
+            title="Scorecard"
+            text="Mesurez vos analyses et votre progression."
+          />
+          <FeaturePreview
+            icon={<Sparkles />}
+            title="Explications avancées"
+            text="Comprenez les facteurs derrière chaque signal."
+          />
+        </div>
+      </div>
+    </AppShell>
+  );
 }
 
-function FeaturePreview({ icon, title, text }: { icon: React.ReactNode; title: string; text: string }) { return <div className="flex gap-3 rounded-2xl border border-border/70 bg-card p-4"><span className="grid size-9 shrink-0 place-items-center rounded-xl bg-brand/10 text-brand">{icon}</span><div><p className="text-sm font-black">{title}</p><p className="mt-1 text-xs leading-relaxed text-muted-foreground">{text}</p></div></div>; }
+function FeaturePreview({
+  icon,
+  title,
+  text,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  text: string;
+}) {
+  return (
+    <div className="flex gap-3 rounded-2xl border border-border/70 bg-card p-4">
+      <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-brand/10 text-brand">
+        {icon}
+      </span>
+      <div>
+        <p className="text-sm font-black">{title}</p>
+        <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{text}</p>
+      </div>
+    </div>
+  );
+}
 
-function HubLoading() { return <AppShell><div className="space-y-4 px-4 pb-12 pt-6 lg:px-0"><div className="h-48 animate-pulse rounded-3xl bg-surface" /><div className="grid gap-4 lg:grid-cols-2"><div className="h-72 animate-pulse rounded-3xl bg-surface" /><div className="h-72 animate-pulse rounded-3xl bg-surface" /></div></div></AppShell>; }
+function HubLoading() {
+  return (
+    <AppShell>
+      <div className="space-y-4 px-4 pb-12 pt-6 lg:px-0">
+        <div className="h-48 animate-pulse rounded-3xl bg-surface" />
+        <div className="grid gap-4 lg:grid-cols-2">
+          <div className="h-72 animate-pulse rounded-3xl bg-surface" />
+          <div className="h-72 animate-pulse rounded-3xl bg-surface" />
+        </div>
+      </div>
+    </AppShell>
+  );
+}
 
-function HubError({ onRetry }: { onRetry: () => void }) { return <AppShell><div className="mx-4 mt-12 rounded-3xl border border-alert/30 bg-alert/5 p-6 text-center lg:mx-0"><ShieldAlert className="mx-auto size-7 text-alert" /><h1 className="mt-3 text-lg font-black">Le tableau de bord n’a pas pu être chargé</h1><p className="mt-2 text-sm text-muted-foreground">Votre abonnement et vos données restent protégés. Réessayez dans quelques instants.</p><button type="button" onClick={onRetry} className="mt-4 inline-flex items-center gap-2 rounded-xl bg-foreground px-4 py-2.5 text-xs font-black text-background"><RefreshCw className="size-4" /> Réessayer</button></div></AppShell>; }
+function HubError({ onRetry }: { onRetry: () => void }) {
+  return (
+    <AppShell>
+      <div className="mx-4 mt-12 rounded-3xl border border-alert/30 bg-alert/5 p-6 text-center lg:mx-0">
+        <ShieldAlert className="mx-auto size-7 text-alert" />
+        <h1 className="mt-3 text-lg font-black">Le tableau de bord n’a pas pu être chargé</h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Votre abonnement et vos données restent protégés. Réessayez dans quelques instants.
+        </p>
+        <button
+          type="button"
+          onClick={onRetry}
+          className="mt-4 inline-flex items-center gap-2 rounded-xl bg-foreground px-4 py-2.5 text-xs font-black text-background"
+        >
+          <RefreshCw className="size-4" /> Réessayer
+        </button>
+      </div>
+    </AppShell>
+  );
+}

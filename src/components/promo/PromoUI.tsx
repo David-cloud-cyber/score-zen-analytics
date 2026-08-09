@@ -9,11 +9,15 @@ export const AFF_REL = "sponsored noopener noreferrer nofollow";
 
 /** Mise en valeur légère des termes qui répondent à l'intention de recherche. */
 export function HighlightText({ text }: { text: string }) {
-  const parts = text.split(/(code promo|BALL10|PREDAT|bonus|dépôt|retrait|conditions|Mobile Money|18\+)/gi);
+  const parts = text.split(
+    /(code promo|BALL10|PREDAT|bonus|dépôt|retrait|conditions|Mobile Money|18\+)/gi,
+  );
   return (
     <>
       {parts.map((part, index) =>
-        /^(code promo|BALL10|PREDAT|bonus|dépôt|retrait|conditions|Mobile Money|18\+)$/i.test(part) ? (
+        /^(code promo|BALL10|PREDAT|bonus|dépôt|retrait|conditions|Mobile Money|18\+)$/i.test(
+          part,
+        ) ? (
           <strong key={`${part}-${index}`} className="font-bold text-foreground">
             {part}
           </strong>
@@ -51,7 +55,11 @@ export function CopyCodeButton({ code, size = "md" }: { code: string; size?: "sm
       )}
     >
       <span>{code}</span>
-      {copied ? <Check className="size-4" aria-hidden /> : <Copy className="size-4 opacity-70" aria-hidden />}
+      {copied ? (
+        <Check className="size-4" aria-hidden />
+      ) : (
+        <Copy className="size-4 opacity-70" aria-hidden />
+      )}
       <span className="sr-only">{copied ? "Code copié" : ""}</span>
     </button>
   );
@@ -64,13 +72,18 @@ export function RatingStars({ rating, count }: { rating: number; count?: number 
         {[1, 2, 3, 4, 5].map((i) => (
           <Star
             key={i}
-            className={cn("size-3.5", i <= Math.round(rating) ? "fill-warn text-warn" : "text-border")}
+            className={cn(
+              "size-3.5",
+              i <= Math.round(rating) ? "fill-warn text-warn" : "text-border",
+            )}
             aria-hidden
           />
         ))}
       </div>
       <span className="text-xs font-bold tabular-nums">{rating.toFixed(1)}</span>
-      {count !== undefined && <span className="text-[11px] text-muted-foreground">({count} avis)</span>}
+      {count !== undefined && (
+        <span className="text-[11px] text-muted-foreground">({count} avis)</span>
+      )}
     </div>
   );
 }
@@ -104,7 +117,7 @@ export function AffiliateButton({
 /** Carte bookmaker affichée sur le hub. */
 export function PromoCodeCard({ b }: { b: Bookmaker }) {
   return (
-    <article className="overflow-hidden rounded-2xl border border-border/70 bg-surface/50">
+    <article className="animate-rise overflow-hidden rounded-xl border border-border/70 bg-surface/50">
       <div className="flex items-start justify-between gap-3 border-b border-border/60 p-4">
         <div className="flex items-center gap-3">
           <div
@@ -169,12 +182,15 @@ export function PromoCodeCard({ b }: { b: Bookmaker }) {
 
 export function BonusTable({ rows }: { rows: { label: string; value: string }[] }) {
   return (
-    <div className="overflow-hidden rounded-2xl border border-border/70">
+    <div className="overflow-hidden rounded-xl border border-border/70">
       <table className="w-full text-sm">
         <tbody>
           {rows.map((r, i) => (
             <tr key={r.label} className={cn(i % 2 === 1 && "bg-surface/50")}>
-              <th scope="row" className="w-1/2 px-4 py-3 text-left align-top text-xs font-bold text-muted-foreground">
+              <th
+                scope="row"
+                className="w-1/2 px-4 py-3 text-left align-top text-xs font-bold text-muted-foreground"
+              >
                 {r.label}
               </th>
               <td className="px-4 py-3 align-top font-semibold">{r.value}</td>
@@ -190,11 +206,17 @@ export function PromoFaq({ items }: { items: { q: string; a: string }[] }) {
   return (
     <div className="space-y-2">
       {items.map((item) => (
-        <details key={item.q} className="group rounded-xl border border-border/70 bg-surface/40 px-4 py-3">
+        <details
+          key={item.q}
+          className="group rounded-xl border border-border/70 bg-surface/40 px-4 py-3"
+        >
           <summary className="cursor-pointer list-none text-sm font-bold marker:hidden">
             <span className="flex items-center justify-between gap-3">
               {item.q}
-              <ChevronRight className="size-4 shrink-0 transition-transform group-open:rotate-90" aria-hidden />
+              <ChevronRight
+                className="size-4 shrink-0 transition-transform group-open:rotate-90"
+                aria-hidden
+              />
             </span>
           </summary>
           <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{item.a}</p>
@@ -206,14 +228,15 @@ export function PromoFaq({ items }: { items: { q: string; a: string }[] }) {
 
 export function ResponsibleGamblingNotice() {
   return (
-    <aside className="flex gap-3 rounded-2xl border border-alert/30 bg-alert/5 p-4">
+    <aside className="flex gap-3 rounded-xl border border-alert/30 bg-alert/5 p-4">
       <ShieldAlert className="mt-0.5 size-5 shrink-0 text-alert" aria-hidden />
       <div className="space-y-1 text-xs leading-relaxed text-muted-foreground">
         <p className="font-bold text-foreground">Jeu responsable — interdit aux mineurs (18+)</p>
         <p>
-          Les paris sportifs comportent des risques : endettement, isolement, dépendance. LiveFoot AI publie ces contenus
-          à titre informatif et perçoit une commission d'affiliation sur les inscriptions. Nos analyses IA sont des
-          estimations statistiques, jamais une garantie de gain. Ne jouez que l'argent que vous pouvez perdre.
+          Les paris sportifs comportent des risques : endettement, isolement, dépendance. LiveFoot
+          AI publie ces contenus à titre informatif et perçoit une commission d'affiliation sur les
+          inscriptions. Nos analyses IA sont des estimations statistiques, jamais une garantie de
+          gain. Ne jouez que l'argent que vous pouvez perdre.
         </p>
       </div>
     </aside>
@@ -222,7 +245,10 @@ export function ResponsibleGamblingNotice() {
 
 export function Breadcrumb({ items }: { items: { label: string; to?: string }[] }) {
   return (
-    <nav aria-label="Fil d'Ariane" className="flex flex-wrap items-center gap-1 text-[11px] text-muted-foreground">
+    <nav
+      aria-label="Fil d'Ariane"
+      className="flex flex-wrap items-center gap-1 text-[11px] text-muted-foreground"
+    >
       {items.map((it, i) => (
         <span key={it.label} className="flex items-center gap-1">
           {it.to ? (
@@ -242,7 +268,7 @@ export function Breadcrumb({ items }: { items: { label: string; to?: string }[] 
 /** Tableau générique d'une section d'article. */
 export function SectionTable({ head, rows }: { head: string[]; rows: string[][] }) {
   return (
-    <div className="overflow-x-auto rounded-2xl border border-border/70">
+    <div className="overflow-x-auto rounded-xl border border-border/70">
       <table className="w-full min-w-[420px] text-sm">
         <thead className="bg-surface/70 text-[11px] uppercase tracking-wider text-muted-foreground">
           <tr>
@@ -306,7 +332,9 @@ export function RelatedBookmakers({ items, title }: { items: Bookmaker[]; title?
               <span className="block text-sm font-black">
                 Code promo {b.name} : {b.code}
               </span>
-              <span className="block truncate text-xs text-muted-foreground">{b.bonusHeadline}</span>
+              <span className="block truncate text-xs text-muted-foreground">
+                {b.bonusHeadline}
+              </span>
             </span>
             <ChevronRight className="ml-auto size-4 shrink-0 text-muted-foreground" aria-hidden />
           </Link>
@@ -321,7 +349,10 @@ export function BonusTypeBadges({ types }: { types: string[] }) {
   return (
     <div className="flex flex-wrap gap-1.5">
       {types.map((t) => (
-        <span key={t} className="rounded-full bg-surface px-2 py-0.5 text-[10px] font-bold text-muted-foreground">
+        <span
+          key={t}
+          className="rounded-full bg-surface px-2 py-0.5 text-[10px] font-bold text-muted-foreground"
+        >
           {t}
         </span>
       ))}

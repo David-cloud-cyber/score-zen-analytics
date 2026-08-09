@@ -1,6 +1,17 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect, useRef } from "react";
-import { MessageCircle, Send, Users, Sparkles, Trophy, Flame, CheckCircle2, User, Radio, Award } from "lucide-react";
+import {
+  MessageCircle,
+  Send,
+  Users,
+  Sparkles,
+  Trophy,
+  Flame,
+  CheckCircle2,
+  User,
+  Radio,
+  Award,
+} from "lucide-react";
 import { toast } from "sonner";
 import { AppShell, PageTitle } from "@/components/AppShell";
 import { useSession } from "@/hooks/use-session";
@@ -39,7 +50,13 @@ interface MatchPoll {
 
 const FEATURED_POLLS: MatchPoll[] = [];
 
-const LEADERBOARD: { rank: number; name: string; points: number; winRate: string; badge: string }[] = [];
+const LEADERBOARD: {
+  rank: number;
+  name: string;
+  points: number;
+  winRate: string;
+  badge: string;
+}[] = [];
 
 function CommunautePage() {
   const { session, loading: sessionLoading } = useSession();
@@ -72,7 +89,7 @@ function CommunautePage() {
         (payload) => {
           const newMsg = payload.new as ChatMessage;
           setMessages((prev) => [...prev, newMsg]);
-        }
+        },
       )
       .subscribe();
 
@@ -100,7 +117,7 @@ function CommunautePage() {
           };
         }
         return poll;
-      })
+      }),
     );
     toast.success("Vote enregistré avec succès !");
   };
@@ -109,7 +126,8 @@ function CommunautePage() {
     e.preventDefault();
     if (!newMessage.trim()) return;
 
-    const userName = session?.user?.email?.split("@")[0] || "Fan_" + Math.floor(Math.random() * 1000);
+    const userName =
+      session?.user?.email?.split("@")[0] || "Fan_" + Math.floor(Math.random() * 1000);
     const msgObj: ChatMessage = {
       id: Date.now().toString(),
       user_name: userName,
@@ -120,7 +138,6 @@ function CommunautePage() {
     // Optimistic insert
     setMessages((prev) => [...prev, msgObj]);
     setNewMessage("");
-
   };
 
   return (
@@ -129,9 +146,15 @@ function CommunautePage() {
 
       <div className="space-y-6 px-4 pb-20 lg:px-0">
         {/* Banner Hero */}
-        <div className="relative overflow-hidden rounded-3xl bg-foreground p-6 text-background shadow-xl">
-          <div className="pointer-events-none absolute -right-16 -top-16 size-48 rounded-full bg-brand/25 blur-3xl" aria-hidden />
-          <div className="pointer-events-none absolute -bottom-16 -left-10 size-40 rounded-full bg-data/25 blur-3xl" aria-hidden />
+        <div className="relative animate-rise overflow-hidden rounded-xl bg-[#181818] p-6 text-[#f7f7f7] shadow-none">
+          <div
+            className="pointer-events-none absolute -right-16 -top-16 size-48 rounded-full bg-brand/25 blur-3xl"
+            aria-hidden
+          />
+          <div
+            className="pointer-events-none absolute -bottom-16 -left-10 size-40 rounded-full bg-data/25 blur-3xl"
+            aria-hidden
+          />
           <div className="relative">
             <div className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-brand/20 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-brand">
               <Radio className="size-3 animate-pulse" /> En Direct Live
@@ -140,7 +163,8 @@ function CommunautePage() {
               Pronostiquez & Échangez en temps réel
             </h2>
             <p className="mt-2 max-w-lg text-xs leading-relaxed text-background/70 lg:text-sm">
-              Partagez vos analyses, comparez les votes de la communauté avec l'IA et grimpez dans le classement mensuel des meilleurs experts.
+              Partagez vos analyses, comparez les votes de la communauté avec l'IA et grimpez dans
+              le classement mensuel des meilleurs experts.
             </p>
           </div>
         </div>
@@ -150,7 +174,9 @@ function CommunautePage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Flame className="size-4 text-alert" />
-              <h3 className="text-sm font-black uppercase tracking-wider">Pronostics de la Communauté</h3>
+              <h3 className="text-sm font-black uppercase tracking-wider">
+                Pronostics de la Communauté
+              </h3>
             </div>
             <span className="text-[11px] font-bold text-muted-foreground">Matchs Vedettes</span>
           </div>
@@ -164,7 +190,10 @@ function CommunautePage() {
               const userVoted = userVotes[poll.id];
 
               return (
-                <div key={poll.id} className="rounded-3xl bg-card p-4 shadow-sm ring-1 ring-black/5 dark:ring-white/5 space-y-3">
+                <div
+                  key={poll.id}
+                  className="animate-rise rounded-xl border border-border/70 bg-card p-4 shadow-none space-y-3"
+                >
                   <div className="flex items-center justify-between border-b border-border/60 pb-2 text-[10px] font-bold text-muted-foreground">
                     <span>{poll.league}</span>
                     <span className="rounded-full bg-surface px-2 py-0.5">{totalVotes} votes</span>
@@ -203,9 +232,21 @@ function CommunautePage() {
 
                   {/* Progress Bar Visualizer */}
                   <div className="flex h-2 w-full overflow-hidden rounded-full bg-surface">
-                    <div style={{ width: `${homePct}%` }} className="bg-brand transition-all" title={`1: ${homePct}%`} />
-                    <div style={{ width: `${drawPct}%` }} className="bg-warn transition-all" title={`N: ${drawPct}%`} />
-                    <div style={{ width: `${awayPct}%` }} className="bg-data transition-all" title={`2: ${awayPct}%`} />
+                    <div
+                      style={{ width: `${homePct}%` }}
+                      className="bg-brand transition-all"
+                      title={`1: ${homePct}%`}
+                    />
+                    <div
+                      style={{ width: `${drawPct}%` }}
+                      className="bg-warn transition-all"
+                      title={`N: ${drawPct}%`}
+                    />
+                    <div
+                      style={{ width: `${awayPct}%` }}
+                      className="bg-data transition-all"
+                      title={`2: ${awayPct}%`}
+                    />
                   </div>
                 </div>
               );
@@ -216,7 +257,7 @@ function CommunautePage() {
         {/* Section 2: Live Chat Feed & Leaderboard Grid */}
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           {/* Chat Feed (2 cols) */}
-          <div className="lg:col-span-2 flex flex-col rounded-3xl bg-card shadow-sm ring-1 ring-black/5 dark:ring-white/5 h-[460px]">
+          <div className="lg:col-span-2 flex h-[460px] flex-col rounded-xl border border-border/70 bg-card shadow-none">
             <div className="flex items-center justify-between border-b border-border/60 px-5 py-3.5">
               <div className="flex items-center gap-2">
                 <MessageCircle className="size-4 text-brand" />
@@ -239,7 +280,10 @@ function CommunautePage() {
                     <div className="flex items-center justify-between mb-1">
                       <span className="font-bold text-foreground">{m.user_name}</span>
                       <span className="text-[9px] text-muted-foreground">
-                        {new Date(m.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                        {new Date(m.created_at).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
                       </span>
                     </div>
                     <p className="text-muted-foreground leading-relaxed">{m.message}</p>
@@ -256,7 +300,9 @@ function CommunautePage() {
                   type="text"
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
-                  placeholder={session ? "Écrivez un message..." : "Connectez-vous pour discuter..."}
+                  placeholder={
+                    session ? "Écrivez un message..." : "Connectez-vous pour discuter..."
+                  }
                   className="flex-1 bg-transparent text-xs outline-none placeholder:text-muted-foreground"
                 />
                 <button
@@ -271,7 +317,7 @@ function CommunautePage() {
           </div>
 
           {/* Leaderboard (1 col) */}
-          <div className="rounded-3xl bg-card p-5 shadow-sm ring-1 ring-black/5 dark:ring-white/5 space-y-4">
+          <div className="rounded-xl border border-border/70 bg-card p-5 shadow-none space-y-4">
             <div className="flex items-center justify-between border-b border-border/60 pb-3">
               <div className="flex items-center gap-2">
                 <Trophy className="size-4 text-warn" />
@@ -293,7 +339,7 @@ function CommunautePage() {
                         user.rank === 1 && "bg-warn text-white",
                         user.rank === 2 && "bg-muted text-foreground",
                         user.rank === 3 && "bg-amber-700 text-white",
-                        user.rank > 3 && "bg-surface text-muted-foreground"
+                        user.rank > 3 && "bg-surface text-muted-foreground",
                       )}
                     >
                       {user.rank}
@@ -306,7 +352,9 @@ function CommunautePage() {
 
                   <div className="text-right shrink-0">
                     <div className="font-black text-brand">{user.points} pts</div>
-                    <div className="text-[9px] font-semibold text-emerald-500">{user.winRate} succés</div>
+                    <div className="text-[9px] font-semibold text-emerald-500">
+                      {user.winRate} succés
+                    </div>
                   </div>
                 </li>
               ))}
@@ -322,7 +370,15 @@ function CommunautePage() {
   );
 }
 
-function VoteButton({ label, selected, onClick }: { label: string; selected?: boolean; onClick: () => void }) {
+function VoteButton({
+  label,
+  selected,
+  onClick,
+}: {
+  label: string;
+  selected?: boolean;
+  onClick: () => void;
+}) {
   return (
     <button
       onClick={onClick}
@@ -330,7 +386,7 @@ function VoteButton({ label, selected, onClick }: { label: string; selected?: bo
         "rounded-2xl py-2 text-center text-xs font-black transition-all ring-1",
         selected
           ? "bg-foreground text-background ring-foreground shadow-md"
-          : "bg-surface text-foreground ring-black/5 dark:ring-white/10 hover:bg-card"
+          : "bg-surface text-foreground ring-black/5 dark:ring-white/10 hover:bg-card",
       )}
     >
       {label}

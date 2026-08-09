@@ -264,7 +264,7 @@ function AnalysePage() {
       <PageTitle eyebrow="Prédictions IA" title="Analyse de Match sur Mesure" />
 
       {/* Main Team Selector Container */}
-      <div className="mx-4 rounded-3xl bg-card p-5 shadow-lg ring-1 ring-black/5 dark:ring-white/5 lg:mx-0">
+      <div className="mx-4 animate-rise rounded-xl border border-border/70 bg-card p-5 shadow-none lg:mx-0">
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="grid size-7 place-items-center rounded-lg bg-brand/10 text-brand">
@@ -374,7 +374,7 @@ function AnalysePage() {
           </div>
         ) : (
           <>
-            <div className="rounded-3xl bg-foreground p-5 text-background shadow-xl">
+            <div className="animate-score-pop rounded-xl bg-[#181818] p-5 text-[#f7f7f7] shadow-none">
               <div className="mb-3 flex items-center justify-between">
                 <div className="inline-flex items-center gap-1.5 rounded-full bg-brand/20 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-brand">
                   <Sparkles className="size-3" /> Prédiction LiveFoot
@@ -412,7 +412,7 @@ function AnalysePage() {
             </div>
 
             {live.aiText && (
-              <div className="rounded-3xl bg-card p-5 shadow-sm ring-1 ring-black/5 dark:ring-white/5">
+              <div className="animate-rise rounded-xl border border-border/70 bg-card p-5 shadow-none">
                 <div className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-data/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-data">
                   <Sparkles className="size-3" /> Synthèse Tactique
                 </div>

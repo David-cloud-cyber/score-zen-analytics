@@ -14,9 +14,16 @@ export const Route = createFileRoute("/_authenticated/favoris")({
   head: () => ({
     meta: [
       { title: "Mes favoris & alertes — Livefoot IA" },
-      { name: "description", content: "Retrouvez toutes vos équipes, joueurs et compétitions favoris, et gérez vos alertes en temps réel." },
+      {
+        name: "description",
+        content:
+          "Retrouvez toutes vos équipes, joueurs et compétitions favoris, et gérez vos alertes en temps réel.",
+      },
       { property: "og:title", content: "Mes favoris & alertes — Livefoot IA" },
-      { property: "og:description", content: "Équipes, joueurs, compétitions favorites et alertes de buts personnalisées." },
+      {
+        property: "og:description",
+        content: "Équipes, joueurs, compétitions favorites et alertes de buts personnalisées.",
+      },
       { property: "og:url", content: "https://www.livefoot.fun/favoris" },
       { name: "robots", content: "noindex" },
     ],
@@ -26,7 +33,11 @@ export const Route = createFileRoute("/_authenticated/favoris")({
 });
 
 const NOTIF_TYPES = [
-  { id: "goals", label: "Alertes de buts", desc: "Notification instantanée à chaque but des équipes favorites" },
+  {
+    id: "goals",
+    label: "Alertes de buts",
+    desc: "Notification instantanée à chaque but des équipes favorites",
+  },
   { id: "start", label: "Coup d'envoi", desc: "10 min avant le début du match" },
   { id: "lineup", label: "Compositions officielles", desc: "Dès leur publication" },
   { id: "ai", label: "Insights IA Premium", desc: "Prédictions à haute confiance" },
@@ -59,7 +70,9 @@ function FavorisPage() {
 
   const handleAddFavorite = async (teamName: string) => {
     try {
-      await toggleFavorite({ data: { kind: "team", refId: teamName, label: teamName, notify: true } });
+      await toggleFavorite({
+        data: { kind: "team", refId: teamName, label: teamName, notify: true },
+      });
       await favoritesQuery.refetch();
       toast.success(`${teamName} ajouté à vos favoris.`);
     } catch (error) {
@@ -69,7 +82,9 @@ function FavorisPage() {
 
   const handleRemoveFavorite = async (team: { refId: string; name: string }) => {
     try {
-      await toggleFavorite({ data: { kind: "team", refId: team.refId, label: team.name, notify: true } });
+      await toggleFavorite({
+        data: { kind: "team", refId: team.refId, label: team.name, notify: true },
+      });
       await favoritesQuery.refetch();
       toast.info("Favori retiré.");
     } catch (error) {
@@ -85,9 +100,13 @@ function FavorisPage() {
         <div className="mx-4 mb-4 rounded-2xl bg-warn/10 p-3 ring-1 ring-warn/20 lg:mx-0">
           <div className="flex items-center justify-between text-xs font-bold text-warn">
             <span className="flex items-center gap-1.5">
-              <Lock className="size-3.5" /> Plan Gratuit : {favoriteTeams.length} / 3 favoris utilisés
+              <Lock className="size-3.5" /> Plan Gratuit : {favoriteTeams.length} / 3 favoris
+              utilisés
             </span>
-            <Link to="/premium" className="inline-flex items-center gap-1 text-[11px] underline font-black text-foreground">
+            <Link
+              to="/premium"
+              className="inline-flex items-center gap-1 text-[11px] underline font-black text-foreground"
+            >
               Passer Premium <Crown className="size-3 text-brand" />
             </Link>
           </div>
@@ -108,7 +127,9 @@ function FavorisPage() {
             onClick={() => setTab(id)}
             className={cn(
               "shrink-0 rounded-full px-4 py-2 text-xs font-bold transition-all",
-              tab === id ? "bg-foreground text-background" : "bg-surface text-muted-foreground ring-1 ring-black/5 dark:ring-white/10",
+              tab === id
+                ? "bg-foreground text-background"
+                : "bg-surface text-muted-foreground ring-1 ring-black/5 dark:ring-white/10",
             )}
           >
             {label}
@@ -142,7 +163,7 @@ function FavorisPage() {
                 {favoriteTeams.map((team) => (
                   <div
                     key={team.id}
-                    className="flex items-center justify-between rounded-2xl bg-card p-3 ring-1 ring-black/5 dark:ring-white/5"
+                    className="animate-rise flex items-center justify-between rounded-xl border border-border/70 bg-card p-3"
                   >
                     <div className="flex items-center gap-3">
                       <div className="grid size-9 place-items-center rounded-full bg-warn/10 text-warn">
@@ -150,7 +171,9 @@ function FavorisPage() {
                       </div>
                       <div>
                         <div className="text-sm font-bold">{team.name}</div>
-                        <div className="text-[11px] text-muted-foreground">Alertes {team.notify ? "activées" : "désactivées"}</div>
+                        <div className="text-[11px] text-muted-foreground">
+                          Alertes {team.notify ? "activées" : "désactivées"}
+                        </div>
                       </div>
                     </div>
                     <button
@@ -164,11 +187,12 @@ function FavorisPage() {
                 ))}
 
                 {!isPremium && favoriteTeams.length >= 3 && (
-                  <div className="mt-4 rounded-3xl bg-card p-4 text-center ring-1 ring-brand/30">
+                  <div className="mt-4 rounded-xl border border-brand/30 bg-card p-4 text-center">
                     <Crown className="mx-auto size-6 text-brand" />
                     <div className="mt-2 text-xs font-black">Limite de 3 favoris atteinte</div>
                     <p className="mt-1 text-[11px] text-muted-foreground">
-                      Passez à Livefoot IA Premium pour ajouter un nombre illimité d'équipes et de compétitions.
+                      Passez à Livefoot IA Premium pour ajouter un nombre illimité d'équipes et de
+                      compétitions.
                     </p>
                     <button
                       onClick={() => navigate({ to: "/premium" })}
@@ -206,7 +230,7 @@ function FavorisPage() {
 
 function EmptyState({ icon, title, msg }: { icon: React.ReactNode; title: string; msg: string }) {
   return (
-    <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-border p-8 text-center">
+    <div className="score-empty-state flex flex-col items-center gap-2">
       <div className="grid size-10 place-items-center rounded-full bg-warn/10">{icon}</div>
       <div className="text-sm font-bold">{title}</div>
       <div className="max-w-xs text-xs text-muted-foreground">{msg}</div>
@@ -217,7 +241,7 @@ function EmptyState({ icon, title, msg }: { icon: React.ReactNode; title: string
 function NotifRow({ label, desc }: { label: string; desc: string }) {
   const [on, setOn] = useState(true);
   return (
-    <div className="flex items-start gap-3 rounded-2xl bg-card p-3 ring-1 ring-black/5 dark:ring-white/5">
+    <div className="flex items-start gap-3 rounded-xl border border-border/70 bg-card p-3">
       <div className="grid size-10 place-items-center rounded-full bg-surface">
         <Bell className="size-4 text-foreground" />
       </div>
@@ -230,10 +254,18 @@ function NotifRow({ label, desc }: { label: string; desc: string }) {
           setOn(!on);
           toast.success(!on ? `${label} activées.` : `${label} désactivées.`);
         }}
-        className={cn("relative h-6 w-11 shrink-0 rounded-full transition-colors", on ? "bg-brand" : "bg-muted")}
+        className={cn(
+          "relative h-6 w-11 shrink-0 rounded-full transition-colors",
+          on ? "bg-brand" : "bg-muted",
+        )}
         aria-label="Basculer"
       >
-        <span className={cn("absolute top-0.5 size-5 rounded-full bg-background shadow transition-transform", on ? "translate-x-5" : "translate-x-0.5")} />
+        <span
+          className={cn(
+            "absolute top-0.5 size-5 rounded-full bg-background shadow transition-transform",
+            on ? "translate-x-5" : "translate-x-0.5",
+          )}
+        />
       </button>
     </div>
   );

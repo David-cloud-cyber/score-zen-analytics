@@ -50,7 +50,7 @@ export function ReferralPopup({ variant, onDismiss }: ReferralPopupProps) {
         role="dialog"
         aria-modal="true"
         aria-labelledby="referral-title"
-        className="max-h-[calc(100dvh-1rem)] w-full max-w-[420px] overflow-y-auto rounded-t-3xl bg-background p-5 shadow-2xl sm:rounded-3xl sm:p-6"
+        className="score-modal max-h-[calc(100dvh-1rem)] w-full max-w-[420px] overflow-y-auto rounded-t-2xl bg-background p-5 sm:rounded-2xl sm:p-6"
       >
         {variant === "free_invite" && <FreeInviteContent onDismiss={onDismiss} />}
         {variant === "premium_low_credits" && <PremiumLowCreditsContent onDismiss={onDismiss} />}
@@ -108,8 +108,8 @@ function FreeInviteContent({ onDismiss }: { onDismiss: () => void }) {
             Invitez un proche, gagnez 5 crédits
           </h2>
           <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
-            Partagez votre lien unique. Dès qu'un proche crée son compte, vous recevez automatiquement{" "}
-            <span className="font-bold text-brand">+5 crédits</span>.
+            Partagez votre lien unique. Dès qu'un proche crée son compte, vous recevez
+            automatiquement <span className="font-bold text-brand">+5 crédits</span>.
           </p>
         </div>
         <button
@@ -150,21 +150,22 @@ function FreeInviteContent({ onDismiss }: { onDismiss: () => void }) {
         <button
           onClick={handleWhatsApp}
           disabled={!referralLink}
-          className="flex items-center justify-center gap-1.5 rounded-2xl bg-[#25D366] py-3 text-xs font-black text-white transition-transform active:scale-[0.98] disabled:opacity-40"
+          className="flex items-center justify-center gap-1.5 rounded-xl bg-[#25D366] py-3 text-xs font-black text-white transition-transform active:scale-[0.98] disabled:opacity-40"
         >
           <WhatsAppIcon /> Partager
         </button>
         <Link
           to="/profil"
           onClick={onDismiss}
-          className="flex items-center justify-center gap-1.5 rounded-2xl bg-foreground py-3 text-xs font-black text-background transition-transform active:scale-[0.98]"
+          className="flex items-center justify-center gap-1.5 rounded-xl bg-foreground py-3 text-xs font-black text-background transition-transform active:scale-[0.98]"
         >
           <Users className="size-3.5 text-brand" /> Mon parrainage
         </Link>
       </div>
 
       <p className="mt-3 text-center text-[10px] text-muted-foreground">
-        Votre proche reçoit ses crédits de bienvenue habituels. Vous gagnez +5 crédits par inscription attribuée.
+        Votre proche reçoit ses crédits de bienvenue habituels. Vous gagnez +5 crédits par
+        inscription attribuée.
       </p>
     </>
   );
@@ -184,11 +185,13 @@ function PremiumLowCreditsContent({ onDismiss }: { onDismiss: () => void }) {
             <Coins className="size-3" /> Crédits faibles
           </div>
           <h2 id="referral-title" className="text-xl font-black leading-tight">
-            Vos crédits<br />s'épuisent
+            Vos crédits
+            <br />
+            s'épuisent
           </h2>
           <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
-            Continuez vos analyses sans interruption — rechargez maintenant ou
-            passez à l'abonnement annuel (2 mois offerts).
+            Continuez vos analyses sans interruption — rechargez maintenant ou passez à l'abonnement
+            annuel (2 mois offerts).
           </p>
         </div>
         <button
@@ -209,7 +212,8 @@ function PremiumLowCreditsContent({ onDismiss }: { onDismiss: () => void }) {
             <span className="text-[9px] font-black uppercase tracking-widest">Packs crédits</span>
           </div>
           <div className="mt-1 text-xs font-bold leading-snug text-foreground">
-            De 15 à 280 crédits<br />
+            De 15 à 280 crédits
+            <br />
             <span className="text-muted-foreground font-normal">À partir de 1 700 FCFA</span>
           </div>
         </div>
@@ -219,7 +223,8 @@ function PremiumLowCreditsContent({ onDismiss }: { onDismiss: () => void }) {
             <span className="text-[9px] font-black uppercase tracking-widest">Annuel</span>
           </div>
           <div className="mt-1 text-xs font-bold leading-snug text-foreground">
-            2 mois offerts<br />
+            2 mois offerts
+            <br />
             <span className="text-muted-foreground font-normal">49 000 FCFA/an</span>
           </div>
         </div>
@@ -232,14 +237,14 @@ function PremiumLowCreditsContent({ onDismiss }: { onDismiss: () => void }) {
             onDismiss();
             navigate({ to: "/profil" });
           }}
-          className="flex items-center justify-center gap-1.5 rounded-2xl bg-warn py-3 text-xs font-black text-neutral-900 transition-transform active:scale-[0.98]"
+          className="flex items-center justify-center gap-1.5 rounded-xl bg-brand py-3 text-xs font-black text-brand-foreground transition-transform active:scale-[0.98]"
         >
           <Coins className="size-3.5" /> Recharger
         </button>
         <Link
           to="/premium"
           onClick={onDismiss}
-          className="flex items-center justify-center gap-1.5 rounded-2xl bg-foreground py-3 text-xs font-black text-background transition-transform active:scale-[0.98]"
+          className="flex items-center justify-center gap-1.5 rounded-xl bg-foreground py-3 text-xs font-black text-background transition-transform active:scale-[0.98]"
         >
           <Crown className="size-3.5 text-warn" /> Annuel
         </Link>
