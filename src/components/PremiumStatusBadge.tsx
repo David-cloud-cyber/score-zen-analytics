@@ -1,5 +1,4 @@
 import { Crown, ShieldCheck } from "lucide-react";
-import { Link } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { formatPremiumExpiry, isPremiumActive, premiumDaysRemaining, type PremiumProfile } from "@/lib/premium-status";
 
@@ -18,8 +17,8 @@ export function PremiumStatusBadge({
   const expiry = formatPremiumExpiry(profile?.premium_until);
 
   return (
-    <Link
-      to="/premium/tableau-de-bord"
+    <a
+      href="/premium/tableau-de-bord"
       aria-label={expiry ? `Premium actif jusqu'au ${expiry}` : "Premium actif"}
       className={cn(
         "inline-flex items-center gap-1.5 rounded-full bg-brand/10 text-brand ring-1 ring-brand/25 transition-colors hover:bg-brand/15",
@@ -30,6 +29,6 @@ export function PremiumStatusBadge({
       {compact ? <Crown className="size-3" aria-hidden /> : <ShieldCheck className="size-3.5" aria-hidden />}
       <span>Premium actif</span>
       {!compact && days !== null && <span className="text-brand/70">· {days} j</span>}
-    </Link>
+    </a>
   );
 }

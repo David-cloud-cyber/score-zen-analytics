@@ -121,8 +121,9 @@ function PremiumPage() {
       </div>
 
       <div className="mt-4 px-4 lg:px-0">
-        <Link
-          to="/premium/tableau-de-bord"
+        <a
+          href="/premium/tableau-de-bord"
+          aria-label="Ouvrir le Premium Intelligence Hub"
           className="flex items-center justify-between gap-3 rounded-2xl border border-brand/30 bg-brand/5 p-4 transition-colors hover:bg-brand/10"
         >
           <span className="flex items-center gap-3">
@@ -133,7 +134,7 @@ function PremiumPage() {
             </span>
           </span>
           <ArrowRight className="size-4 shrink-0 text-brand" aria-hidden />
-        </Link>
+        </a>
       </div>
 
       {/* Subscription Plans */}
