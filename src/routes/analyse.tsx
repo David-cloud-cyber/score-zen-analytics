@@ -8,6 +8,7 @@ import {
   Lock,
   Info,
   Check,
+  ChevronDown,
   Search,
   Calendar,
   ShieldCheck,
@@ -264,7 +265,7 @@ function AnalysePage() {
       <PageTitle eyebrow="Prédictions IA" title="Analyse de Match sur Mesure" />
 
       {/* Main Team Selector Container */}
-      <div className="mx-4 animate-rise rounded-xl border border-border/70 bg-card p-5 shadow-none lg:mx-0">
+      <div className="mx-4 animate-rise rounded-xl border border-border/70 bg-card p-4 shadow-none lg:mx-0">
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="grid size-7 place-items-center rounded-lg bg-brand/10 text-brand">
@@ -359,7 +360,7 @@ function AnalysePage() {
       </div>
 
       {/* Results Section */}
-      <div className="mt-6 space-y-5 px-4 lg:px-0">
+      <div className="mt-5 space-y-4 px-4 lg:px-0">
         {!live ? (
           <div className="flex items-start gap-3 rounded-2xl bg-surface p-4 text-[12px] leading-relaxed text-muted-foreground ring-1 ring-black/5 dark:ring-white/10">
             <Info className="size-5 shrink-0 text-brand" />
@@ -439,7 +440,7 @@ function AnalysePage() {
               <h3 className="mb-3 text-[11px] font-black uppercase tracking-widest text-muted-foreground">
                 Marchés recommandés
               </h3>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid gap-3 sm:grid-cols-2">
                 {live.markets.slice(0, 6).map((m, i) => (
                   <MarketCard key={i} market={m} />
                 ))}
@@ -448,28 +449,33 @@ function AnalysePage() {
           </>
         )}
 
-        {/* AEO/GEO — réponse directe + FAQ citables par les moteurs de réponse */}
-        <section
-          aria-label="Réponse rapide"
-          className="rounded-2xl border-l-4 border-brand bg-brand/5 p-5"
-        >
-          <h2 className="mb-2 text-sm font-black uppercase tracking-widest text-brand">
-            Comment obtenir une prédiction IA sur un match ?
-          </h2>
-          <p data-answer className="text-[15px] font-medium leading-relaxed text-foreground">
-            {ANALYSE_ANSWER}
-          </p>
-        </section>
+        {/* Le contenu éditorial reste indexable sans surcharger le parcours principal. */}
+        <details className="group rounded-xl border border-border/70 bg-surface/30 p-4">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-black marker:hidden">
+            <span>Comprendre la méthode et les questions fréquentes</span>
+            <ChevronDown className="size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
+          </summary>
+          <div className="mt-4 space-y-5">
+            <section aria-label="Réponse rapide" className="border-l-4 border-brand bg-brand/5 p-4">
+              <h2 className="mb-2 text-[11px] font-black uppercase tracking-widest text-brand">
+                Comment obtenir une prédiction IA sur un match ?
+              </h2>
+              <p data-answer className="text-sm font-medium leading-relaxed text-foreground">
+                {ANALYSE_ANSWER}
+              </p>
+            </section>
 
-        <section aria-label="Questions fréquentes" className="space-y-2">
-          <h2 className="text-lg font-black tracking-tight">Questions fréquentes</h2>
-          {ANALYSE_FAQ.map((f) => (
-            <details key={f.q} className="rounded-2xl border border-border/70 bg-surface/40 p-4">
-              <summary className="cursor-pointer text-sm font-black">{f.q}</summary>
-              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{f.a}</p>
-            </details>
-          ))}
-        </section>
+            <section aria-label="Questions fréquentes" className="space-y-2">
+              <h2 className="text-base font-black tracking-tight">Questions fréquentes</h2>
+              {ANALYSE_FAQ.map((f) => (
+                <details key={f.q} className="rounded-xl border border-border/70 bg-surface/40 p-3">
+                  <summary className="cursor-pointer text-sm font-black">{f.q}</summary>
+                  <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{f.a}</p>
+                </details>
+              ))}
+            </section>
+          </div>
+        </details>
 
         <Disclaimer className="pt-2" />
       </div>

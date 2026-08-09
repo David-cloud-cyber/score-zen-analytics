@@ -361,12 +361,17 @@
 
   .score-sidebar::-webkit-scrollbar,
   .score-shell [role="dialog"] aside::-webkit-scrollbar {
-    width: 6px;
+    width: 4px;
   }
 
   .score-sidebar::-webkit-scrollbar-thumb,
   .score-shell [role="dialog"] aside::-webkit-scrollbar-thumb {
     border-radius: 999px;
-    background: #3a3a3a;
+    background: #343434;
+  }
+
+  .score-sidebar::-webkit-scrollbar-track,
+  .score-shell [role="dialog"] aside::-webkit-scrollbar-track {
+    background: transparent;
   }
 }
