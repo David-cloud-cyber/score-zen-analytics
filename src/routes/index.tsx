@@ -8,6 +8,7 @@ import {
   AlertTriangle,
   RefreshCw,
   CalendarDays,
+  Flame,
 } from "lucide-react";
 import { AppShell, PageTitle } from "@/components/AppShell";
 import { RemoteMatchCard } from "@/components/RemoteMatchCard";
@@ -110,6 +111,32 @@ function formatDate(date: Date) {
   return `${year}-${month}-${day}`;
 }
 
+const TRENDING_LEAGUES = new Set([2, 39, 61, 78, 135, 140]);
+const TRENDING_TEAMS = new Set([42, 49, 50, 40, 541, 529, 530, 85, 157, 165]);
+const TRENDING_WINDOW_MS = 6 * 60 * 60 * 1000;
+
+function trendingScore(match: (typeof DEMO_FIXTURES)[number], now: number): number | null {
+  const isLive = match.status === "live" || match.status === "ht";
+  const kickoff = new Date(match.kickoff).getTime();
+  const isSoon =
+    match.status === "upcoming" && kickoff >= now && kickoff - now <= TRENDING_WINDOW_MS;
+  if (!isLive && !isSoon) return null;
+
+  const teamWeight =
+    (TRENDING_TEAMS.has(match.home.id) ? 24 : 0) + (TRENDING_TEAMS.has(match.away.id) ? 24 : 0);
+  const leagueWeight = TRENDING_LEAGUES.has(match.league.id) ? 30 : 0;
+  const urgencyWeight = isLive ? 1000 + (match.minute ?? 0) : 500 - (kickoff - now) / 60_000;
+  return urgencyWeight + teamWeight + leagueWeight;
+}
+
+function pickTrendingMatch<T extends (typeof DEMO_FIXTURES)[number]>(matches: T[]): T | undefined {
+  const now = Date.now();
+  return matches
+    .map((match) => ({ match, score: trendingScore(match, now) }))
+    .filter((item): item is { match: T; score: number } => item.score !== null)
+    .sort((a, b) => b.score - a.score)[0]?.match;
+}
+
 function HomePage() {
   const demoMode = isLocalDemo();
   const [dayOffset, setDayOffset] = useState(0);
@@ -161,8 +188,7 @@ function HomePage() {
   const grouped = Array.from(groupedMap.values());
   const today = selectedDate.toLocaleDateString("fr-FR", { day: "2-digit", month: "short" });
 
-  const topMatch =
-    visibleFixtures.find((m) => m.status === "live" || m.status === "ht") ?? visibleFixtures[0];
+  const topMatch = pickTrendingMatch(visibleFixtures);
 
   return (
     <AppShell>
@@ -257,15 +283,18 @@ function HomePage() {
             <div className="pointer-events-none absolute -bottom-20 -left-10 size-40 rounded-full bg-brand/30 blur-3xl transition-transform group-hover:scale-110" />
             <div className="relative">
               <div className="mb-3 inline-flex items-center gap-1.5 rounded-full bg-brand/20 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-brand ring-1 ring-brand/30">
-                <Sparkles className="size-3" /> Match du jour
+                <Flame className="size-3" /> Trending
               </div>
               <h2 className="text-[22px] font-black leading-tight tracking-tight lg:text-3xl">
                 {topMatch.home.name} <span className="text-muted-foreground">vs</span>{" "}
                 {topMatch.away.name}
               </h2>
               <p className="mt-2 text-xs leading-relaxed text-background/70 lg:text-sm">
-                {topMatch.league.name} · {topMatch.venue ?? topMatch.dayLabel} · Coup d'envoi{" "}
-                {topMatch.timeLabel}.
+                {topMatch.league.name} · {topMatch.venue ?? topMatch.dayLabel} ·{" "}
+                {topMatch.status === "live" || topMatch.status === "ht"
+                  ? `En direct${topMatch.minute ? ` · ${topMatch.minute}'` : ""}`
+                  : `Coup d'envoi ${topMatch.timeLabel}`}
+                .
               </p>
               <div className="mt-4 flex items-center gap-4">
                 <img src={topMatch.home.logo} alt="" className="size-10 object-contain" />

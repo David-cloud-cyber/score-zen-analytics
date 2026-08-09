@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useParams } from "@tanstack/react-router";
 import { useSuspenseQuery, queryOptions } from "@tanstack/react-query";
+import { useState } from "react";
 import {
   ArrowLeft,
   MapPin,
@@ -12,6 +13,7 @@ import {
   ShieldCheck,
   Trophy,
   ChevronRight,
+  Flame,
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { MatchSkeleton } from "@/components/PageSkeleton";
@@ -198,6 +200,7 @@ function LiveMatchView({ m }: { m: RemoteMatchDetail }) {
         </div>
 
         <MatchSnapshot match={m} isLive={isLive} isFinished={isFinished} />
+        <MatchVoteCard match={m} />
 
         {/* Navigation Tabs */}
         <Tabs defaultValue="stats" className="w-full">
@@ -423,6 +426,81 @@ function MatchSnapshot({
             disponibles.
           </>
         )}
+      </div>
+    </section>
+  );
+}
+
+function MatchVoteCard({ match }: { match: RemoteMatchDetail }) {
+  const [votes, setVotes] = useState({ home: 58, draw: 23, away: 19 });
+  const [selected, setSelected] = useState<"home" | "draw" | "away" | null>(null);
+  const total = votes.home + votes.draw + votes.away;
+  const options = [
+    { id: "home" as const, label: "1", name: match.home.short, value: votes.home },
+    { id: "draw" as const, label: "N", name: "Match nul", value: votes.draw },
+    { id: "away" as const, label: "2", name: match.away.short, value: votes.away },
+  ];
+
+  function vote(id: "home" | "draw" | "away") {
+    if (selected) return;
+    setSelected(id);
+    setVotes((current) => ({ ...current, [id]: current[id] + 1 }));
+  }
+
+  return (
+    <section aria-labelledby="match-votes-title" className="space-y-3 px-4">
+      <div className="rounded-xl border border-brand/20 bg-brand/5 p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-widest text-brand">
+              <Flame className="mr-1 inline size-3" /> Communauté
+            </p>
+            <h2 id="match-votes-title" className="mt-1 text-base font-black">
+              Qui va s’imposer ?
+            </h2>
+          </div>
+          <span className="rounded-full bg-surface px-2 py-1 text-[10px] font-bold text-muted-foreground">
+            {total} votes
+          </span>
+        </div>
+        <div className="mt-3 grid grid-cols-3 gap-2">
+          {options.map((option) => {
+            const percentage = Math.round((option.value / total) * 100);
+            return (
+              <button
+                key={option.id}
+                type="button"
+                aria-pressed={selected === option.id}
+                onClick={() => vote(option.id)}
+                className={cn(
+                  "rounded-xl px-2 py-2.5 text-left transition-colors",
+                  selected === option.id
+                    ? "bg-brand text-brand-foreground"
+                    : "bg-card hover:bg-surface",
+                )}
+              >
+                <span className="block text-sm font-black">{option.label}</span>
+                <span className="mt-0.5 block truncate text-[10px] font-semibold opacity-75">
+                  {option.name}
+                </span>
+                <span className="mt-2 block text-lg font-black tabular-nums">{percentage}%</span>
+              </button>
+            );
+          })}
+        </div>
+        <div className="mt-3 flex h-1.5 overflow-hidden rounded-full bg-surface" aria-hidden>
+          <div className="bg-brand" style={{ width: `${(votes.home / total) * 100}%` }} />
+          <div
+            className="bg-muted-foreground/50"
+            style={{ width: `${(votes.draw / total) * 100}%` }}
+          />
+          <div className="bg-data" style={{ width: `${(votes.away / total) * 100}%` }} />
+        </div>
+        <p className="mt-2 text-[10px] text-muted-foreground">
+          {selected
+            ? "Votre vote a été ajouté à la tendance locale."
+            : "Votez pour comparer votre avis à celui de la communauté."}
+        </p>
       </div>
     </section>
   );
