@@ -9,61 +9,32 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
-import { Route as AnalyseRouteImport } from './routes/analyse'
-import { Route as AuthRouteImport } from './routes/auth'
-import { Route as CodesPromoRouteImport } from './routes/codes-promo'
-import { Route as CommunauteRouteImport } from './routes/communaute'
-import { Route as MentionsLegalesRouteImport } from './routes/mentions-legales'
-import { Route as PremiumRouteImport } from './routes/premium'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
-import { Route as AuthenticatedFavorisRouteImport } from './routes/_authenticated/favoris'
-import { Route as AuthenticatedProfilRouteImport } from './routes/_authenticated/profil'
-import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
+import { Route as PremiumRouteImport } from './routes/premium'
+import { Route as MentionsLegalesRouteImport } from './routes/mentions-legales'
+import { Route as CommunauteRouteImport } from './routes/communaute'
+import { Route as CodesPromoRouteImport } from './routes/codes-promo'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AnalyseRouteImport } from './routes/analyse'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as IndexRouteImport } from './routes/index'
 import { Route as CodesPromoIndexRouteImport } from './routes/codes-promo.index'
-import { Route as CodesPromoSlugRouteImport } from './routes/codes-promo.$slug'
-import { Route as CodesPromoCamerounRouteImport } from './routes/codes-promo.cameroun'
-import { Route as CodesPromoCoteIvoireRouteImport } from './routes/codes-promo.cote-ivoire'
-import { Route as CodesPromoSenegalRouteImport } from './routes/codes-promo.senegal'
-import { Route as LiveIdRouteImport } from './routes/live.$id'
-import { Route as MatchIdRouteImport } from './routes/match.$id'
 import { Route as PremiumTableauDeBordRouteImport } from './routes/premium.tableau-de-bord'
-import { Route as ApiPublicFapshiWebhookRouteImport } from './routes/api/public/fapshi-webhook'
+import { Route as MatchIdRouteImport } from './routes/match.$id'
+import { Route as LiveIdRouteImport } from './routes/live.$id'
+import { Route as CodesPromoSenegalRouteImport } from './routes/codes-promo.senegal'
+import { Route as CodesPromoCoteIvoireRouteImport } from './routes/codes-promo.cote-ivoire'
+import { Route as CodesPromoCamerounRouteImport } from './routes/codes-promo.cameroun'
+import { Route as CodesPromoSlugRouteImport } from './routes/codes-promo.$slug'
+import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
+import { Route as AuthenticatedProfilRouteImport } from './routes/_authenticated/profil'
+import { Route as AuthenticatedFavorisRouteImport } from './routes/_authenticated/favoris'
 import { Route as CodesPromoSlugCountryRouteImport } from './routes/codes-promo.$slug.$country'
+import { Route as ApiPublicFapshiWebhookRouteImport } from './routes/api/public/fapshi-webhook'
 
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
-  id: '/_authenticated',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AnalyseRoute = AnalyseRouteImport.update({
-  id: '/analyse',
-  path: '/analyse',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthRoute = AuthRouteImport.update({
-  id: '/auth',
-  path: '/auth',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CodesPromoRoute = CodesPromoRouteImport.update({
-  id: '/codes-promo',
-  path: '/codes-promo',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CommunauteRoute = CommunauteRouteImport.update({
-  id: '/communaute',
-  path: '/communaute',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const MentionsLegalesRoute = MentionsLegalesRouteImport.update({
-  id: '/mentions-legales',
-  path: '/mentions-legales',
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PremiumRoute = PremiumRouteImport.update({
@@ -71,39 +42,63 @@ const PremiumRoute = PremiumRouteImport.update({
   path: '/premium',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
-  id: '/sitemap.xml',
-  path: '/sitemap.xml',
+const MentionsLegalesRoute = MentionsLegalesRouteImport.update({
+  id: '/mentions-legales',
+  path: '/mentions-legales',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedFavorisRoute = AuthenticatedFavorisRouteImport.update({
-  id: '/favoris',
-  path: '/favoris',
-  getParentRoute: () => AuthenticatedRouteRoute,
+const CommunauteRoute = CommunauteRouteImport.update({
+  id: '/communaute',
+  path: '/communaute',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedProfilRoute = AuthenticatedProfilRouteImport.update({
-  id: '/profil',
-  path: '/profil',
-  getParentRoute: () => AuthenticatedRouteRoute,
+const CodesPromoRoute = CodesPromoRouteImport.update({
+  id: '/codes-promo',
+  path: '/codes-promo',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const AuthCallbackRoute = AuthCallbackRouteImport.update({
-  id: '/callback',
-  path: '/callback',
-  getParentRoute: () => AuthRoute,
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AnalyseRoute = AnalyseRouteImport.update({
+  id: '/analyse',
+  path: '/analyse',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const CodesPromoIndexRoute = CodesPromoIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => CodesPromoRoute,
 } as any)
-const CodesPromoSlugRoute = CodesPromoSlugRouteImport.update({
-  id: '/$slug',
-  path: '/$slug',
-  getParentRoute: () => CodesPromoRoute,
+const PremiumTableauDeBordRoute = PremiumTableauDeBordRouteImport.update({
+  id: '/tableau-de-bord',
+  path: '/tableau-de-bord',
+  getParentRoute: () => PremiumRoute,
 } as any)
-const CodesPromoCamerounRoute = CodesPromoCamerounRouteImport.update({
-  id: '/cameroun',
-  path: '/cameroun',
+const MatchIdRoute = MatchIdRouteImport.update({
+  id: '/match/$id',
+  path: '/match/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LiveIdRoute = LiveIdRouteImport.update({
+  id: '/live/$id',
+  path: '/live/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CodesPromoSenegalRoute = CodesPromoSenegalRouteImport.update({
+  id: '/senegal',
+  path: '/senegal',
   getParentRoute: () => CodesPromoRoute,
 } as any)
 const CodesPromoCoteIvoireRoute = CodesPromoCoteIvoireRouteImport.update({
@@ -111,35 +106,40 @@ const CodesPromoCoteIvoireRoute = CodesPromoCoteIvoireRouteImport.update({
   path: '/cote-ivoire',
   getParentRoute: () => CodesPromoRoute,
 } as any)
-const CodesPromoSenegalRoute = CodesPromoSenegalRouteImport.update({
-  id: '/senegal',
-  path: '/senegal',
+const CodesPromoCamerounRoute = CodesPromoCamerounRouteImport.update({
+  id: '/cameroun',
+  path: '/cameroun',
   getParentRoute: () => CodesPromoRoute,
 } as any)
-const LiveIdRoute = LiveIdRouteImport.update({
-  id: '/live/$id',
-  path: '/live/$id',
-  getParentRoute: () => rootRouteImport,
+const CodesPromoSlugRoute = CodesPromoSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => CodesPromoRoute,
 } as any)
-const MatchIdRoute = MatchIdRouteImport.update({
-  id: '/match/$id',
-  path: '/match/$id',
-  getParentRoute: () => rootRouteImport,
+const AuthCallbackRoute = AuthCallbackRouteImport.update({
+  id: '/callback',
+  path: '/callback',
+  getParentRoute: () => AuthRoute,
 } as any)
-const PremiumTableauDeBordRoute = PremiumTableauDeBordRouteImport.update({
-  id: '/tableau-de-bord',
-  path: '/tableau-de-bord',
-  getParentRoute: () => PremiumRoute,
+const AuthenticatedProfilRoute = AuthenticatedProfilRouteImport.update({
+  id: '/profil',
+  path: '/profil',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const ApiPublicFapshiWebhookRoute = ApiPublicFapshiWebhookRouteImport.update({
-  id: '/api/public/fapshi-webhook',
-  path: '/api/public/fapshi-webhook',
-  getParentRoute: () => rootRouteImport,
+const AuthenticatedFavorisRoute = AuthenticatedFavorisRouteImport.update({
+  id: '/favoris',
+  path: '/favoris',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const CodesPromoSlugCountryRoute = CodesPromoSlugCountryRouteImport.update({
   id: '/$country',
   path: '/$country',
   getParentRoute: () => CodesPromoSlugRoute,
+} as any)
+const ApiPublicFapshiWebhookRoute = ApiPublicFapshiWebhookRouteImport.update({
+  id: '/api/public/fapshi-webhook',
+  path: '/api/public/fapshi-webhook',
+  getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -301,53 +301,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_authenticated': {
-      id: '/_authenticated'
-      path: ''
-      fullPath: '/'
-      preLoaderRoute: typeof AuthenticatedRouteRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/analyse': {
-      id: '/analyse'
-      path: '/analyse'
-      fullPath: '/analyse'
-      preLoaderRoute: typeof AnalyseRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/auth': {
-      id: '/auth'
-      path: '/auth'
-      fullPath: '/auth'
-      preLoaderRoute: typeof AuthRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/codes-promo': {
-      id: '/codes-promo'
-      path: '/codes-promo'
-      fullPath: '/codes-promo'
-      preLoaderRoute: typeof CodesPromoRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/communaute': {
-      id: '/communaute'
-      path: '/communaute'
-      fullPath: '/communaute'
-      preLoaderRoute: typeof CommunauteRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/mentions-legales': {
-      id: '/mentions-legales'
-      path: '/mentions-legales'
-      fullPath: '/mentions-legales'
-      preLoaderRoute: typeof MentionsLegalesRouteImport
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/premium': {
@@ -357,33 +315,54 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PremiumRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/sitemap.xml': {
-      id: '/sitemap.xml'
-      path: '/sitemap.xml'
-      fullPath: '/sitemap.xml'
-      preLoaderRoute: typeof SitemapDotxmlRouteImport
+    '/mentions-legales': {
+      id: '/mentions-legales'
+      path: '/mentions-legales'
+      fullPath: '/mentions-legales'
+      preLoaderRoute: typeof MentionsLegalesRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/favoris': {
-      id: '/_authenticated/favoris'
-      path: '/favoris'
-      fullPath: '/favoris'
-      preLoaderRoute: typeof AuthenticatedFavorisRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+    '/communaute': {
+      id: '/communaute'
+      path: '/communaute'
+      fullPath: '/communaute'
+      preLoaderRoute: typeof CommunauteRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/profil': {
-      id: '/_authenticated/profil'
-      path: '/profil'
-      fullPath: '/profil'
-      preLoaderRoute: typeof AuthenticatedProfilRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+    '/codes-promo': {
+      id: '/codes-promo'
+      path: '/codes-promo'
+      fullPath: '/codes-promo'
+      preLoaderRoute: typeof CodesPromoRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/auth/callback': {
-      id: '/auth/callback'
-      path: '/callback'
-      fullPath: '/auth/callback'
-      preLoaderRoute: typeof AuthCallbackRouteImport
-      parentRoute: typeof AuthRoute
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/analyse': {
+      id: '/analyse'
+      path: '/analyse'
+      fullPath: '/analyse'
+      preLoaderRoute: typeof AnalyseRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/codes-promo/': {
       id: '/codes-promo/'
@@ -392,18 +371,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CodesPromoIndexRouteImport
       parentRoute: typeof CodesPromoRoute
     }
-    '/codes-promo/$slug': {
-      id: '/codes-promo/$slug'
-      path: '/$slug'
-      fullPath: '/codes-promo/$slug'
-      preLoaderRoute: typeof CodesPromoSlugRouteImport
-      parentRoute: typeof CodesPromoRoute
+    '/premium/tableau-de-bord': {
+      id: '/premium/tableau-de-bord'
+      path: '/tableau-de-bord'
+      fullPath: '/premium/tableau-de-bord'
+      preLoaderRoute: typeof PremiumTableauDeBordRouteImport
+      parentRoute: typeof PremiumRoute
     }
-    '/codes-promo/cameroun': {
-      id: '/codes-promo/cameroun'
-      path: '/cameroun'
-      fullPath: '/codes-promo/cameroun'
-      preLoaderRoute: typeof CodesPromoCamerounRouteImport
+    '/match/$id': {
+      id: '/match/$id'
+      path: '/match/$id'
+      fullPath: '/match/$id'
+      preLoaderRoute: typeof MatchIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/live/$id': {
+      id: '/live/$id'
+      path: '/live/$id'
+      fullPath: '/live/$id'
+      preLoaderRoute: typeof LiveIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/codes-promo/senegal': {
+      id: '/codes-promo/senegal'
+      path: '/senegal'
+      fullPath: '/codes-promo/senegal'
+      preLoaderRoute: typeof CodesPromoSenegalRouteImport
       parentRoute: typeof CodesPromoRoute
     }
     '/codes-promo/cote-ivoire': {
@@ -413,40 +406,40 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CodesPromoCoteIvoireRouteImport
       parentRoute: typeof CodesPromoRoute
     }
-    '/codes-promo/senegal': {
-      id: '/codes-promo/senegal'
-      path: '/senegal'
-      fullPath: '/codes-promo/senegal'
-      preLoaderRoute: typeof CodesPromoSenegalRouteImport
+    '/codes-promo/cameroun': {
+      id: '/codes-promo/cameroun'
+      path: '/cameroun'
+      fullPath: '/codes-promo/cameroun'
+      preLoaderRoute: typeof CodesPromoCamerounRouteImport
       parentRoute: typeof CodesPromoRoute
     }
-    '/live/$id': {
-      id: '/live/$id'
-      path: '/live/$id'
-      fullPath: '/live/$id'
-      preLoaderRoute: typeof LiveIdRouteImport
-      parentRoute: typeof rootRouteImport
+    '/codes-promo/$slug': {
+      id: '/codes-promo/$slug'
+      path: '/$slug'
+      fullPath: '/codes-promo/$slug'
+      preLoaderRoute: typeof CodesPromoSlugRouteImport
+      parentRoute: typeof CodesPromoRoute
     }
-    '/match/$id': {
-      id: '/match/$id'
-      path: '/match/$id'
-      fullPath: '/match/$id'
-      preLoaderRoute: typeof MatchIdRouteImport
-      parentRoute: typeof rootRouteImport
+    '/auth/callback': {
+      id: '/auth/callback'
+      path: '/callback'
+      fullPath: '/auth/callback'
+      preLoaderRoute: typeof AuthCallbackRouteImport
+      parentRoute: typeof AuthRoute
     }
-    '/premium/tableau-de-bord': {
-      id: '/premium/tableau-de-bord'
-      path: '/tableau-de-bord'
-      fullPath: '/premium/tableau-de-bord'
-      preLoaderRoute: typeof PremiumTableauDeBordRouteImport
-      parentRoute: typeof PremiumRoute
+    '/_authenticated/profil': {
+      id: '/_authenticated/profil'
+      path: '/profil'
+      fullPath: '/profil'
+      preLoaderRoute: typeof AuthenticatedProfilRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/api/public/fapshi-webhook': {
-      id: '/api/public/fapshi-webhook'
-      path: '/api/public/fapshi-webhook'
-      fullPath: '/api/public/fapshi-webhook'
-      preLoaderRoute: typeof ApiPublicFapshiWebhookRouteImport
-      parentRoute: typeof rootRouteImport
+    '/_authenticated/favoris': {
+      id: '/_authenticated/favoris'
+      path: '/favoris'
+      fullPath: '/favoris'
+      preLoaderRoute: typeof AuthenticatedFavorisRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/codes-promo/$slug/$country': {
       id: '/codes-promo/$slug/$country'
@@ -454,6 +447,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/codes-promo/$slug/$country'
       preLoaderRoute: typeof CodesPromoSlugCountryRouteImport
       parentRoute: typeof CodesPromoSlugRoute
+    }
+    '/api/public/fapshi-webhook': {
+      id: '/api/public/fapshi-webhook'
+      path: '/api/public/fapshi-webhook'
+      fullPath: '/api/public/fapshi-webhook'
+      preLoaderRoute: typeof ApiPublicFapshiWebhookRouteImport
+      parentRoute: typeof rootRouteImport
     }
   }
 }
