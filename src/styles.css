@@ -121,7 +121,7 @@
   --border: oklch(1 0 0 / 12%);
   --input: oklch(1 0 0 / 16%);
   --ring: oklch(0.72 0.17 160);
-  --surface: oklch(0.20 0.025 260);
+  --surface: oklch(0.2 0.025 260);
 
   --brand: oklch(0.78 0.17 160);
   --brand-foreground: oklch(0.13 0.025 260);
@@ -182,16 +182,33 @@
 }
 
 @keyframes pulse-dot {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.5; transform: scale(0.9); }
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(0.9);
+  }
 }
 @keyframes grow-bar {
-  from { transform: scaleX(0); }
-  to { transform: scaleX(1); }
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
 }
 @keyframes rise {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @utility animate-pulse-dot {
@@ -206,5 +223,30 @@
 }
 @utility no-scrollbar {
   scrollbar-width: none;
-  &::-webkit-scrollbar { display: none; }
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@layer components {
+  .score-shell {
+    --score-sidebar-width: 250px;
+  }
+
+  .score-sidebar,
+  .score-shell [role="dialog"] aside {
+    scrollbar-width: thin;
+    scrollbar-color: #3a3a3a transparent;
+  }
+
+  .score-sidebar::-webkit-scrollbar,
+  .score-shell [role="dialog"] aside::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .score-sidebar::-webkit-scrollbar-thumb,
+  .score-shell [role="dialog"] aside::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: #3a3a3a;
+  }
 }

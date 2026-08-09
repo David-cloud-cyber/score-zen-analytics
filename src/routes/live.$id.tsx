@@ -1,6 +1,18 @@
 import { createFileRoute, Link, useParams } from "@tanstack/react-router";
 import { useSuspenseQuery, queryOptions } from "@tanstack/react-query";
-import { ArrowLeft, MapPin, Shirt, User, AlertTriangle, RefreshCw, Sparkles, Activity, ShieldCheck, Trophy, ChevronRight } from "lucide-react";
+import {
+  ArrowLeft,
+  MapPin,
+  Shirt,
+  User,
+  AlertTriangle,
+  RefreshCw,
+  Sparkles,
+  Activity,
+  ShieldCheck,
+  Trophy,
+  ChevronRight,
+} from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { MatchSkeleton } from "@/components/PageSkeleton";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -24,7 +36,8 @@ export const Route = createFileRoute("/live/$id")({
     buildRouteMeta({
       path: `/live/${params.id}`,
       title: `Match en direct #${params.id} — Livefoot IA`,
-      description: "Score en direct, stats détaillées, compositions tactiques 2D et prédictions IA de la rencontre.",
+      description:
+        "Score en direct, stats détaillées, compositions tactiques 2D et prédictions IA de la rencontre.",
       noindex: true,
     }),
   loader: ({ context, params }) => {
@@ -39,7 +52,9 @@ export const Route = createFileRoute("/live/$id")({
       <div className="mx-4 mt-8 rounded-2xl border border-alert/30 bg-alert/5 p-6 text-center lg:mx-0">
         <AlertTriangle className="mx-auto size-6 text-alert" aria-hidden />
         <h2 className="mt-3 text-base font-black">Match indisponible</h2>
-        <p className="mt-1 text-sm text-muted-foreground">{error.message || "Impossible de charger cette rencontre."}</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {error.message || "Impossible de charger cette rencontre."}
+        </p>
         <div className="mt-4 flex justify-center gap-2">
           <button
             onClick={reset}
@@ -47,7 +62,10 @@ export const Route = createFileRoute("/live/$id")({
           >
             <RefreshCw className="size-3.5" /> Réessayer
           </button>
-          <Link to="/" className="inline-flex items-center rounded-full bg-surface px-4 py-2 text-xs font-bold ring-1 ring-black/5 dark:ring-white/10">
+          <Link
+            to="/"
+            className="inline-flex items-center rounded-full bg-surface px-4 py-2 text-xs font-bold ring-1 ring-black/5 dark:ring-white/10"
+          >
             Retour
           </Link>
         </div>
@@ -70,23 +88,26 @@ function LiveMatchView({ m }: { m: RemoteMatchDetail }) {
 
   return (
     <AppShell hideHeader>
-      <div className="mx-auto min-h-screen w-full max-w-[440px] bg-background pb-20 lg:max-w-none lg:pb-0">
+      <div className="mx-auto min-h-screen w-full max-w-[440px] bg-background pb-20 lg:max-w-[980px] lg:pb-0">
         {/* Dynamic Hero Header */}
-        <div className="relative overflow-hidden bg-foreground text-background shadow-xl">
-          <div className="pointer-events-none absolute -top-24 right-0 size-64 rounded-full bg-brand/25 blur-3xl" />
-          <div className="pointer-events-none absolute -bottom-24 left-0 size-56 rounded-full bg-data/25 blur-3xl" />
+        <div className="relative overflow-hidden border-b border-[#252525] bg-[#111111] text-[#fdfdfd]">
           <div className="relative">
             {/* Navigation Header */}
-            <div className="flex items-center justify-between px-4 pt-4">
-              <Link to="/" className="grid size-9 place-items-center rounded-full bg-background/10 backdrop-blur transition-transform hover:scale-105 active:scale-95">
+            <div className="flex items-center justify-between border-b border-[#252525] px-4 py-3">
+              <Link
+                to="/"
+                className="grid size-9 place-items-center rounded-full bg-[#202020] text-[#aaaaaa] transition-colors hover:text-white"
+              >
                 <ArrowLeft className="size-4" />
               </Link>
               <div className="text-center">
                 <div className="flex items-center justify-center gap-1.5">
                   <img src={m.league.logo} alt="" className="size-3.5 object-contain" />
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-background/70">{m.league.name}</span>
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-[#aaaaaa]">
+                    {m.league.name}
+                  </span>
                 </div>
-                <div className="text-[11px] font-semibold text-background/80">
+                <div className="text-[11px] font-semibold text-[#888888]">
                   {m.dayLabel} · {m.venue?.split(",")[0] ?? "—"}
                 </div>
               </div>
@@ -94,9 +115,13 @@ function LiveMatchView({ m }: { m: RemoteMatchDetail }) {
             </div>
 
             {/* Match Score Display */}
-            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4 px-4 py-6">
+            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4 px-4 py-7">
               <div className="flex flex-col items-center gap-2 text-center">
-                <img src={m.home.logo} alt={m.home.name} className="size-16 object-contain drop-shadow-md" />
+                <img
+                  src={m.home.logo}
+                  alt={m.home.name}
+                  className="size-16 object-contain drop-shadow-md"
+                />
                 <div className="text-sm font-black leading-tight">{m.home.short}</div>
               </div>
 
@@ -108,39 +133,60 @@ function LiveMatchView({ m }: { m: RemoteMatchDetail }) {
                       {m.status === "ht" ? "MI-TEMPS" : `LIVE ${m.minute ?? ""}'`}
                     </div>
                     <div className="text-5xl font-black tabular-nums tracking-tighter">
-                      {m.homeScore ?? 0}<span className="mx-2 text-background/40">·</span>{m.awayScore ?? 0}
+                      {m.homeScore ?? 0}
+                      <span className="mx-2 text-[#777777]">·</span>
+                      {m.awayScore ?? 0}
                     </div>
                   </>
                 ) : isFinished ? (
                   <>
-                    <div className="mb-1 text-[10px] font-bold uppercase tracking-widest text-background/60">Terminé</div>
+                    <div className="mb-1 text-[10px] font-bold uppercase tracking-widest text-[#888888]">
+                      Terminé
+                    </div>
                     <div className="text-5xl font-black tabular-nums tracking-tighter">
-                      {m.homeScore ?? 0}<span className="mx-2 text-background/40">·</span>{m.awayScore ?? 0}
+                      {m.homeScore ?? 0}
+                      <span className="mx-2 text-[#777777]">·</span>
+                      {m.awayScore ?? 0}
                     </div>
                   </>
                 ) : (
                   <>
-                    <div className="mb-1 text-[10px] font-bold uppercase tracking-widest text-background/60">Coup d'envoi</div>
-                    <div className="text-4xl font-black tabular-nums tracking-tighter">{m.timeLabel}</div>
+                    <div className="mb-1 text-[10px] font-bold uppercase tracking-widest text-[#888888]">
+                      Coup d'envoi
+                    </div>
+                    <div className="text-4xl font-black tabular-nums tracking-tighter">
+                      {m.timeLabel}
+                    </div>
                   </>
                 )}
               </div>
 
               <div className="flex flex-col items-center gap-2 text-center">
-                <img src={m.away.logo} alt={m.away.name} className="size-16 object-contain drop-shadow-md" />
+                <img
+                  src={m.away.logo}
+                  alt={m.away.name}
+                  className="size-16 object-contain drop-shadow-md"
+                />
                 <div className="text-sm font-black leading-tight">{m.away.short}</div>
               </div>
             </div>
 
             {/* Direct AI Prediction CTA Banner */}
-            <div className="border-t border-background/10 bg-background/5 p-3 backdrop-blur-sm">
+            <div className="border-t border-[#252525] bg-[#181818] p-3">
               <a
                 href={`/analyse?home=${encodeURIComponent(m.home.name)}&away=${encodeURIComponent(m.away.name)}&matchId=${m.id}`}
                 className="flex w-full items-center justify-between rounded-2xl bg-brand px-4 py-2.5 text-xs font-black text-neutral-900 shadow-lg transition-transform hover:scale-[1.02] active:scale-[0.98]"
               >
                 <div className="flex items-center gap-2">
                   <Sparkles className="size-4 animate-bounce" />
-                  <span>{isLive ? "Analyser le match en direct" : isFinished ? "Revoir l’analyse de ce match" : "Obtenir l’analyse IA de ce match"} · 3 crédits</span>
+                  <span>
+                    {isLive
+                      ? "Analyser le match en direct"
+                      : isFinished
+                        ? "Revoir l’analyse de ce match"
+                        : "Obtenir l’analyse IA de ce match"}{" "}
+                    · 3 crédits
+                  </span>
                 </div>
                 <ChevronRight className="size-4" />
               </a>
@@ -152,7 +198,7 @@ function LiveMatchView({ m }: { m: RemoteMatchDetail }) {
 
         {/* Navigation Tabs */}
         <Tabs defaultValue="stats" className="w-full">
-          <div className="sticky top-0 z-20 border-b border-border/60 bg-background/95 backdrop-blur">
+          <div className="sticky top-0 z-20 border-b border-[#252525] bg-background/95 backdrop-blur">
             <TabsList className="no-scrollbar h-auto w-full justify-start gap-0 overflow-x-auto rounded-none bg-transparent p-0">
               {[
                 ["stats", "Stats"],
@@ -164,7 +210,7 @@ function LiveMatchView({ m }: { m: RemoteMatchDetail }) {
                 <TabsTrigger
                   key={v}
                   value={v}
-                  className="relative shrink-0 rounded-none border-0 bg-transparent px-4 py-3 text-xs font-bold uppercase tracking-wider text-muted-foreground data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
+                  className="relative shrink-0 rounded-none border-0 bg-transparent px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-muted-foreground data-[state=active]:bg-transparent data-[state=active]:text-brand data-[state=active]:shadow-none"
                 >
                   {l}
                   <span className="absolute inset-x-3 bottom-0 h-0.5 rounded-full bg-brand opacity-0 data-[state=active]:opacity-100" />
@@ -175,7 +221,7 @@ function LiveMatchView({ m }: { m: RemoteMatchDetail }) {
 
           {/* Stats Tab */}
           <TabsContent value="stats" className="mt-0 space-y-5 p-4">
-            <div className="rounded-3xl bg-card p-5 shadow-sm ring-1 ring-black/5 dark:ring-white/5">
+            <div className="rounded-xl border border-[#252525] bg-[#181818] p-5 shadow-none">
               <div className="mb-4 flex items-center justify-between text-[11px] font-black uppercase tracking-wider">
                 <span>{m.home.short}</span>
                 <span className="flex items-center gap-1 text-muted-foreground">
@@ -184,15 +230,39 @@ function LiveMatchView({ m }: { m: RemoteMatchDetail }) {
                 <span>{m.away.short}</span>
               </div>
               <div className="space-y-4">
-                <StatBar label="Possession" home={m.stats.possession.home} away={m.stats.possession.away} unit="%" accent />
+                <StatBar
+                  label="Possession"
+                  home={m.stats.possession.home}
+                  away={m.stats.possession.away}
+                  unit="%"
+                  accent
+                />
                 <StatBar label="xG (buts attendus)" home={m.stats.xg.home} away={m.stats.xg.away} />
                 <StatBar label="Tirs" home={m.stats.shots.home} away={m.stats.shots.away} />
-                <StatBar label="Tirs cadrés" home={m.stats.shotsOnTarget.home} away={m.stats.shotsOnTarget.away} accent />
+                <StatBar
+                  label="Tirs cadrés"
+                  home={m.stats.shotsOnTarget.home}
+                  away={m.stats.shotsOnTarget.away}
+                  accent
+                />
                 <StatBar label="Corners" home={m.stats.corners.home} away={m.stats.corners.away} />
                 <StatBar label="Fautes" home={m.stats.fouls.home} away={m.stats.fouls.away} />
-                <StatBar label="Cartons jaunes" home={m.stats.yellow.home} away={m.stats.yellow.away} />
-                <StatBar label="Passes réussies" home={m.stats.passAccuracy.home} away={m.stats.passAccuracy.away} unit="%" />
-                <StatBar label="Hors-jeu" home={m.stats.offsides.home} away={m.stats.offsides.away} />
+                <StatBar
+                  label="Cartons jaunes"
+                  home={m.stats.yellow.home}
+                  away={m.stats.yellow.away}
+                />
+                <StatBar
+                  label="Passes réussies"
+                  home={m.stats.passAccuracy.home}
+                  away={m.stats.passAccuracy.away}
+                  unit="%"
+                />
+                <StatBar
+                  label="Hors-jeu"
+                  home={m.stats.offsides.home}
+                  away={m.stats.offsides.away}
+                />
               </div>
             </div>
           </TabsContent>
@@ -204,15 +274,21 @@ function LiveMatchView({ m }: { m: RemoteMatchDetail }) {
                 Aucun événement enregistré pour l'instant.
               </div>
             ) : (
-              <div className="relative rounded-3xl bg-card p-5 shadow-sm ring-1 ring-black/5 dark:ring-white/5">
+              <div className="relative rounded-xl border border-[#252525] bg-[#181818] p-5 shadow-none">
                 <div className="absolute inset-y-6 left-1/2 w-px bg-border" />
                 <div className="space-y-4">
                   {m.events.map((e, i) => (
-                    <div key={i} className={cn("grid grid-cols-[1fr_auto_1fr] items-center gap-3 text-xs", e.side === "away" && "text-right")}>
+                    <div
+                      key={i}
+                      className={cn(
+                        "grid grid-cols-[1fr_auto_1fr] items-center gap-3 text-xs",
+                        e.side === "away" && "text-right",
+                      )}
+                    >
                       <div className={cn(e.side === "home" ? "text-right" : "order-3 text-left")}>
                         {e.side === "home" && <EventPill event={e} />}
                       </div>
-                      <div className="grid size-8 place-items-center rounded-full bg-foreground text-[10px] font-black text-background shadow-sm">
+                      <div className="grid size-8 place-items-center rounded-full bg-[#fdfdfd] text-[10px] font-black text-[#111111] shadow-sm">
                         {e.minute}'
                       </div>
                       <div className={cn(e.side === "away" ? "text-left" : "order-3")}>
@@ -251,17 +327,24 @@ function LiveMatchView({ m }: { m: RemoteMatchDetail }) {
                 Aucune confrontation directe récente.
               </div>
             ) : (
-              <div className="rounded-3xl bg-card shadow-sm ring-1 ring-black/5 dark:ring-white/5">
+              <div className="rounded-xl border border-[#252525] bg-[#181818] shadow-none">
                 <div className="border-b border-border/60 px-5 py-3.5 text-[11px] font-black uppercase tracking-widest">
                   Confrontations directes récentes
                 </div>
                 <ul className="divide-y divide-border/60">
                   {m.h2h.map((h) => (
-                    <li key={h.id} className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 px-5 py-3.5 text-xs">
+                    <li
+                      key={h.id}
+                      className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 px-5 py-3.5 text-xs"
+                    >
                       <span className="truncate text-right font-semibold">{h.home}</span>
-                      <span className="rounded-md bg-foreground px-2 py-0.5 font-mono text-[11px] font-black text-background tabular-nums">{h.score}</span>
+                      <span className="rounded-md bg-[#fdfdfd] px-2 py-0.5 font-mono text-[11px] font-black text-[#111111] tabular-nums">
+                        {h.score}
+                      </span>
                       <span className="truncate font-semibold">{h.away}</span>
-                      <span className="col-span-3 text-[10px] font-medium text-muted-foreground">{h.date} · {h.competition}</span>
+                      <span className="col-span-3 text-[10px] font-medium text-muted-foreground">
+                        {h.date} · {h.competition}
+                      </span>
                     </li>
                   ))}
                 </ul>
@@ -274,7 +357,15 @@ function LiveMatchView({ m }: { m: RemoteMatchDetail }) {
   );
 }
 
-function MatchSnapshot({ match, isLive, isFinished }: { match: RemoteMatchDetail; isLive: boolean; isFinished: boolean }) {
+function MatchSnapshot({
+  match,
+  isLive,
+  isFinished,
+}: {
+  match: RemoteMatchDetail;
+  isLive: boolean;
+  isFinished: boolean;
+}) {
   const statValues = [
     match.stats.possession.home,
     match.stats.possession.away,
@@ -284,17 +375,27 @@ function MatchSnapshot({ match, isLive, isFinished }: { match: RemoteMatchDetail
     match.stats.shots.away,
   ];
   const hasMatchStats = statValues.some((value) => value > 0);
-  const statusLabel = isLive ? "Données en direct" : isFinished ? "Données du match" : "Avant-match";
+  const statusLabel = isLive
+    ? "Données en direct"
+    : isFinished
+      ? "Données du match"
+      : "Avant-match";
   const statusTone = isLive ? "text-alert bg-alert/10" : "text-brand bg-brand/10";
 
   return (
     <section aria-labelledby="match-snapshot-title" className="space-y-3 p-4">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-[10px] font-black uppercase tracking-widest text-brand">Lecture rapide</p>
-          <h2 id="match-snapshot-title" className="mt-0.5 text-lg font-black">Les faits du match</h2>
+          <p className="text-[10px] font-black uppercase tracking-widest text-brand">
+            Lecture rapide
+          </p>
+          <h2 id="match-snapshot-title" className="mt-0.5 text-lg font-black">
+            Les faits du match
+          </h2>
         </div>
-        <span className={cn("rounded-full px-2.5 py-1 text-[10px] font-black", statusTone)}>{statusLabel}</span>
+        <span className={cn("rounded-full px-2.5 py-1 text-[10px] font-black", statusTone)}>
+          {statusLabel}
+        </span>
       </div>
 
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -308,12 +409,15 @@ function MatchSnapshot({ match, isLive, isFinished }: { match: RemoteMatchDetail
         {hasMatchStats ? (
           <>
             <span className="font-black text-foreground">Statistiques actuelles : </span>
-            possession {match.stats.possession.home}%–{match.stats.possession.away}%, xG {match.stats.xg.home}–{match.stats.xg.away}, tirs cadrés {match.stats.shotsOnTarget.home}–{match.stats.shotsOnTarget.away}.
+            possession {match.stats.possession.home}%–{match.stats.possession.away}%, xG{" "}
+            {match.stats.xg.home}–{match.stats.xg.away}, tirs cadrés{" "}
+            {match.stats.shotsOnTarget.home}–{match.stats.shotsOnTarget.away}.
           </>
         ) : (
           <>
             <span className="font-black text-foreground">Avant le coup d’envoi : </span>
-            les statistiques de match apparaîtront dès que les données officielles seront disponibles.
+            les statistiques de match apparaîtront dès que les données officielles seront
+            disponibles.
           </>
         )}
       </div>
@@ -324,7 +428,9 @@ function MatchSnapshot({ match, isLive, isFinished }: { match: RemoteMatchDetail
 function SnapshotMetric({ label, value }: { label: string; value: string }) {
   return (
     <div className="min-w-0 rounded-2xl bg-surface/70 p-3">
-      <p className="truncate text-[9px] font-black uppercase tracking-wider text-muted-foreground">{label}</p>
+      <p className="truncate text-[9px] font-black uppercase tracking-wider text-muted-foreground">
+        {label}
+      </p>
       <p className="mt-1 truncate text-sm font-black">{value}</p>
     </div>
   );
@@ -347,10 +453,14 @@ function TacticalPitch2D({
       <div className="mb-3 flex items-center justify-between text-xs font-bold">
         <div className="flex items-center gap-2">
           <img src={home.logo} alt="" className="size-5 object-contain" />
-          <span>{home.short} ({homeFormation})</span>
+          <span>
+            {home.short} ({homeFormation})
+          </span>
         </div>
         <div className="flex items-center gap-2">
-          <span>{away.short} ({awayFormation})</span>
+          <span>
+            {away.short} ({awayFormation})
+          </span>
           <img src={away.logo} alt="" className="size-5 object-contain" />
         </div>
       </div>
@@ -373,12 +483,16 @@ function TacticalPitch2D({
                   <div className="grid size-6 place-items-center rounded-full bg-emerald-950 font-mono text-[9px] font-black text-white shadow-md ring-1 ring-white/40">
                     {p.number}
                   </div>
-                  <span className="mt-0.5 truncate text-[9px] font-bold text-white drop-shadow-sm max-w-[60px]">{p.name.split(" ").pop()}</span>
+                  <span className="mt-0.5 truncate text-[9px] font-bold text-white drop-shadow-sm max-w-[60px]">
+                    {p.name.split(" ").pop()}
+                  </span>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="flex h-full items-center justify-center text-xs font-bold text-white/60">Formation Domicile</div>
+            <div className="flex h-full items-center justify-center text-xs font-bold text-white/60">
+              Formation Domicile
+            </div>
           )}
         </div>
 
@@ -391,12 +505,16 @@ function TacticalPitch2D({
                   <div className="grid size-6 place-items-center rounded-full bg-blue-950 font-mono text-[9px] font-black text-white shadow-md ring-1 ring-white/40">
                     {p.number}
                   </div>
-                  <span className="mt-0.5 truncate text-[9px] font-bold text-white drop-shadow-sm max-w-[60px]">{p.name.split(" ").pop()}</span>
+                  <span className="mt-0.5 truncate text-[9px] font-bold text-white drop-shadow-sm max-w-[60px]">
+                    {p.name.split(" ").pop()}
+                  </span>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="flex h-full items-center justify-center text-xs font-bold text-white/60">Formation Extérieur</div>
+            <div className="flex h-full items-center justify-center text-xs font-bold text-white/60">
+              Formation Extérieur
+            </div>
           )}
         </div>
       </div>
@@ -406,15 +524,23 @@ function TacticalPitch2D({
 
 function EventPill({ event }: { event: { type: string; player: string; detail?: string } }) {
   const icon =
-    event.type === "goal" ? "⚽"
-      : event.type === "yellow" ? "🟨"
-        : event.type === "red" ? "🟥"
-          : event.type === "sub" ? "🔄"
+    event.type === "goal"
+      ? "⚽"
+      : event.type === "yellow"
+        ? "🟨"
+        : event.type === "red"
+          ? "🟥"
+          : event.type === "sub"
+            ? "🔄"
             : "📺";
   return (
     <div className="inline-flex flex-col gap-0.5">
-      <span className="font-bold">{icon} {event.player}</span>
-      {event.detail && <span className="text-[10px] font-medium text-muted-foreground">{event.detail}</span>}
+      <span className="font-bold">
+        {icon} {event.player}
+      </span>
+      {event.detail && (
+        <span className="text-[10px] font-medium text-muted-foreground">{event.detail}</span>
+      )}
     </div>
   );
 }
@@ -424,7 +550,10 @@ function LineupCard({ title, lineup }: { title: string; lineup: ApiLineup }) {
     <div className="rounded-2xl bg-card p-4 ring-1 ring-black/5 dark:ring-white/5">
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="grid size-7 place-items-center rounded-lg font-black text-white" style={{ background: lineup.color }}>
+          <div
+            className="grid size-7 place-items-center rounded-lg font-black text-white"
+            style={{ background: lineup.color }}
+          >
             <Shirt className="size-3.5" />
           </div>
           <div>
@@ -439,11 +568,16 @@ function LineupCard({ title, lineup }: { title: string; lineup: ApiLineup }) {
       <ul className="space-y-1.5">
         {lineup.players.map((p, i) => (
           <li key={i} className="flex items-center gap-2 text-xs">
-            <span className="grid size-5 shrink-0 place-items-center rounded font-mono text-[10px] font-bold text-white" style={{ background: lineup.color }}>
+            <span
+              className="grid size-5 shrink-0 place-items-center rounded font-mono text-[10px] font-bold text-white"
+              style={{ background: lineup.color }}
+            >
               {p.number}
             </span>
             <span className="flex-1 truncate font-semibold">{p.name}</span>
-            <span className="text-[9px] font-bold uppercase text-muted-foreground">{p.position}</span>
+            <span className="text-[9px] font-bold uppercase text-muted-foreground">
+              {p.position}
+            </span>
           </li>
         ))}
       </ul>

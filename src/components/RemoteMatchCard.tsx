@@ -1,29 +1,48 @@
 import { Link } from "@tanstack/react-router";
+import { ChevronRight, Star } from "lucide-react";
 import type { RemoteMatchSummary } from "@/lib/football-types";
 import { cn } from "@/lib/utils";
 
 export function RemoteMatchCard({ match }: { match: RemoteMatchSummary }) {
   const isLive = match.status === "live" || match.status === "ht";
   const isFinished = match.status === "finished";
+
   return (
     <Link
       to="/live/$id"
       params={{ id: String(match.id) }}
-      className="group block rounded-2xl bg-card ring-1 ring-black/5 transition-all hover:ring-black/10 active:scale-[0.99] dark:ring-white/10"
+      aria-label={`${match.home.name} contre ${match.away.name}, ${match.league.name}`}
+      className={cn(
+        "group relative block overflow-hidden rounded-xl border border-[#252525] bg-[#181818] text-[#fdfdfd] transition-colors hover:border-[#3a3a3a] hover:bg-[#1d1d1d] active:scale-[0.99]",
+        isLive && "border-l-2 border-l-alert",
+      )}
     >
-      <div className="flex items-center gap-2 border-b border-border/60 px-4 py-2">
-        <img src={match.league.logo} alt="" className="size-3.5 shrink-0 object-contain" loading="lazy" />
-        <span className="truncate text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-          {match.league.name}
-        </span>
-        {match.venue && (
-          <span className="ml-auto truncate text-[10px] font-medium text-muted-foreground">
-            {match.venue.split(",")[0]}
-          </span>
-        )}
+      <div className="flex items-center gap-2 border-b border-[#2a2a2a] px-3 py-2.5">
+        <img
+          src={match.league.logo}
+          alt=""
+          className="size-4 shrink-0 object-contain"
+          loading="lazy"
+        />
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-[11px] font-bold">{match.league.name}</div>
+          <div className="truncate text-[9px] uppercase tracking-wider text-[#888888]">
+            {match.league.country}
+          </div>
+        </div>
+        <Star
+          className="size-4 text-[#777777] transition-colors group-hover:text-brand"
+          aria-hidden
+        />
+        <ChevronRight
+          className="size-4 text-[#666666] transition-transform group-hover:translate-x-0.5"
+          aria-hidden
+        />
       </div>
-      <div className="flex items-center gap-3 px-4 py-4">
-        <div className="flex flex-1 flex-col gap-2.5">
+
+      <div className="grid grid-cols-[54px_1fr] items-center gap-3 px-3 py-3.5">
+        <StatusColumn match={match} isLive={isLive} isFinished={isFinished} />
+        <div className="min-w-0 space-y-2.5 border-l border-[#303030] pl-3">
           <TeamRow
             logo={match.home.logo}
             name={match.home.short}
@@ -43,29 +62,52 @@ export function RemoteMatchCard({ match }: { match: RemoteMatchSummary }) {
             winner={isFinished && (match.awayScore ?? 0) > (match.homeScore ?? 0)}
           />
         </div>
-        <div className="ml-2 flex w-16 flex-col items-center border-l border-border/60 pl-3">
-          {isLive ? (
-            <>
-              <span className="flex items-center gap-1 text-[11px] font-bold text-alert">
-                <span className="animate-pulse-dot size-1.5 rounded-full bg-alert" />
-                {match.status === "ht" ? "MT" : `${match.minute ?? ""}'`}
-              </span>
-              <span className="mt-1 text-[9px] font-semibold uppercase tracking-widest text-muted-foreground">Live</span>
-            </>
-          ) : isFinished ? (
-            <>
-              <span className="text-[11px] font-bold text-muted-foreground">FT</span>
-              <span className="mt-1 text-[9px] font-semibold uppercase tracking-widest text-muted-foreground">Fini</span>
-            </>
-          ) : (
-            <>
-              <span className="text-xs font-bold tabular-nums">{match.timeLabel}</span>
-              <span className="mt-1 text-[9px] font-semibold uppercase tracking-widest text-muted-foreground">{match.dayLabel}</span>
-            </>
-          )}
-        </div>
       </div>
     </Link>
+  );
+}
+
+function StatusColumn({
+  match,
+  isLive,
+  isFinished,
+}: {
+  match: RemoteMatchSummary;
+  isLive: boolean;
+  isFinished: boolean;
+}) {
+  if (isLive) {
+    return (
+      <div className="flex flex-col items-center justify-center text-center">
+        <span className="flex items-center gap-1 text-[11px] font-black text-alert">
+          <span className="size-1.5 animate-pulse-dot rounded-full bg-alert" />
+          {match.status === "ht" ? "MT" : `${match.minute ?? ""}'`}
+        </span>
+        <span className="mt-1 text-[9px] font-bold uppercase tracking-widest text-[#888888]">
+          Live
+        </span>
+      </div>
+    );
+  }
+
+  if (isFinished) {
+    return (
+      <div className="flex flex-col items-center justify-center text-center">
+        <span className="text-[11px] font-black text-[#aaaaaa]">FT</span>
+        <span className="mt-1 text-[9px] font-bold uppercase tracking-widest text-[#777777]">
+          Fini
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col items-center justify-center text-center">
+      <span className="text-[12px] font-black tabular-nums">{match.timeLabel}</span>
+      <span className="mt-1 text-[9px] font-bold uppercase tracking-widest text-[#777777]">
+        {match.dayLabel}
+      </span>
+    </div>
   );
 }
 
@@ -87,16 +129,11 @@ function TeamRow({
   winner: boolean;
 }) {
   return (
-    <div className="flex items-center gap-3">
-      <img
-        src={logo}
-        alt=""
-        className="size-6 shrink-0 object-contain"
-        loading="lazy"
-      />
+    <div className="flex min-w-0 items-center gap-2.5">
+      <img src={logo} alt="" className="size-6 shrink-0 object-contain" loading="lazy" />
       <span
         title={fullName}
-        className={cn("flex-1 truncate text-[15px] font-semibold", dim && "text-muted-foreground")}
+        className={cn("min-w-0 flex-1 truncate text-[14px] font-semibold", dim && "text-[#777777]")}
       >
         {name}
       </span>
