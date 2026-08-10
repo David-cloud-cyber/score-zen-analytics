@@ -266,7 +266,7 @@ export function CountryBookmakerPage({
               logoUrl={bookmaker.logoUrl}
               accent={bookmaker.accent}
               className="size-14 rounded-2xl text-base"
-              imageClassName="inset-1 size-12 rounded-xl"
+              imageClassName="inset-0 size-full rounded-2xl"
             />
             <div>
               <h1 className="text-[26px] font-black leading-tight tracking-tight lg:text-4xl">
