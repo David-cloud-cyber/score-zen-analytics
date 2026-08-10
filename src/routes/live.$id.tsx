@@ -199,7 +199,6 @@ function LiveMatchView({ m }: { m: RemoteMatchDetail }) {
           </div>
         </div>
 
-        <MatchSnapshot match={m} isLive={isLive} isFinished={isFinished} />
         <MatchVoteCard match={m} />
 
         {/* Navigation Tabs */}
@@ -363,74 +362,6 @@ function LiveMatchView({ m }: { m: RemoteMatchDetail }) {
   );
 }
 
-function MatchSnapshot({
-  match,
-  isLive,
-  isFinished,
-}: {
-  match: RemoteMatchDetail;
-  isLive: boolean;
-  isFinished: boolean;
-}) {
-  const statValues = [
-    match.stats.possession.home,
-    match.stats.possession.away,
-    match.stats.xg.home,
-    match.stats.xg.away,
-    match.stats.shots.home,
-    match.stats.shots.away,
-  ];
-  const hasMatchStats = statValues.some((value) => value > 0);
-  const statusLabel = isLive
-    ? "Données en direct"
-    : isFinished
-      ? "Données du match"
-      : "Avant-match";
-  const statusTone = isLive ? "text-alert bg-alert/10" : "text-brand bg-brand/10";
-
-  return (
-    <section aria-labelledby="match-snapshot-title" className="space-y-3 p-4">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <p className="text-[10px] font-black uppercase tracking-widest text-brand">
-            Lecture rapide
-          </p>
-          <h2 id="match-snapshot-title" className="mt-0.5 text-lg font-black">
-            Les faits du match
-          </h2>
-        </div>
-        <span className={cn("rounded-full px-2.5 py-1 text-[10px] font-black", statusTone)}>
-          {statusLabel}
-        </span>
-      </div>
-
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-        <SnapshotMetric label="Coup d’envoi" value={match.timeLabel} />
-        <SnapshotMetric label="Stade" value={match.venue?.split(",")[0] ?? "Non communiqué"} />
-        <SnapshotMetric label="Événements" value={String(match.events.length)} />
-        <SnapshotMetric label="H2H disponibles" value={String(match.h2h.length)} />
-      </div>
-
-      <div className="rounded-2xl border border-border/70 bg-card p-3 text-xs leading-relaxed text-muted-foreground">
-        {hasMatchStats ? (
-          <>
-            <span className="font-black text-foreground">Statistiques actuelles : </span>
-            possession {match.stats.possession.home}%–{match.stats.possession.away}%, xG{" "}
-            {match.stats.xg.home}–{match.stats.xg.away}, tirs cadrés{" "}
-            {match.stats.shotsOnTarget.home}–{match.stats.shotsOnTarget.away}.
-          </>
-        ) : (
-          <>
-            <span className="font-black text-foreground">Avant le coup d’envoi : </span>
-            les statistiques de match apparaîtront dès que les données officielles seront
-            disponibles.
-          </>
-        )}
-      </div>
-    </section>
-  );
-}
-
 function MatchVoteCard({ match }: { match: RemoteMatchDetail }) {
   const [votes, setVotes] = useState({ home: 58, draw: 23, away: 19 });
   const [selected, setSelected] = useState<"home" | "draw" | "away" | null>(null);
@@ -503,17 +434,6 @@ function MatchVoteCard({ match }: { match: RemoteMatchDetail }) {
         </p>
       </div>
     </section>
-  );
-}
-
-function SnapshotMetric({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="min-w-0 rounded-2xl bg-surface/70 p-3">
-      <p className="truncate text-[9px] font-black uppercase tracking-wider text-muted-foreground">
-        {label}
-      </p>
-      <p className="mt-1 truncate text-sm font-black">{value}</p>
-    </div>
   );
 }
 
