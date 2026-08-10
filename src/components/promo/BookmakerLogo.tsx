@@ -14,7 +14,7 @@ export function BookmakerLogo({
   logoUrl,
   accent,
   className = "size-12",
-  imageClassName = "inset-1 size-10",
+  imageClassName = "inset-0 size-full",
 }: BookmakerLogoProps) {
   return (
     <span
