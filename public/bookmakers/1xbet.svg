@@ -1,8 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 96" role="img" aria-labelledby="title desc">
-  <title id="title">1xBet</title>
-  <desc id="desc">Logo 1xBet</desc>
-  <rect width="320" height="96" rx="20" fill="#173b98"/>
-  <path d="M35 25h18v46H35z" fill="#fff"/>
-  <path d="m53 25 19 19-19 27H35l19-27-19-19z" fill="#27b4ff"/>
-  <text x="86" y="68" fill="#fff" font-family="Arial,Helvetica,sans-serif" font-size="48" font-weight="800">1xBet</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="1xBet">
+  <rect width="128" height="128" rx="28" fill="#0e2f6e"/>
+  <text x="64" y="82" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="52" font-weight="900">
+    <tspan fill="#ffffff">1</tspan><tspan fill="#2bb3ff">X</tspan>
+  </text>
 </svg>
