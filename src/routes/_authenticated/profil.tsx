@@ -103,7 +103,13 @@ function ProfilPage() {
     queryFn: () => (demoMode ? Promise.resolve(DEMO_PAYMENTS) : getMyPayments()),
     staleTime: 15_000,
   });
-  const { data: referralData } = useQuery({
+  const { data: referralData } = useQuery<{
+    code: string | null;
+    referralLink: string | null;
+    referralCount: number;
+    creditsEarned: number;
+    referrals: { displayName: string; joinedAt: string }[];
+  }>({
     queryKey: ["me", "referral"],
     queryFn: () => (demoMode ? Promise.resolve(DEMO_REFERRAL) : getMyReferralDetails()),
     staleTime: 30_000,
