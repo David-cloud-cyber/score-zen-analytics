@@ -23,6 +23,7 @@ import {
   AnswerBox,
   HighlightText,
 } from "@/components/promo/PromoUI";
+import { BookmakerLogo } from "@/components/promo/BookmakerLogo";
 import { track, useCtaImpression } from "@/lib/analytics";
 import { buildRouteMeta, qaSchema, factsSchema, SPEAKABLE, ORG } from "@/lib/seo";
 import { Check, X, Sparkles, ArrowRight, BadgeCheck, ChevronDown } from "lucide-react";
@@ -401,22 +402,13 @@ function BookmakerArticle() {
         {/* Hero */}
         <header className="space-y-4 rounded-3xl border border-border/70 bg-surface/50 p-5">
           <div className="flex items-center gap-3">
-            <div
-              className="relative grid size-14 shrink-0 place-items-center overflow-hidden rounded-2xl text-base font-black text-white"
-              style={{ backgroundColor: b.accent }}
-            >
-              <span aria-hidden>{b.name.slice(0, 2).toUpperCase()}</span>
-              {b.logoUrl && (
-                <img
-                  src={b.logoUrl}
-                  alt={`Logo ${b.name}`}
-                  className="absolute inset-1 size-12 rounded-xl object-contain"
-                  onError={(event) => {
-                    event.currentTarget.style.display = "none";
-                  }}
-                />
-              )}
-            </div>
+            <BookmakerLogo
+              name={b.name}
+              logoUrl={b.logoUrl}
+              accent={b.accent}
+              className="size-14 rounded-2xl text-base"
+              imageClassName="inset-1 size-12 rounded-xl"
+            />
             <div>
               <h1 className="text-[26px] font-black leading-tight tracking-tight lg:text-4xl">
                 Code promo {b.name} : {b.code}

@@ -41,15 +41,15 @@ const HUB_FAQ = [
 ];
 
 const HUB_ANSWER =
-  "Les codes promo bookmakers présentés par LiveFoot en 2026 incluent PREDAT pour 1win, MELBET et Linebet, ainsi que BALL10 pour Betwinner. Les montants et conditions varient selon le pays et la campagne active. Le code se saisit pendant l'inscription et l'offre doit être vérifiée avant tout dépôt.";
+  "Les codes promo bookmakers présentés par LiveFoot en 2026 incluent PREDAT pour 1win, MELBET et Linebet, BALL10 pour Betwinner et LIVEMONDE pour 1xBet. Les montants et conditions varient selon le pays et la campagne active. Le code se saisit pendant l'inscription et l'offre doit être vérifiée avant tout dépôt.";
 
 export const Route = createFileRoute("/codes-promo/")({
   head: () => {
     const base = buildRouteMeta({
       path: "/codes-promo",
-      title: "Codes promo bookmakers 2026 : 1win, Betwinner, MELBET et Linebet",
+      title: "Codes promo bookmakers 2026 : 1win, Betwinner, MELBET, Linebet et 1xBet",
       description:
-        "Comparez les codes promo 1win, Betwinner, MELBET et Linebet : codes partenaires, offres selon le pays, conditions, dépôt minimum, Mobile Money et avis détaillés.",
+        "Comparez les codes promo 1win, Betwinner, MELBET, Linebet et 1xBet : codes partenaires, offres selon le pays, conditions, dépôt minimum, Mobile Money et avis détaillés.",
     });
     return {
       ...base,

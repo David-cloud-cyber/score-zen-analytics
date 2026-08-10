@@ -11,12 +11,12 @@ export const AFF_REL = "sponsored noopener noreferrer nofollow";
 /** Mise en valeur légère des termes qui répondent à l'intention de recherche. */
 export function HighlightText({ text }: { text: string }) {
   const parts = text.split(
-    /(code promo|BALL10|PREDAT|bonus|dépôt|retrait|conditions|Mobile Money|18\+)/gi,
+    /(code promo|BALL10|PREDAT|LIVEMONDE|bonus|dépôt|retrait|conditions|Mobile Money|18\+)/gi,
   );
   return (
     <>
       {parts.map((part, index) =>
-        /^(code promo|BALL10|PREDAT|bonus|dépôt|retrait|conditions|Mobile Money|18\+)$/i.test(
+        /^(code promo|BALL10|PREDAT|LIVEMONDE|bonus|dépôt|retrait|conditions|Mobile Money|18\+)$/i.test(
           part,
         ) ? (
           <strong key={`${part}-${index}`} className="font-bold text-foreground">

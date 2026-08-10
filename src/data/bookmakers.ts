@@ -10,6 +10,7 @@ import { defineBookmaker } from "./bookmaker-template";
 import { BETWINNER } from "./bookmakers/betwinner";
 import { LINEBET } from "./bookmakers/linebet";
 import { MELBET } from "./bookmakers/melbet";
+import { ONEXBET } from "./bookmakers/1xbet";
 import type { Bookmaker, BonusType } from "./bookmaker-template";
 
 export { BONUS_TYPES, articleWordCount, defineBookmaker } from "./bookmaker-template";
@@ -814,6 +815,7 @@ export const BOOKMAKERS: Bookmaker[] = [
   BETWINNER,
   MELBET,
   LINEBET,
+  ONEXBET,
 ];
 
 export function getBookmaker(slug: string): Bookmaker | undefined {
