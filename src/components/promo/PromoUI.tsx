@@ -301,7 +301,7 @@ export function RelatedBookmakers({ items, title }: { items: Bookmaker[]; title?
               logoUrl={b.logoUrl}
               accent={b.accent}
               className="size-11 text-xs"
-              imageClassName="inset-1 size-9"
+              imageClassName="inset-0 size-full"
             />
             <span className="min-w-0">
               <span className="block text-sm font-black">

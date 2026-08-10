@@ -1,5 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 112" role="img" aria-labelledby="title">
-  <title id="title">MELBET</title>
-  <rect width="320" height="112" rx="24" fill="#c51e35"/>
-  <text x="24" y="74" fill="#fff" font-family="Arial, sans-serif" font-size="49" font-weight="900" font-style="italic" letter-spacing="1">MELBET</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="MELBET">
+  <rect width="128" height="128" rx="28" fill="#ffd400"/>
+  <text x="64" y="84" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="58" font-weight="900" font-style="italic" fill="#101827">M</text>
 </svg>
