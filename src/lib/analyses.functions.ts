@@ -55,10 +55,10 @@ async function consumeAnalysisCredit(params: {
   });
   if (error) {
     if (error.message.includes("INSUFFICIENT_CREDITS")) {
-      throw new Error(`CrÃ©dits insuffisants (${ANALYSIS_COST} requis).`);
+      throw new Error(`Crédits insuffisants (${ANALYSIS_COST} requis).`);
     }
     console.error("Analysis credit transaction failed:", error.message);
-    throw new Error("Impossible d'enregistrer le dÃ©bit de l'analyse.");
+    throw new Error("Impossible d'enregistrer le débit de l'analyse.");
   }
   return data?.[0] ?? null;
 }
