@@ -10,28 +10,29 @@ export const ONEXBET = defineBookmaker({
   logoUrl: "/bookmakers/1xbet.svg",
   bannerLinkUrl: ONEXBET_AFFILIATE_URL,
   accent: "#1d4ed8",
-  tagline: "Code promo LIVEMONDE et offre de bienvenue à vérifier selon votre pays",
-  bonusHeadline: "Offre de bienvenue à vérifier dans votre compte",
-  bonusShort: "Saisissez LIVEMONDE pendant l'inscription et contrôlez l'offre affichée",
+  tagline: "Bonus de 200 % sur le premier dépôt jusqu'à 130 000 XAF avec LIVEMONDE*",
+  bonusHeadline: "200 % sur le premier dépôt jusqu'à 130 000 XAF*",
+  bonusShort: "Saisissez LIVEMONDE et vérifiez le plafond affiché dans votre compte",
   minDeposit: "À vérifier dans le formulaire 1xBet de votre pays",
   licence: "À vérifier dans les mentions légales et les conditions locales",
   bonusTypes: ["Bonus de bienvenue", "Bonus sur dépôt", "Bonus multi/combiné"],
   updatedAt: "2026-08-10",
-  seoTitle: "Code promo 1xBet LIVEMONDE : inscription, bonus et conditions",
+  seoTitle: "Code promo 1xBet LIVEMONDE : bonus 200 % jusqu'à 130 000 XAF",
   seoDescription:
-    "Code promo 1xBet LIVEMONDE : guide d'inscription, offre de bienvenue, dépôt en Afrique francophone, conditions de mise et vérifications à effectuer avant de jouer.",
+    "Code promo 1xBet LIVEMONDE : bonus de 200 % sur le premier dépôt jusqu'à 130 000 XAF. Inscription, conditions de mise, paiements et vérifications à effectuer avant de jouer.",
   directAnswer:
-    "Le code promo 1xBet présenté par LiveFoot est LIVEMONDE. Saisissez-le pendant la création du compte depuis le lien partenaire, puis vérifiez le montant, la devise, le dépôt minimum et les conditions affichés dans votre espace 1xBet. L'offre varie selon le pays et la campagne active.",
+    "Le code promo 1xBet présenté par LiveFoot est LIVEMONDE. L'offre annoncée correspond à 200 % sur le premier dépôt, jusqu'à 130 000 XAF. Saisissez le code pendant la création du compte, puis vérifiez le plafond, la devise, le dépôt minimum et les conditions affichés dans votre espace 1xBet.",
   keyTakeaways: [
     "Code promo à saisir pendant l'inscription : LIVEMONDE.",
-    "Le montant du bonus et le dépôt minimum doivent être confirmés dans le compte 1xBet.",
+    "Offre annoncée : 200 % sur le premier dépôt, plafonné à 130 000 XAF.",
+    "Le dépôt minimum, la devise et les conditions doivent être confirmés dans le compte 1xBet.",
     "Le pays, la devise et les moyens de paiement peuvent modifier l'offre disponible.",
     "Lisez le délai, le multiplicateur de mise et les marchés éligibles avant tout dépôt.",
     "Offre réservée aux personnes majeures ; un bonus ne garantit jamais un gain.",
   ],
   intro: [
     "Le code promo 1xBet LIVEMONDE est le code partenaire présenté par LiveFoot pour ouvrir le parcours d'inscription 1xBet. Il doit être renseigné au moment de la création du compte, avant la validation définitive du formulaire. Le code sert à associer l'inscription à la campagne partenaire lorsqu'elle est disponible ; il ne transforme pas une promotion en garantie de gain et ne modifie pas les probabilités d'un match.",
-    "Nous ne publions pas de montant fixe lorsque l'offre peut être localisée. Les bookmakers adaptent leurs campagnes selon le pays de résidence, la devise, la date, le type de compte et les règles de conformité. La donnée fiable est donc celle qui apparaît dans le formulaire puis dans la rubrique Promotions de votre compte. Comparez toujours le plafond, le dépôt demandé et la règle de conversion avant d'accepter l'offre.",
+    "L'offre communiquée pour 1xBet est de 200 % sur le premier dépôt, avec un plafond annoncé de 130 000 XAF. Le montant crédité dépend donc du dépôt éligible et du plafond, tandis que la devise, le dépôt minimum et les règles de conversion doivent être confirmés dans votre compte. La donnée fiable est celle qui apparaît dans le formulaire puis dans la rubrique Promotions.",
     "Le parcours conseillé est volontairement simple : ouvrez 1xBet depuis le lien partenaire LiveFoot, sélectionnez votre pays réel, créez un compte avec des informations exactes, saisissez LIVEMONDE, puis vérifiez que le code est accepté. Avant un dépôt, contrôlez la devise, le montant du bonus, le délai d'utilisation, les cotes minimales et les marchés exclus. Une courte vérification évite la plupart des erreurs d'activation.",
     "1xBet propose généralement une couverture importante du football et de nombreux autres sports, mais les événements, les limites et les moyens de paiement ne sont pas identiques pour tous les visiteurs. LiveFoot peut vous aider à lire les statistiques, la forme et les probabilités d'un match ; la plateforme partenaire reste la source des cotes, de la promotion et des règles contractuelles affichées sur votre compte.",
     "Cette fiche est un contenu partenaire clairement identifié. LiveFoot peut percevoir une commission si vous ouvrez un compte depuis le lien fourni, sans coût automatique supplémentaire pour vous. Cette relation commerciale ne change pas nos analyses et ne doit pas vous inciter à augmenter votre budget. Les paris sportifs comportent un risque réel : ne jouez que des sommes prévues pour le divertissement.",
@@ -47,7 +48,7 @@ export const ONEXBET = defineBookmaker({
   bonusTable: [
     { label: "Programme", value: "1xBet" },
     { label: "Code promo", value: "LIVEMONDE" },
-    { label: "Montant du bonus", value: "À vérifier selon le pays et la campagne active" },
+    { label: "Bonus annoncé", value: "200 % sur le premier dépôt, jusqu'à 130 000 XAF*" },
     { label: "Dépôt minimum", value: "À vérifier dans le compte avant le dépôt" },
     { label: "Éligibilité", value: "Nouveaux comptes, sous réserve des conditions 1xBet" },
     { label: "Validité", value: "Délai indiqué dans la promotion après activation" },
@@ -89,8 +90,8 @@ export const ONEXBET = defineBookmaker({
       id: "montant-offre",
       title: "Quel bonus 1xBet peut-on obtenir avec LIVEMONDE ?",
       paragraphs: [
-        "Le montant d'une offre de bienvenue ne doit pas être deviné à partir d'une ancienne bannière ou d'une publicité diffusée dans un autre pays. Une campagne peut être exprimée en pourcentage, en plafond, en pari gratuit ou en combinaison de plusieurs avantages. Le chiffre réellement applicable est celui présenté après la sélection de votre pays et confirmé dans le compte.",
-        "Avant de déposer, notez le montant maximum, le pourcentage appliqué, le dépôt minimum, la durée et le multiplicateur de mise. Vérifiez aussi si l'offre concerne le sport, le casino ou plusieurs produits. Cette lecture permet de comparer une promotion sur sa valeur réellement utilisable plutôt que sur un montant marketing isolé.",
+        "L'offre annoncée avec LIVEMONDE est de 200 % sur le premier dépôt, jusqu'à 130 000 XAF. Le plafond ne signifie pas que 130 000 XAF sont crédités automatiquement : le bonus dépend du dépôt éligible et du pourcentage appliqué. Vérifiez également si l'offre est présentée en XAF ou dans une autre devise pour votre pays.",
+        "Avant de déposer, notez le montant maximum, le pourcentage appliqué, le dépôt minimum, la durée et le multiplicateur de mise. Vérifiez aussi si l'offre concerne le sport, le casino ou plusieurs produits. Cette lecture permet de comparer une promotion sur sa valeur réellement utilisable plutôt que sur un montant marketing isolé. Si le compte affiche une condition différente, celle-ci prévaut.",
       ],
       table: {
         head: ["Élément", "Vérification à faire"],
@@ -270,7 +271,7 @@ export const ONEXBET = defineBookmaker({
     },
     {
       q: "Quel est le montant du bonus 1xBet avec LIVEMONDE ?",
-      a: "Le montant dépend du pays, de la devise et de la campagne active. Vérifiez le plafond, le dépôt minimum et les conditions affichés dans votre formulaire et votre compte 1xBet.",
+      a: "L'offre annoncée est de 200 % sur le premier dépôt, jusqu'à 130 000 XAF. Le dépôt minimum, la devise, l'éligibilité et les conditions de mise doivent être confirmés dans le formulaire et le compte 1xBet.",
     },
     {
       q: "Le code LIVEMONDE fonctionne-t-il dans tous les pays ?",
