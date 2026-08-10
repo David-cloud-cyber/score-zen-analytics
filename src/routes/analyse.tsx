@@ -23,7 +23,7 @@ import { runAnalysis, type AnalysisResult } from "@/lib/analyses.functions";
 import { useSession } from "@/hooks/use-session";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { buildRouteMeta, qaSchema, faqSchema, SPEAKABLE, ORG } from "@/lib/seo";
+import { buildRouteMeta, breadcrumbSchema, qaSchema, faqSchema, SPEAKABLE, ORG } from "@/lib/seo";
 import { track, lastCtaSource } from "@/lib/analytics";
 import { DEMO_ANALYSIS, isLocalDemo } from "@/lib/local-demo";
 
@@ -97,6 +97,15 @@ export const Route = createFileRoute("/analyse")({
             speakable: SPEAKABLE,
             offers: { "@type": "Offer", price: "0", priceCurrency: "XAF" },
           }),
+        },
+        {
+          type: "application/ld+json",
+          children: JSON.stringify(
+            breadcrumbSchema([
+              { name: "Accueil", path: "/" },
+              { name: "Analyse", path: "/analyse" },
+            ]),
+          ),
         },
       ],
     };

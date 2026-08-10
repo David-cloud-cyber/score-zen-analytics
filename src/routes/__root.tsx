@@ -83,21 +83,21 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
       { name: "theme-color", content: "#10b981" },
-      { title: "LiveFoot AI — Livescore & analyse football en temps réel" },
+      { title: "LiveFoot IA — Livescore & analyse football en temps réel" },
       {
         name: "description",
         content:
           "Scores en direct et analyses IA détaillées sur chaque match : probabilités, marchés, compositions et prédictions.",
       },
-      { property: "og:site_name", content: "LiveFoot AI" },
+      { property: "og:site_name", content: "LiveFoot IA" },
       { property: "og:type", content: "website" },
       { property: "og:url", content: "https://www.livefoot.fun" },
       { property: "og:locale", content: "fr_FR" },
       { name: "twitter:card", content: "summary_large_image" },
-      { property: "og:title", content: "LiveFoot AI — Livescore & analyse football en temps réel" },
+      { property: "og:title", content: "LiveFoot IA — Livescore & analyse football en temps réel" },
       {
         name: "twitter:title",
-        content: "LiveFoot AI — Livescore & analyse football en temps réel",
+        content: "LiveFoot IA — Livescore & analyse football en temps réel",
       },
       {
         property: "og:description",
@@ -136,7 +136,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         children: JSON.stringify({
           "@context": "https://schema.org",
           "@type": "Organization",
-          name: "LiveFoot AI",
+          name: "LiveFoot IA",
           url: "https://www.livefoot.fun",
           logo: "https://www.livefoot.fun/logo.png",
           description:
@@ -156,13 +156,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         children: JSON.stringify({
           "@context": "https://schema.org",
           "@type": "WebSite",
-          name: "LiveFoot AI",
+          name: "LiveFoot IA",
           url: "https://www.livefoot.fun",
           description: "Livescore et analyses IA football en temps réel.",
           inLanguage: "fr",
           publisher: {
             "@type": "Organization",
-            name: "LiveFoot AI",
+            name: "LiveFoot IA",
             url: "https://www.livefoot.fun",
           },
         }),

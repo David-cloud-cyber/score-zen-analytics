@@ -12,7 +12,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { AppShell, PageTitle } from "@/components/AppShell";
-import { buildRouteMeta } from "@/lib/seo";
+import { breadcrumbSchema, buildRouteMeta } from "@/lib/seo";
 import { PREMIUM_PLANS, PRICED_PACKS, formatXaf, type PremiumPlan } from "@/lib/pricing";
 import { createSubscriptionCheckout, createTopupCheckout } from "@/lib/payments.functions";
 import { getMyBalance } from "@/lib/analyses.functions";
@@ -24,13 +24,25 @@ import { formatPremiumExpiry, isPremiumActive, premiumDaysRemaining } from "@/li
 import { DEMO_PROFILE, isLocalDemo } from "@/lib/local-demo";
 
 export const Route = createFileRoute("/premium")({
-  head: () =>
-    buildRouteMeta({
+  head: () => ({
+    ...buildRouteMeta({
       title: "Abonnement Premium & Packs de Crédits",
       description:
-        "Passez à Livefoot IA Premium : 100 crédits d'analyse par mois, favoris illimités et accès aux packs de recharge exclusifs.",
+        "Passez à LiveFoot IA Premium : 100 crédits d'analyse par mois, favoris illimités et accès aux packs de recharge exclusifs.",
       path: "/premium",
     }),
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify(
+          breadcrumbSchema([
+            { name: "Accueil", path: "/" },
+            { name: "Premium", path: "/premium" },
+          ]),
+        ),
+      },
+    ],
+  }),
   component: PremiumPage,
 });
 

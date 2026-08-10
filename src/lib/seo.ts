@@ -1,6 +1,6 @@
 // Route meta helper — keeps title/description/canonical/OG in sync.
 const SITE = "https://www.livefoot.fun";
-const SITE_NAME = "Livefoot IA";
+const SITE_NAME = "LiveFoot IA";
 
 export type RouteMetaInput = {
   path: string; // e.g. "/analyse" or "/live/123"
@@ -18,6 +18,7 @@ export function buildRouteMeta(input: RouteMetaInput) {
     { title: fullTitle },
     { name: "description", content: input.description },
     { property: "og:title", content: fullTitle },
+    { property: "og:site_name", content: SITE_NAME },
     { property: "og:description", content: input.description },
     { property: "og:url", content: url },
     { property: "og:type", content: input.type ?? "website" },
@@ -74,6 +75,20 @@ export function faqSchema(items: { q: string; a: string }[]) {
       "@type": "Question",
       name: f.q,
       acceptedAnswer: { "@type": "Answer", text: f.a },
+    })),
+  };
+}
+
+/** Fil d'Ariane commun aux pages publiques pour renforcer la compréhension du site. */
+export function breadcrumbSchema(items: { name: string; path: string }[]) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: items.map((item, index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      name: item.name,
+      item: `${SITE}${item.path.startsWith("/") ? item.path : `/${item.path}`}`,
     })),
   };
 }

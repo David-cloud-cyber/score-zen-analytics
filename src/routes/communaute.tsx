@@ -16,18 +16,30 @@ import { toast } from "sonner";
 import { AppShell, PageTitle } from "@/components/AppShell";
 import { useSession } from "@/hooks/use-session";
 import { supabase } from "@/integrations/supabase/client";
-import { buildRouteMeta } from "@/lib/seo";
+import { breadcrumbSchema, buildRouteMeta } from "@/lib/seo";
 import { cn } from "@/lib/utils";
 import { DEMO_COMMUNITY_POLLS, DEMO_LEADERBOARD, isLocalDemo } from "@/lib/local-demo";
 
 export const Route = createFileRoute("/communaute")({
-  head: () =>
-    buildRouteMeta({
+  head: () => ({
+    ...buildRouteMeta({
       path: "/communaute",
       title: "Communauté & Échanges Live",
       description:
-        "Rejoignez la communauté Livefoot IA : pronostics en direct, chat live par match, sondages de foule et classement des experts.",
+        "Rejoignez la communauté LiveFoot IA : pronostics en direct, chat live par match, sondages de foule et classement des experts.",
     }),
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify(
+          breadcrumbSchema([
+            { name: "Accueil", path: "/" },
+            { name: "Communauté", path: "/communaute" },
+          ]),
+        ),
+      },
+    ],
+  }),
   component: CommunautePage,
 });
 
