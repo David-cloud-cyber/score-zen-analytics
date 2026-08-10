@@ -195,12 +195,12 @@ function HomePage() {
       <PageTitle eyebrow={`${selectedDateLabel} · ${today}`} title="Matchs du jour" />
 
       <div className="no-scrollbar flex gap-2 overflow-x-auto px-4 pb-3 lg:px-0">
-        {[
+        {([
           ["Football", true],
           ["Basket-ball", false],
           ["Tennis", false],
           ["Handball", false],
-        ].map(([label, active]) => (
+        ] as const).map(([label, active]) => (
           <span
             key={label}
             className={cn(
