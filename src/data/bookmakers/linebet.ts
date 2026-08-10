@@ -12,7 +12,7 @@ export const LINEBET = defineBookmaker({
   name: "Linebet",
   code: "PREDAT",
   affiliateUrl: LINEBET_AFFILIATE_URL,
-  logoUrl: "https://linebet.com/favicon.ico",
+  logoUrl: "/bookmakers/linebet.svg",
   accent: "#e43b32",
   tagline: "Code partenaire PREDAT et offre de bienvenue à vérifier selon votre pays",
   bonusHeadline: "Offre de bienvenue à vérifier selon la campagne active",

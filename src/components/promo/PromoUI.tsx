@@ -4,6 +4,7 @@ import { Check, Copy, ExternalLink, Star, ShieldAlert, ChevronRight } from "luci
 import { cn } from "@/lib/utils";
 import type { Bookmaker } from "@/data/bookmakers";
 import { track } from "@/lib/analytics";
+import { BookmakerLogo } from "./BookmakerLogo";
 
 export const AFF_REL = "sponsored noopener noreferrer nofollow";
 
@@ -120,23 +121,7 @@ export function PromoCodeCard({ b }: { b: Bookmaker }) {
     <article className="animate-rise overflow-hidden rounded-xl border border-border/70 bg-surface/50">
       <div className="flex items-start justify-between gap-3 border-b border-border/60 p-4">
         <div className="flex items-center gap-3">
-          <div
-            className="relative grid size-12 shrink-0 place-items-center overflow-hidden rounded-xl text-sm font-black text-white"
-            style={{ backgroundColor: b.accent }}
-          >
-            <span aria-hidden>{b.name.slice(0, 2).toUpperCase()}</span>
-            {b.logoUrl && (
-              <img
-                src={b.logoUrl}
-                alt={`Logo ${b.name}`}
-                loading="lazy"
-                className="absolute inset-1 size-10 rounded-lg object-contain"
-                onError={(event) => {
-                  event.currentTarget.style.display = "none";
-                }}
-              />
-            )}
-          </div>
+          <BookmakerLogo name={b.name} logoUrl={b.logoUrl} accent={b.accent} />
           <div>
             <h3 className="text-base font-black leading-tight">{b.name}</h3>
             {b.rating && b.reviewCount ? (
@@ -311,23 +296,13 @@ export function RelatedBookmakers({ items, title }: { items: Bookmaker[]; title?
             params={{ slug: b.slug }}
             className="flex items-center gap-3 rounded-2xl border border-border/70 bg-surface/40 p-4 transition-colors hover:bg-surface"
           >
-            <span
-              className="relative grid size-11 shrink-0 place-items-center overflow-hidden rounded-xl text-xs font-black text-white"
-              style={{ backgroundColor: b.accent }}
-            >
-              <span aria-hidden>{b.name.slice(0, 2).toUpperCase()}</span>
-              {b.logoUrl && (
-                <img
-                  src={b.logoUrl}
-                  alt={`Logo ${b.name}`}
-                  loading="lazy"
-                  className="absolute inset-1 size-9 rounded-lg object-contain"
-                  onError={(event) => {
-                    event.currentTarget.style.display = "none";
-                  }}
-                />
-              )}
-            </span>
+            <BookmakerLogo
+              name={b.name}
+              logoUrl={b.logoUrl}
+              accent={b.accent}
+              className="size-11 text-xs"
+              imageClassName="inset-1 size-9"
+            />
             <span className="min-w-0">
               <span className="block text-sm font-black">
                 Code promo {b.name} : {b.code}

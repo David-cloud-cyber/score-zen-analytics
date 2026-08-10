@@ -12,6 +12,7 @@ import {
 import { BOOKMAKERS, type Bookmaker } from "@/data/bookmakers";
 import { getCountryBookmakerPath, getCountryPath, type SeoCountry } from "@/data/country-seo";
 import { track } from "@/lib/analytics";
+import { BookmakerLogo } from "./BookmakerLogo";
 
 const ANALYSE_CTA = "Analyser un match";
 
@@ -72,23 +73,11 @@ function CountryPartnerCard({ bookmaker, country }: { bookmaker: Bookmaker; coun
   return (
     <article className="overflow-hidden rounded-2xl border border-border/70 bg-surface/50">
       <div className="flex items-center gap-3 border-b border-border/60 p-4">
-        <div
-          className="relative grid size-12 shrink-0 place-items-center overflow-hidden rounded-xl text-sm font-black text-white"
-          style={{ backgroundColor: bookmaker.accent }}
-        >
-          <span aria-hidden>{bookmaker.name.slice(0, 2).toUpperCase()}</span>
-          {bookmaker.logoUrl && (
-            <img
-              src={bookmaker.logoUrl}
-              alt={`Logo ${bookmaker.name}`}
-              loading="lazy"
-              className="absolute inset-1 size-10 rounded-lg object-contain"
-              onError={(event) => {
-                event.currentTarget.style.display = "none";
-              }}
-            />
-          )}
-        </div>
+        <BookmakerLogo
+          name={bookmaker.name}
+          logoUrl={bookmaker.logoUrl}
+          accent={bookmaker.accent}
+        />
         <div className="min-w-0">
           <h2 className="text-base font-black">{bookmaker.name}</h2>
           <p className="truncate text-xs text-muted-foreground">
@@ -272,22 +261,13 @@ export function CountryBookmakerPage({
 
         <header className="animate-rise space-y-4 rounded-xl border border-border/70 bg-surface/50 p-5">
           <div className="flex items-center gap-3">
-            <div
-              className="relative grid size-14 shrink-0 place-items-center overflow-hidden rounded-2xl text-base font-black text-white"
-              style={{ backgroundColor: bookmaker.accent }}
-            >
-              <span aria-hidden>{bookmaker.name.slice(0, 2).toUpperCase()}</span>
-              {bookmaker.logoUrl && (
-                <img
-                  src={bookmaker.logoUrl}
-                  alt={`Logo ${bookmaker.name}`}
-                  className="absolute inset-1 size-12 rounded-xl object-contain"
-                  onError={(event) => {
-                    event.currentTarget.style.display = "none";
-                  }}
-                />
-              )}
-            </div>
+            <BookmakerLogo
+              name={bookmaker.name}
+              logoUrl={bookmaker.logoUrl}
+              accent={bookmaker.accent}
+              className="size-14 rounded-2xl text-base"
+              imageClassName="inset-1 size-12 rounded-xl"
+            />
             <div>
               <h1 className="text-[26px] font-black leading-tight tracking-tight lg:text-4xl">
                 Code promo {bookmaker.name} {country.name} : {bookmaker.code}
