@@ -353,25 +353,25 @@
     animation: score-pop 0.25s cubic-bezier(0.16, 1, 0.3, 1) both;
   }
 
-  .score-sidebar,
-  .score-shell [role="dialog"] aside {
+  .score-sidebar > nav,
+  .score-shell [role="dialog"] aside > nav {
     scrollbar-width: thin;
     scrollbar-color: #3a3a3a transparent;
   }
 
-  .score-sidebar::-webkit-scrollbar,
-  .score-shell [role="dialog"] aside::-webkit-scrollbar {
-    width: 4px;
+  .score-sidebar > nav::-webkit-scrollbar,
+  .score-shell [role="dialog"] aside > nav::-webkit-scrollbar {
+    width: 3px;
   }
 
-  .score-sidebar::-webkit-scrollbar-thumb,
-  .score-shell [role="dialog"] aside::-webkit-scrollbar-thumb {
+  .score-sidebar > nav::-webkit-scrollbar-thumb,
+  .score-shell [role="dialog"] aside > nav::-webkit-scrollbar-thumb {
     border-radius: 999px;
     background: #343434;
   }
 
-  .score-sidebar::-webkit-scrollbar-track,
-  .score-shell [role="dialog"] aside::-webkit-scrollbar-track {
+  .score-sidebar > nav::-webkit-scrollbar-track,
+  .score-shell [role="dialog"] aside > nav::-webkit-scrollbar-track {
     background: transparent;
   }
 }
