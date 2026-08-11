@@ -47,7 +47,7 @@ const NOTIF_TYPES = [
 function FavorisPage() {
   const demoMode = isLocalDemo();
   const navigate = useNavigate();
-  const [tab, setTab] = useState<"teams" | "players" | "comps" | "notif">("teams");
+  const [tab, setTab] = useState<"matches" | "teams" | "players" | "comps" | "notif">("matches");
   const { data: profile } = useQuery({
     queryKey: ["me", "balance"],
     queryFn: () => (demoMode ? Promise.resolve(DEMO_PROFILE) : getMyBalance()),
@@ -69,6 +69,14 @@ function FavorisPage() {
       name: favorite.label ?? favorite.refId,
       notify: favorite.notify,
     }));
+  const favoriteMatches = (favoritesQuery.data ?? [])
+    .filter((favorite) => favorite.kind === "match")
+    .map((favorite) => ({
+      id: favorite.id,
+      refId: favorite.refId,
+      name: favorite.label ?? `Match ${favorite.refId}`,
+      notify: favorite.notify,
+    }));
 
   const handleAddFavorite = async (teamName: string) => {
     if (demoMode) {
@@ -86,14 +94,18 @@ function FavorisPage() {
     }
   };
 
-  const handleRemoveFavorite = async (team: { refId: string; name: string }) => {
+  const handleRemoveFavorite = async (favorite: {
+    kind: "team" | "match";
+    refId: string;
+    name: string;
+  }) => {
     if (demoMode) {
       toast.info("Aperçu local : les favoris sont fictifs et non enregistrés.");
       return;
     }
     try {
       await toggleFavorite({
-        data: { kind: "team", refId: team.refId, label: team.name, notify: true },
+        data: { kind: favorite.kind, refId: favorite.refId, label: favorite.name, notify: true },
       });
       await favoritesQuery.refetch();
       toast.info("Favori retiré.");
@@ -126,6 +138,7 @@ function FavorisPage() {
       <div className="no-scrollbar mb-4 flex gap-2 overflow-x-auto px-4 lg:px-0">
         {(
           [
+            ["matches", "Matchs"],
             ["teams", "Équipes"],
             ["players", "Joueurs"],
             ["comps", "Compétitions"],
@@ -148,6 +161,59 @@ function FavorisPage() {
       </div>
 
       <div className="space-y-3 px-4 lg:px-0">
+        {tab === "matches" && (
+          <div>
+            <div className="mb-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              Vos matchs suivis ({favoriteMatches.length})
+            </div>
+            {favoriteMatches.length === 0 ? (
+              <EmptyState
+                icon={<Star className="size-5 text-warn" />}
+                title="Aucun match favori"
+                msg="Ajoutez un match avec l'étoile sur sa carte pour le retrouver ici."
+              />
+            ) : (
+              <div className="space-y-2">
+                {favoriteMatches.map((match) => (
+                  <div
+                    key={match.id}
+                    className="animate-rise flex items-center justify-between rounded-xl border border-border/70 bg-card p-3"
+                  >
+                    <Link
+                      to="/live/$id"
+                      params={{ id: match.refId }}
+                      className="flex min-w-0 items-center gap-3"
+                    >
+                      <div className="grid size-9 shrink-0 place-items-center rounded-full bg-warn/10 text-warn">
+                        <Star className="size-4 fill-warn" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="truncate text-sm font-bold">{match.name}</div>
+                        <div className="text-[11px] text-muted-foreground">
+                          Alertes {match.notify ? "activées" : "désactivées"}
+                        </div>
+                      </div>
+                    </Link>
+                    <button
+                      onClick={() =>
+                        handleRemoveFavorite({
+                          kind: "match",
+                          refId: match.refId,
+                          name: match.name,
+                        })
+                      }
+                      className="grid size-8 shrink-0 place-items-center rounded-full bg-surface text-muted-foreground ring-1 ring-black/5 hover:text-alert dark:ring-white/10"
+                      aria-label="Supprimer le match des favoris"
+                    >
+                      <Trash2 className="size-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {tab === "teams" && (
           <div>
             <div className="mb-3 flex items-center justify-between">
@@ -187,7 +253,7 @@ function FavorisPage() {
                       </div>
                     </div>
                     <button
-                      onClick={() => handleRemoveFavorite(team)}
+                      onClick={() => handleRemoveFavorite({ ...team, kind: "team" })}
                       className="grid size-8 place-items-center rounded-full bg-surface text-muted-foreground hover:text-alert ring-1 ring-black/5 dark:ring-white/10"
                       aria-label="Supprimer"
                     >

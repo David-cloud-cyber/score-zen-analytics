@@ -1,69 +1,132 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { ChevronRight, Star } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { useState, type MouseEvent } from "react";
+import { toast } from "sonner";
 import type { RemoteMatchSummary } from "@/lib/football-types";
+import { useSession } from "@/hooks/use-session";
+import { getMyPremiumFavorites, togglePremiumFavorite } from "@/lib/premium-hub.functions";
+import { DEMO_FAVORITES, isLocalDemo } from "@/lib/local-demo";
 import { cn } from "@/lib/utils";
 
 export function RemoteMatchCard({ match }: { match: RemoteMatchSummary }) {
   const isLive = match.status === "live" || match.status === "ht";
   const isFinished = match.status === "finished";
+  const navigate = useNavigate();
+  const { user } = useSession();
+  const demoMode = isLocalDemo();
+  const getFavorites = useServerFn(getMyPremiumFavorites);
+  const toggleFavorite = useServerFn(togglePremiumFavorite);
+  const [savingFavorite, setSavingFavorite] = useState(false);
+  const favoritesQuery = useQuery({
+    queryKey: ["me", "favorites"],
+    queryFn: () => (demoMode ? Promise.resolve(DEMO_FAVORITES) : getFavorites()),
+    enabled: demoMode || !!user,
+    staleTime: 30_000,
+  });
+  const isFavorite = favoritesQuery.data?.some(
+    (favorite) => favorite.kind === "match" && favorite.refId === String(match.id),
+  );
+  const matchLabel = `${match.home.name} - ${match.away.name}`;
+
+  async function handleFavorite(event: MouseEvent<HTMLButtonElement>) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (demoMode) {
+      toast.info("Aperçu local : les favoris sont fictifs et non enregistrés.");
+      return;
+    }
+    if (!user) {
+      navigate({ to: "/auth", search: { redirect: `/live/${match.id}` } });
+      return;
+    }
+
+    setSavingFavorite(true);
+    try {
+      await toggleFavorite({
+        data: { kind: "match", refId: String(match.id), label: matchLabel, notify: true },
+      });
+      await favoritesQuery.refetch();
+      toast.success(isFavorite ? "Match retiré des favoris." : "Match ajouté aux favoris.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Impossible de modifier ce favori.");
+    } finally {
+      setSavingFavorite(false);
+    }
+  }
 
   return (
-    <Link
-      to="/live/$id"
-      params={{ id: String(match.id) }}
-      aria-label={`${match.home.name} contre ${match.away.name}, ${match.league.name}`}
+    <div
       className={cn(
         "group relative block overflow-hidden rounded-xl border border-[#252525] bg-[#181818] text-[#fdfdfd] transition-colors hover:border-[#3a3a3a] hover:bg-[#1d1d1d] active:scale-[0.99]",
         isLive && "border-l-2 border-l-alert",
       )}
     >
-      <div className="flex items-center gap-2 border-b border-[#2a2a2a] px-3 py-2.5">
-        <img
-          src={match.league.logo}
-          alt={`Logo ${match.league.name}`}
-          className="size-4 shrink-0 object-contain"
-          loading="lazy"
-        />
-        <div className="min-w-0 flex-1">
-          <div className="truncate text-[11px] font-bold">{match.league.name}</div>
-          <div className="truncate text-[9px] uppercase tracking-wider text-[#888888]">
-            {match.league.country}
+      <Link
+        to="/live/$id"
+        params={{ id: String(match.id) }}
+        aria-label={`${match.home.name} contre ${match.away.name}, ${match.league.name}`}
+        className="block"
+      >
+        <div className="flex items-center gap-2 border-b border-[#2a2a2a] px-3 py-2.5 pr-20">
+          <img
+            src={match.league.logo}
+            alt={`Logo ${match.league.name}`}
+            className="size-4 shrink-0 object-contain"
+            loading="lazy"
+          />
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-[11px] font-bold">{match.league.name}</div>
+            <div className="truncate text-[9px] uppercase tracking-wider text-[#888888]">
+              {match.league.country}
+            </div>
+          </div>
+          <ChevronRight
+            className="size-4 text-[#666666] transition-transform group-hover:translate-x-0.5"
+            aria-hidden
+          />
+        </div>
+
+        <div className="grid grid-cols-[54px_1fr] items-center gap-3 px-3 py-3.5">
+          <StatusColumn match={match} isLive={isLive} isFinished={isFinished} />
+          <div className="min-w-0 space-y-2.5 border-l border-[#303030] pl-3">
+            <TeamRow
+              logo={match.home.logo}
+              name={match.home.short}
+              fullName={match.home.name}
+              score={match.homeScore}
+              showScore={!isFinished ? isLive : true}
+              dim={isFinished && (match.homeScore ?? 0) < (match.awayScore ?? 0)}
+              winner={isFinished && (match.homeScore ?? 0) > (match.awayScore ?? 0)}
+            />
+            <TeamRow
+              logo={match.away.logo}
+              name={match.away.short}
+              fullName={match.away.name}
+              score={match.awayScore}
+              showScore={!isFinished ? isLive : true}
+              dim={isFinished && (match.awayScore ?? 0) < (match.homeScore ?? 0)}
+              winner={isFinished && (match.awayScore ?? 0) > (match.homeScore ?? 0)}
+            />
           </div>
         </div>
-        <Star
-          className="size-4 text-[#777777] transition-colors group-hover:text-brand"
-          aria-hidden
-        />
-        <ChevronRight
-          className="size-4 text-[#666666] transition-transform group-hover:translate-x-0.5"
-          aria-hidden
-        />
-      </div>
-
-      <div className="grid grid-cols-[54px_1fr] items-center gap-3 px-3 py-3.5">
-        <StatusColumn match={match} isLive={isLive} isFinished={isFinished} />
-        <div className="min-w-0 space-y-2.5 border-l border-[#303030] pl-3">
-          <TeamRow
-            logo={match.home.logo}
-            name={match.home.short}
-            fullName={match.home.name}
-            score={match.homeScore}
-            showScore={!isFinished ? isLive : true}
-            dim={isFinished && (match.homeScore ?? 0) < (match.awayScore ?? 0)}
-            winner={isFinished && (match.homeScore ?? 0) > (match.awayScore ?? 0)}
-          />
-          <TeamRow
-            logo={match.away.logo}
-            name={match.away.short}
-            fullName={match.away.name}
-            score={match.awayScore}
-            showScore={!isFinished ? isLive : true}
-            dim={isFinished && (match.awayScore ?? 0) < (match.homeScore ?? 0)}
-            winner={isFinished && (match.awayScore ?? 0) > (match.homeScore ?? 0)}
-          />
-        </div>
-      </div>
-    </Link>
+      </Link>
+      <button
+        type="button"
+        onClick={handleFavorite}
+        disabled={savingFavorite}
+        aria-label={
+          isFavorite ? `Retirer ${matchLabel} des favoris` : `Ajouter ${matchLabel} aux favoris`
+        }
+        aria-pressed={isFavorite}
+        title={isFavorite ? "Retirer des favoris" : "Ajouter aux favoris"}
+        className="absolute right-8 top-2.5 grid size-7 place-items-center rounded-full text-[#777777] transition-colors hover:bg-white/5 hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand disabled:cursor-wait disabled:opacity-60"
+      >
+        <Star className={cn("size-4", isFavorite && "fill-current text-brand")} aria-hidden />
+      </button>
+    </div>
   );
 }
 
