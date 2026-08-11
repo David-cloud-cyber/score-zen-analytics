@@ -19,15 +19,17 @@ export function RemoteMatchCard({ match }: { match: RemoteMatchSummary }) {
   const getFavorites = useServerFn(getMyPremiumFavorites);
   const toggleFavorite = useServerFn(togglePremiumFavorite);
   const [savingFavorite, setSavingFavorite] = useState(false);
+  const [demoFavorite, setDemoFavorite] = useState<boolean | null>(null);
   const favoritesQuery = useQuery({
     queryKey: ["me", "favorites"],
     queryFn: () => (demoMode ? Promise.resolve(DEMO_FAVORITES) : getFavorites()),
     enabled: demoMode || !!user,
     staleTime: 30_000,
   });
-  const isFavorite = favoritesQuery.data?.some(
+  const storedFavorite = favoritesQuery.data?.some(
     (favorite) => favorite.kind === "match" && favorite.refId === String(match.id),
   );
+  const isFavorite = demoMode ? (demoFavorite ?? storedFavorite ?? false) : storedFavorite;
   const matchLabel = `${match.home.name} - ${match.away.name}`;
 
   async function handleFavorite(event: MouseEvent<HTMLButtonElement>) {
@@ -35,7 +37,8 @@ export function RemoteMatchCard({ match }: { match: RemoteMatchSummary }) {
     event.stopPropagation();
 
     if (demoMode) {
-      toast.info("Aperçu local : les favoris sont fictifs et non enregistrés.");
+      setDemoFavorite(!isFavorite);
+      toast.success(isFavorite ? "Match retiré des favoris." : "Match ajouté aux favoris.");
       return;
     }
     if (!user) {
