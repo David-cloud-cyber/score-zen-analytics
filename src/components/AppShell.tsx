@@ -3,6 +3,8 @@ import {
   ArrowRight,
   Coins,
   Menu,
+  PanelLeftClose,
+  PanelLeftOpen,
   Radio,
   Search,
   Sparkles,
@@ -12,7 +14,7 @@ import {
   Users,
   X,
 } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import { SearchProvider, SmartSearchTrigger, useSearchDialog } from "@/components/SmartSearch";
@@ -84,6 +86,27 @@ export function AppShell({
 }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  useEffect(() => {
+    try {
+      setSidebarCollapsed(window.localStorage.getItem("livefoot-sidebar-collapsed") === "1");
+    } catch {
+      // Le stockage local peut être indisponible sans bloquer la navigation.
+    }
+  }, []);
+
+  function toggleSidebar() {
+    setSidebarCollapsed((current) => {
+      const next = !current;
+      try {
+        window.localStorage.setItem("livefoot-sidebar-collapsed", next ? "1" : "0");
+      } catch {
+        // Le changement reste actif pour la session courante.
+      }
+      return next;
+    });
+  }
 
   return (
     <SearchProvider>
@@ -95,12 +118,17 @@ export function AppShell({
           Aller au contenu
         </a>
 
-        <DesktopSidebar pathname={pathname} />
+        <DesktopSidebar pathname={pathname} collapsed={sidebarCollapsed} onToggle={toggleSidebar} />
         {mobileNavOpen && (
           <MobileDrawer pathname={pathname} onClose={() => setMobileNavOpen(false)} />
         )}
 
-        <div className="lg:pl-[250px]">
+        <div
+          className={cn(
+            "transition-[padding] duration-200",
+            sidebarCollapsed ? "lg:pl-[72px]" : "lg:pl-[250px]",
+          )}
+        >
           <div className="mx-auto flex min-h-screen max-w-[440px] flex-col border-x border-border/60 bg-background lg:max-w-none lg:border-x-0">
             {!hideHeader && <TopBar onMenuOpen={() => setMobileNavOpen(true)} />}
             <main
@@ -119,7 +147,15 @@ export function AppShell({
   );
 }
 
-function DesktopSidebar({ pathname }: { pathname: string }) {
+function DesktopSidebar({
+  pathname,
+  collapsed,
+  onToggle,
+}: {
+  pathname: string;
+  collapsed: boolean;
+  onToggle: () => void;
+}) {
   const { user } = useSession();
   const { data: profile } = useQuery({
     queryKey: ["me", "balance"],
@@ -132,27 +168,59 @@ function DesktopSidebar({ pathname }: { pathname: string }) {
 
   return (
     <aside
-      className="score-sidebar fixed left-0 top-0 z-40 hidden h-dvh w-[250px] flex-col border-r border-[#252525] bg-[#111111] text-[#fdfdfd] lg:flex"
+      className={cn(
+        "score-sidebar fixed left-0 top-0 z-40 hidden h-dvh flex-col border-r border-[#252525] bg-[#111111] text-[#fdfdfd] transition-[width] duration-200 lg:flex",
+        collapsed ? "w-[72px]" : "w-[250px]",
+      )}
       aria-label="Navigation latérale"
     >
-      <Link to="/" className="flex items-center gap-3 border-b border-[#252525] px-5 py-5">
-        <div className="grid size-10 place-items-center overflow-hidden rounded-xl bg-[#202020] ring-1 ring-white/10">
-          <img src="/logo.png" alt="LiveFoot IA" className="size-10 object-cover" />
-        </div>
-        <div className="flex flex-col leading-none">
-          <span className="text-[16px] font-black tracking-tight">
-            LiveFoot <span className="text-brand">IA</span>
-          </span>
-          <span className="mt-1 text-[9px] font-semibold uppercase tracking-[0.16em] text-[#888888]">
-            Scores · Analyse
-          </span>
-        </div>
-      </Link>
+      <div
+        className={cn(
+          "relative flex border-b border-[#252525] py-5",
+          collapsed ? "justify-center px-3" : "items-center gap-3 px-5",
+        )}
+      >
+        <Link
+          to="/"
+          aria-label="Accueil LiveFoot IA"
+          className={cn("flex items-center gap-3", collapsed && "justify-center")}
+        >
+          <div className="grid size-10 place-items-center overflow-hidden rounded-xl bg-[#202020] ring-1 ring-white/10">
+            <img src="/logo.png" alt="LiveFoot IA" className="size-10 object-cover" />
+          </div>
+          <div className={cn("flex flex-col leading-none", collapsed && "hidden")}>
+            <span className="text-[16px] font-black tracking-tight">
+              LiveFoot <span className="text-brand">IA</span>
+            </span>
+            <span className="mt-1 text-[9px] font-semibold uppercase tracking-[0.16em] text-[#888888]">
+              Scores · Analyse
+            </span>
+          </div>
+        </Link>
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-label={collapsed ? "Développer la sidebar" : "Réduire la sidebar"}
+          title={collapsed ? "Développer la sidebar" : "Réduire la sidebar"}
+          className="absolute right-2 top-2 grid size-6 place-items-center rounded-md text-[#888888] transition-colors hover:bg-[#202020] hover:text-[#fdfdfd] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+        >
+          {collapsed ? (
+            <PanelLeftOpen className="size-3.5" />
+          ) : (
+            <PanelLeftClose className="size-3.5" />
+          )}
+        </button>
+      </div>
 
       <nav className="flex-1 overflow-y-auto px-3 py-4">
         {SIDEBAR_GROUPS.map((group) => (
-          <div key={group.label} className="mb-5 last:mb-0">
-            <div className="mb-2 px-3 text-[10px] font-bold uppercase tracking-[0.18em] text-[#777777]">
+          <div key={group.label} className={cn("mb-5 last:mb-0", collapsed && "mb-3")}>
+            <div
+              className={cn(
+                "mb-2 px-3 text-[10px] font-bold uppercase tracking-[0.18em] text-[#777777]",
+                collapsed && "sr-only",
+              )}
+            >
               {group.label}
             </div>
             <ul className="space-y-1">
@@ -165,11 +233,13 @@ function DesktopSidebar({ pathname }: { pathname: string }) {
                       to={item.to}
                       aria-current={active ? "page" : undefined}
                       className={cn(
-                        "group flex h-10 items-center gap-3 rounded-lg px-3 text-[14px] font-semibold transition-colors",
+                        "group relative flex h-10 items-center gap-3 rounded-lg text-[14px] font-semibold transition-colors",
+                        collapsed ? "justify-center px-0" : "px-3",
                         active
                           ? "bg-[#fdfdfd] text-[#111111]"
                           : "text-[#aaaaaa] hover:bg-[#1e1e1e] hover:text-[#fdfdfd]",
                       )}
+                      title={collapsed ? item.label : undefined}
                     >
                       <Icon
                         className={cn(
@@ -178,8 +248,15 @@ function DesktopSidebar({ pathname }: { pathname: string }) {
                         )}
                         strokeWidth={active ? 2.6 : 2}
                       />
-                      <span>{item.label}</span>
-                      {active && <span className="ml-auto size-1.5 rounded-full bg-brand" />}
+                      <span className={cn(collapsed && "sr-only")}>{item.label}</span>
+                      {active && (
+                        <span
+                          className={cn(
+                            "size-1.5 rounded-full bg-brand",
+                            collapsed ? "absolute right-1.5 top-1/2 -translate-y-1/2" : "ml-auto",
+                          )}
+                        />
+                      )}
                     </Link>
                   </li>
                 );
@@ -188,46 +265,72 @@ function DesktopSidebar({ pathname }: { pathname: string }) {
           </div>
         ))}
 
-        <div className="rounded-xl border border-brand/25 bg-brand/10 p-3.5">
-          <div className="mb-1.5 inline-flex items-center gap-1 rounded-full bg-brand/15 px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-brand">
-            <Sparkles className="size-2.5" /> Intelligence Hub
-          </div>
-          <div className="text-[13px] font-bold leading-tight text-[#fdfdfd]">
-            Radar, alertes et scorecard
-          </div>
-          <p className="mt-1 text-[11px] leading-snug text-[#aaaaaa]">
-            Centralisez vos signaux Premium.
-          </p>
+        {collapsed ? (
           <Link
             to="/premium/tableau-de-bord"
-            className="mt-3 flex items-center justify-center gap-1 rounded-lg bg-brand py-2 text-[11px] font-black text-brand-foreground transition-transform hover:scale-[1.02]"
+            aria-label="Ouvrir le Premium Intelligence Hub"
+            title="Premium Intelligence Hub"
+            className="mx-auto grid size-10 place-items-center rounded-xl border border-brand/25 bg-brand/10 text-brand transition-colors hover:bg-brand/20"
           >
-            Ouvrir le Hub <ArrowRight className="size-3" />
+            <Sparkles className="size-4" />
           </Link>
-        </div>
+        ) : (
+          <div className="rounded-xl border border-brand/25 bg-brand/10 p-3.5">
+            <div className="mb-1.5 inline-flex items-center gap-1 rounded-full bg-brand/15 px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-brand">
+              <Sparkles className="size-2.5" /> Intelligence Hub
+            </div>
+            <div className="text-[13px] font-bold leading-tight text-[#fdfdfd]">
+              Radar, alertes et scorecard
+            </div>
+            <p className="mt-1 text-[11px] leading-snug text-[#aaaaaa]">
+              Centralisez vos signaux Premium.
+            </p>
+            <Link
+              to="/premium/tableau-de-bord"
+              className="mt-3 flex items-center justify-center gap-1 rounded-lg bg-brand py-2 text-[11px] font-black text-brand-foreground transition-transform hover:scale-[1.02]"
+            >
+              Ouvrir le Hub <ArrowRight className="size-3" />
+            </Link>
+          </div>
+        )}
       </nav>
 
       <div className="space-y-3 border-t border-[#252525] p-3">
-        <div className="flex items-center justify-between px-2">
-          <span className="text-[10px] font-bold uppercase tracking-widest text-[#777777]">
+        <div
+          className={cn(
+            "flex items-center justify-between px-2",
+            collapsed && "justify-center px-0",
+          )}
+        >
+          <span
+            className={cn(
+              "text-[10px] font-bold uppercase tracking-widest text-[#777777]",
+              collapsed && "sr-only",
+            )}
+          >
             Thème
           </span>
           <ThemeToggle compact />
         </div>
-        <div className="flex items-center gap-2">
+        <div className={cn("flex items-center gap-2", collapsed && "justify-center")}>
           <Link
             to="/profil"
-            className="flex min-w-0 flex-1 items-center gap-3 rounded-lg px-2 py-2 hover:bg-[#1e1e1e]"
+            aria-label="Ouvrir mon profil"
+            title={collapsed ? displayName : undefined}
+            className={cn(
+              "flex min-w-0 items-center gap-3 rounded-lg px-2 py-2 hover:bg-[#1e1e1e]",
+              collapsed ? "justify-center" : "flex-1",
+            )}
           >
             <div className="grid size-9 shrink-0 place-items-center rounded-full bg-[#fdfdfd] text-xs font-black text-[#111111]">
               {initials}
             </div>
-            <div className="min-w-0 flex-1">
+            <div className={cn("min-w-0 flex-1", collapsed && "hidden")}>
               <div className="truncate text-xs font-bold text-[#fdfdfd]">{displayName}</div>
               <div className="text-[10px] text-[#888888]">Mon profil</div>
             </div>
           </Link>
-          <PremiumStatusBadge profile={profile} compact />
+          {!collapsed && <PremiumStatusBadge profile={profile} compact />}
         </div>
       </div>
     </aside>
