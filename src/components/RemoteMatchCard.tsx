@@ -71,7 +71,7 @@ export function RemoteMatchCard({ match }: { match: RemoteMatchSummary }) {
         to="/live/$id"
         params={{ id: String(match.id) }}
         aria-label={`${match.home.name} contre ${match.away.name}, ${match.league.name}`}
-        className="block"
+        className="relative block"
       >
         <div className="flex items-center gap-2 border-b border-[#2a2a2a] px-3 py-2.5 pr-20">
           <img
@@ -87,7 +87,7 @@ export function RemoteMatchCard({ match }: { match: RemoteMatchSummary }) {
             </div>
           </div>
           <ChevronRight
-            className="size-4 text-[#666666] transition-transform group-hover:translate-x-0.5"
+            className="absolute right-2.5 top-3.5 size-4 text-[#666666] transition-transform group-hover:translate-x-0.5"
             aria-hidden
           />
         </div>
