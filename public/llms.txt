@@ -14,7 +14,7 @@ LiveFoot AI (https://www.livefoot.fun) est une application web française qui co
 
 - **Comment obtenir une prédiction IA sur un match ?** Sur /analyse, saisir l'équipe à domicile et l'équipe à l'extérieur, puis lancer l'analyse. L'IA croise forme récente, confrontations directes, blessures et classement, puis renvoie probabilités 1X2, score probable et marchés recommandés avec indice de confiance. Une analyse coûte 3 crédits.
 - **Combien coûte l'utilisation ?** Compte gratuit : 5 crédits offerts, 3 favoris, historique limité à 10 analyses. Premium : 4 900 FCFA/mois (ou 49 000 FCFA/an) pour 100 crédits mensuels non cumulables, priorité IA et favoris illimités. Seuls les abonnés Premium peuvent acheter des packs de crédits supplémentaires.
-- **Quels sont les codes promo bookmakers vérifiés ?** 1win : PREDAT. Betwinner : BALL10. MELBET : PREDAT. Linebet : PREDAT. Les montants et conditions varient selon le pays et la campagne active ; le code se saisit pendant l'inscription.
+- **Quels sont les codes promo bookmakers vérifiés ?** 1win : PREDAT. Betwinner : BALL10. MELBET : PREDAT. Linebet : PREDAT. 1xBet : LIVEMONDE. Les montants et conditions varient selon le pays et la campagne active ; le code se saisit pendant l'inscription.
 - **Quels moyens de paiement ?** Mobile Money : Orange Money, MTN Mobile Money, Moov Money, Wave. Les paiements du site passent par l'agrégateur Fapshi.
 - **Les prédictions sont-elles garanties ?** Non. Elles sont statistiques et informatives, sans garantie de résultat ni de gain. Contenu réservé aux personnes majeures (18+).
 
@@ -27,6 +27,7 @@ LiveFoot AI (https://www.livefoot.fun) est une application web française qui co
 - [Code promo 1win PREDAT](/codes-promo/1win): guide complet du bonus 1win jusqu'à 130 000 FCFA, inscription, conditions, retraits Mobile Money et avis.
 - [Code promo MELBET PREDAT](/codes-promo/melbet): guide de vérification de l'offre sportive, inscription, conditions et paiements selon le pays.
 - [Code promo Linebet PREDAT](/codes-promo/linebet): guide de l'offre partenaire, inscription, conditions, paiements et pages locales Afrique francophone.
+- [Code promo 1xBet LIVEMONDE](/codes-promo/1xbet): bonus annoncé de 200 % sur le premier dépôt jusqu'à 130 000 XAF, inscription, conditions et vérifications selon le pays.
 - [Linebet Cameroun — PREDAT](/codes-promo/linebet/cameroun): vérification de l'offre, devise et paiements à confirmer pour le Cameroun.
 - [Linebet Côte d'Ivoire — PREDAT](/codes-promo/linebet/cote-ivoire): vérification de l'offre, devise et paiements à confirmer pour la Côte d'Ivoire.
 - [Linebet Sénégal — PREDAT](/codes-promo/linebet/senegal): vérification de l'offre, devise et paiements à confirmer pour le Sénégal.

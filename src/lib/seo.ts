@@ -14,6 +14,7 @@ export type RouteMetaInput = {
 export function buildRouteMeta(input: RouteMetaInput) {
   const fullTitle = input.title.includes(SITE_NAME) ? input.title : `${input.title} — ${SITE_NAME}`;
   const url = `${SITE}${input.path.startsWith("/") ? input.path : `/${input.path}`}`;
+  const socialImage = input.image ?? `${SITE}/logo.png`;
   const meta: Array<Record<string, string>> = [
     { title: fullTitle },
     { name: "description", content: input.description },
@@ -25,7 +26,11 @@ export function buildRouteMeta(input: RouteMetaInput) {
     { property: "og:locale", content: "fr_FR" },
     { name: "twitter:title", content: fullTitle },
     { name: "twitter:description", content: input.description },
-    { name: "twitter:card", content: input.image ? "summary_large_image" : "summary" },
+    { name: "twitter:card", content: "summary_large_image" },
+    { property: "og:image", content: socialImage },
+    { property: "og:image:alt", content: fullTitle },
+    { name: "twitter:image", content: socialImage },
+    { name: "twitter:image:alt", content: fullTitle },
     {
       name: "robots",
       content: input.noindex
@@ -33,12 +38,6 @@ export function buildRouteMeta(input: RouteMetaInput) {
         : "index, follow, max-image-preview:large, max-snippet:-1",
     },
   ];
-  if (input.image) {
-    meta.push({ property: "og:image", content: input.image });
-    meta.push({ property: "og:image:alt", content: fullTitle });
-    meta.push({ name: "twitter:image", content: input.image });
-    meta.push({ name: "twitter:image:alt", content: fullTitle });
-  }
   return {
     meta,
     links: [{ rel: "canonical", href: url }],

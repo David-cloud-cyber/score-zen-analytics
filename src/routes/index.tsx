@@ -32,9 +32,9 @@ export const Route = createFileRoute("/")({
   head: () => {
     const base = buildRouteMeta({
       path: "/",
-      title: "Matchs du jour & scores en direct",
+      title: "Scores football en direct : matchs du jour et analyses",
       description:
-        "Suivez tous les matchs du jour en direct : Ligue 1, Liga, Premier League, Ligue des champions. Scores, compos et analyses statistiques.",
+        "Suivez les scores football en direct et les matchs du jour : Ligue 1, Liga, Premier League, Ligue des champions, compositions et analyses statistiques.",
     });
     return {
       ...base,
@@ -192,15 +192,20 @@ function HomePage() {
 
   return (
     <AppShell>
-      <PageTitle eyebrow={`${selectedDateLabel} · ${today}`} title="Matchs du jour" />
+      <PageTitle
+        eyebrow={`${selectedDateLabel} · ${today}`}
+        title="Matchs du jour et scores en direct"
+      />
 
       <div className="no-scrollbar flex gap-2 overflow-x-auto px-4 pb-3 lg:px-0">
-        {([
-          ["Football", true],
-          ["Basket-ball", false],
-          ["Tennis", false],
-          ["Handball", false],
-        ] as const).map(([label, active]) => (
+        {(
+          [
+            ["Football", true],
+            ["Basket-ball", false],
+            ["Tennis", false],
+            ["Handball", false],
+          ] as const
+        ).map(([label, active]) => (
           <span
             key={label}
             className={cn(
@@ -297,13 +302,21 @@ function HomePage() {
                 .
               </p>
               <div className="mt-4 flex items-center gap-4">
-                <img src={topMatch.home.logo} alt="" className="size-10 object-contain" />
+                <img
+                  src={topMatch.home.logo}
+                  alt={`Logo ${topMatch.home.name}`}
+                  className="size-10 object-contain"
+                />
                 <div className="text-3xl font-black tabular-nums">
                   {topMatch.homeScore ?? "—"}
                   <span className="mx-2 text-background/40">·</span>
                   {topMatch.awayScore ?? "—"}
                 </div>
-                <img src={topMatch.away.logo} alt="" className="size-10 object-contain" />
+                <img
+                  src={topMatch.away.logo}
+                  alt={`Logo ${topMatch.away.name}`}
+                  className="size-10 object-contain"
+                />
               </div>
               <div className="mt-4 flex items-center justify-between text-xs font-bold">
                 <span>Voir la fiche complète</span>
@@ -364,7 +377,7 @@ function HomePage() {
           <section key={g.name}>
             <div className="mb-3 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <img src={g.logo} alt="" className="size-4 object-contain" />
+                <img src={g.logo} alt={`Logo ${g.name}`} className="size-4 object-contain" />
                 <h3 className="text-[11px] font-black uppercase tracking-[0.16em]">{g.name}</h3>
               </div>
               <span className="text-[10px] font-semibold text-muted-foreground">{g.country}</span>
@@ -433,6 +446,46 @@ function HomePage() {
             Rejoindre la communauté
           </Link>
         </nav>
+      </section>
+
+      <section
+        aria-labelledby="livefoot-howto-title"
+        className="mt-8 space-y-4 border-t border-border/60 px-4 pt-6 lg:px-0"
+      >
+        <div className="max-w-3xl space-y-2">
+          <h2 id="livefoot-howto-title" className="text-lg font-black tracking-tight">
+            Comment suivre un match et obtenir une analyse football ?
+          </h2>
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            LiveFoot rassemble les informations utiles avant et pendant la rencontre pour vous aider
+            à comprendre le rapport de force. Les scores et les horaires sont actualisés, tandis que
+            l'espace Analyse détaille les probabilités, les facteurs clés et le niveau de confiance
+            lorsque les données sont disponibles.
+          </p>
+        </div>
+        <div className="grid gap-3 md:grid-cols-3">
+          <article className="rounded-2xl border border-border/70 bg-surface/40 p-4">
+            <h3 className="text-sm font-black">1. Trouver le match</h3>
+            <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+              Filtrez les matchs en direct, à venir ou terminés, puis ouvrez la fiche de la
+              rencontre qui vous intéresse.
+            </p>
+          </article>
+          <article className="rounded-2xl border border-border/70 bg-surface/40 p-4">
+            <h3 className="text-sm font-black">2. Lire les données</h3>
+            <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+              Comparez la forme récente, les confrontations, les compositions, les absences et les
+              tendances domicile-extérieur avant de tirer une conclusion.
+            </p>
+          </article>
+          <article className="rounded-2xl border border-border/70 bg-surface/40 p-4">
+            <h3 className="text-sm font-black">3. Analyser avec méthode</h3>
+            <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+              Lancez une analyse sur deux équipes et utilisez les probabilités comme une aide à la
+              décision, jamais comme une garantie de résultat.
+            </p>
+          </article>
+        </div>
       </section>
 
       {/* Footer */}

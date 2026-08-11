@@ -1,0 +1,19 @@
+{
+  "name": "LiveFoot IA — Scores et analyses football",
+  "short_name": "LiveFoot IA",
+  "description": "Scores football en direct, matchs du jour et analyses statistiques.",
+  "lang": "fr",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#05070d",
+  "theme_color": "#10b981",
+  "icons": [
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

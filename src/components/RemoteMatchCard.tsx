@@ -20,7 +20,7 @@ export function RemoteMatchCard({ match }: { match: RemoteMatchSummary }) {
       <div className="flex items-center gap-2 border-b border-[#2a2a2a] px-3 py-2.5">
         <img
           src={match.league.logo}
-          alt=""
+          alt={`Logo ${match.league.name}`}
           className="size-4 shrink-0 object-contain"
           loading="lazy"
         />
@@ -130,7 +130,12 @@ function TeamRow({
 }) {
   return (
     <div className="flex min-w-0 items-center gap-2.5">
-      <img src={logo} alt="" className="size-6 shrink-0 object-contain" loading="lazy" />
+      <img
+        src={logo}
+        alt={`Logo ${fullName}`}
+        className="size-6 shrink-0 object-contain"
+        loading="lazy"
+      />
       <span
         title={fullName}
         className={cn("min-w-0 flex-1 truncate text-[14px] font-semibold", dim && "text-[#777777]")}

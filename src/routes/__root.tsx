@@ -83,31 +83,31 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
       { name: "theme-color", content: "#10b981" },
-      { title: "LiveFoot IA — Livescore & analyse football en temps réel" },
+      { title: "Scores football en direct et analyses — LiveFoot IA" },
       {
         name: "description",
         content:
-          "Scores en direct et analyses IA détaillées sur chaque match : probabilités, marchés, compositions et prédictions.",
+          "Scores football en direct, matchs du jour et analyses IA : probabilités, compositions, forme récente et facteurs clés pour chaque rencontre.",
       },
       { property: "og:site_name", content: "LiveFoot IA" },
       { property: "og:type", content: "website" },
       { property: "og:url", content: "https://www.livefoot.fun" },
       { property: "og:locale", content: "fr_FR" },
       { name: "twitter:card", content: "summary_large_image" },
-      { property: "og:title", content: "LiveFoot IA — Livescore & analyse football en temps réel" },
+      { property: "og:title", content: "Scores football en direct et analyses — LiveFoot IA" },
       {
         name: "twitter:title",
-        content: "LiveFoot IA — Livescore & analyse football en temps réel",
+        content: "Scores football en direct et analyses — LiveFoot IA",
       },
       {
         property: "og:description",
         content:
-          "Scores en direct et analyses IA détaillées sur chaque match : probabilités, marchés, compositions et prédictions.",
+          "Scores football en direct, matchs du jour et analyses IA : probabilités, compositions, forme récente et facteurs clés pour chaque rencontre.",
       },
       {
         name: "twitter:description",
         content:
-          "Scores en direct et analyses IA détaillées sur chaque match : probabilités, marchés, compositions et prédictions.",
+          "Scores football en direct, matchs du jour et analyses IA : probabilités, compositions, forme récente et facteurs clés pour chaque rencontre.",
       },
       { property: "og:image", content: "https://www.livefoot.fun/logo.png" },
       { property: "og:image:alt", content: "Logo LiveFoot AI" },
@@ -121,6 +121,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     links: [
       { rel: "stylesheet", href: appCss },
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+      { rel: "manifest", href: "/site.webmanifest" },
       { rel: "preconnect", href: "https://media.api-sports.io", crossOrigin: "anonymous" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
