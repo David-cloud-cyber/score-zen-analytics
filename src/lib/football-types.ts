@@ -42,7 +42,7 @@ export type ApiEvent = {
   detail?: string;
 };
 
-export type ApiStatsPair = { home: number; away: number };
+export type ApiStatsPair = { home: number | null; away: number | null };
 
 export type ApiStats = {
   possession: ApiStatsPair;

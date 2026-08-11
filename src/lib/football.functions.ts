@@ -45,7 +45,9 @@ function timeLabel(iso: string): string {
 function shortName(name: string): string {
   if (!name) return "";
   if (name.length <= 12) return name;
-  return name.replace(/\s+(FC|CF|SC|AC|AS|FK|BK|SK|1899|1907|1900|Football Club|Calcio)$/i, "").slice(0, 14);
+  return name
+    .replace(/\s+(FC|CF|SC|AC|AS|FK|BK|SK|1899|1907|1900|Football Club|Calcio)$/i, "")
+    .slice(0, 14);
 }
 
 type ApiFixture = {
@@ -103,11 +105,15 @@ function toSummary(f: ApiFixture): RemoteMatchSummary {
       season: f.league.season,
       round: f.league.round,
     },
-    venue: f.fixture.venue.name ? `${f.fixture.venue.name}${f.fixture.venue.city ? ", " + f.fixture.venue.city : ""}` : null,
+    venue: f.fixture.venue.name
+      ? `${f.fixture.venue.name}${f.fixture.venue.city ? ", " + f.fixture.venue.city : ""}`
+      : null,
   };
 }
 
-const PRIORITY_LEAGUES = [61 /*L1*/, 39 /*PL*/, 140 /*Liga*/, 135 /*SerieA*/, 78 /*Bundesliga*/, 2 /*UCL*/, 3 /*UEL*/];
+const PRIORITY_LEAGUES = [
+  61 /*L1*/, 39 /*PL*/, 140 /*Liga*/, 135 /*SerieA*/, 78 /*Bundesliga*/, 2 /*UCL*/, 3 /*UEL*/,
+];
 
 // ---------- server functions ----------
 
@@ -171,21 +177,28 @@ export const getFixtures = createServerFn({ method: "GET" })
 
 type StatItem = { type: string; value: number | string | null };
 
-function parseNumber(v: number | string | null): number {
-  if (v === null || v === undefined) return 0;
+function parseNumber(v: number | string | null | undefined): number | null {
+  if (v === null || v === undefined) return null;
   if (typeof v === "number") return v;
   const cleaned = v.toString().replace("%", "").trim();
+  if (!cleaned) return null;
   const n = Number(cleaned);
-  return Number.isFinite(n) ? n : 0;
+  return Number.isFinite(n) ? n : null;
 }
 
 function mapStats(homeStats: StatItem[] = [], awayStats: StatItem[] = []): ApiStats {
   const pick = (arr: StatItem[], type: string) =>
-    parseNumber(arr.find((s) => s.type?.toLowerCase() === type.toLowerCase())?.value ?? 0);
+    parseNumber(arr.find((s) => s.type?.toLowerCase() === type.toLowerCase())?.value);
   return {
-    possession: { home: pick(homeStats, "Ball Possession"), away: pick(awayStats, "Ball Possession") },
+    possession: {
+      home: pick(homeStats, "Ball Possession"),
+      away: pick(awayStats, "Ball Possession"),
+    },
     shots: { home: pick(homeStats, "Total Shots"), away: pick(awayStats, "Total Shots") },
-    shotsOnTarget: { home: pick(homeStats, "Shots on Goal"), away: pick(awayStats, "Shots on Goal") },
+    shotsOnTarget: {
+      home: pick(homeStats, "Shots on Goal"),
+      away: pick(awayStats, "Shots on Goal"),
+    },
     xg: { home: pick(homeStats, "expected_goals"), away: pick(awayStats, "expected_goals") },
     corners: { home: pick(homeStats, "Corner Kicks"), away: pick(awayStats, "Corner Kicks") },
     fouls: { home: pick(homeStats, "Fouls"), away: pick(awayStats, "Fouls") },
@@ -204,24 +217,28 @@ export const getFixtureDetail = createServerFn({ method: "GET" })
     try {
       const [fixtureArr, eventsArr, statsArr, lineupsArr] = await Promise.all([
         apiFootball<ApiFixture[]>("/fixtures", { id }),
-        apiFootball<Array<{
-          time: { elapsed: number };
-          team: { id: number };
-          player: { name: string };
-          assist: { name: string | null };
-          type: string;
-          detail: string;
-        }>>("/fixtures/events", { fixture: id }).catch(() => []),
+        apiFootball<
+          Array<{
+            time: { elapsed: number };
+            team: { id: number };
+            player: { name: string };
+            assist: { name: string | null };
+            type: string;
+            detail: string;
+          }>
+        >("/fixtures/events", { fixture: id }).catch(() => []),
         apiFootball<Array<{ team: { id: number }; statistics: StatItem[] }>>(
           "/fixtures/statistics",
           { fixture: id },
         ).catch(() => []),
-        apiFootball<Array<{
-          team: { id: number; name: string; colors: { player: { primary: string } } | null };
-          formation: string;
-          coach: { name: string };
-          startXI: Array<{ player: { name: string; number: number; pos: string } }>;
-        }>>("/fixtures/lineups", { fixture: id }).catch(() => []),
+        apiFootball<
+          Array<{
+            team: { id: number; name: string; colors: { player: { primary: string } } | null };
+            formation: string;
+            coach: { name: string };
+            startXI: Array<{ player: { name: string; number: number; pos: string } }>;
+          }>
+        >("/fixtures/lineups", { fixture: id }).catch(() => []),
       ]);
 
       const f = fixtureArr[0];
@@ -282,7 +299,9 @@ export const getFixtureDetail = createServerFn({ method: "GET" })
             ? "yellow"
             : e.detail.toLowerCase().includes("red")
               ? "red"
-              : "sub") as ApiEvent["type"],
+              : e.type.toLowerCase().includes("var") || e.detail.toLowerCase().includes("var")
+                ? "var"
+                : "sub") as ApiEvent["type"],
         detail: e.detail,
       }));
 
@@ -303,7 +322,10 @@ export const getFixtureDetail = createServerFn({ method: "GET" })
         h2h,
       };
     } catch (err) {
-      console.warn("API Football getFixtureDetail error:", err instanceof Error ? err.message : err);
+      console.warn(
+        "API Football getFixtureDetail error:",
+        err instanceof Error ? err.message : err,
+      );
       throw err;
     }
   });
@@ -346,7 +368,13 @@ export const getStandings = createServerFn({ method: "GET" })
                 points: number;
                 goalsDiff: number;
                 form: string;
-                all: { played: number; win: number; draw: number; lose: number; goals: { for: number; against: number } };
+                all: {
+                  played: number;
+                  win: number;
+                  draw: number;
+                  lose: number;
+                  goals: { for: number; against: number };
+                };
               }>
             >;
           };
@@ -526,7 +554,10 @@ export const getTeamForm = createServerFn({ method: "GET" })
         }
         return {
           id: f.fixture.id,
-          date: new Date(f.fixture.date).toLocaleDateString("fr-FR", { day: "2-digit", month: "short" }),
+          date: new Date(f.fixture.date).toLocaleDateString("fr-FR", {
+            day: "2-digit",
+            month: "short",
+          }),
           opponent: isHome ? f.teams.away.name : f.teams.home.name,
           home: isHome,
           goalsFor: gf,

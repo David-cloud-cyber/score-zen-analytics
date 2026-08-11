@@ -1,6 +1,8 @@
-import { createFileRoute, Link, useParams } from "@tanstack/react-router";
-import { useSuspenseQuery, queryOptions } from "@tanstack/react-query";
+import { createFileRoute, Link, useNavigate, useParams } from "@tanstack/react-router";
+import { useQuery, useSuspenseQuery, queryOptions } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
+import { toast } from "sonner";
 import {
   ArrowLeft,
   MapPin,
@@ -20,10 +22,16 @@ import { MatchSkeleton } from "@/components/PageSkeleton";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { StatBar } from "@/components/StatBar";
 import { getFixtureDetail } from "@/lib/football.functions";
+import {
+  castMatchCommunityVote,
+  getMatchCommunityVotes,
+  type CommunityVoteOption,
+} from "@/lib/community.functions";
 import { buildRouteMeta } from "@/lib/seo";
 import type { RemoteMatchDetail, ApiLineup } from "@/lib/football-types";
 import { cn } from "@/lib/utils";
 import { DEMO_MATCH_DETAIL, isLocalDemo } from "@/lib/local-demo";
+import { useSession } from "@/hooks/use-session";
 
 const detailQuery = (id: number, demoMode = false) =>
   queryOptions({
@@ -202,10 +210,11 @@ function LiveMatchView({ m }: { m: RemoteMatchDetail }) {
         <MatchVoteCard match={m} />
 
         {/* Navigation Tabs */}
-        <Tabs defaultValue="stats" className="w-full">
+        <Tabs defaultValue="overview" className="w-full">
           <div className="sticky top-0 z-20 border-b border-[#252525] bg-background/95 backdrop-blur">
             <TabsList className="no-scrollbar h-auto w-full justify-start gap-0 overflow-x-auto rounded-none bg-transparent p-0">
               {[
+                ["overview", "Résumé"],
                 ["stats", "Stats"],
                 ["timeline", "Timeline"],
                 ["pitch", "Terrain 2D ⚽"],
@@ -223,6 +232,10 @@ function LiveMatchView({ m }: { m: RemoteMatchDetail }) {
               ))}
             </TabsList>
           </div>
+
+          <TabsContent value="overview" className="mt-0 space-y-4 p-4">
+            <MatchOverview match={m} isLive={isLive} isFinished={isFinished} />
+          </TabsContent>
 
           {/* Stats Tab */}
           <TabsContent value="stats" className="mt-0 space-y-5 p-4">
@@ -362,20 +375,153 @@ function LiveMatchView({ m }: { m: RemoteMatchDetail }) {
   );
 }
 
+function MatchOverview({
+  match,
+  isLive,
+  isFinished,
+}: {
+  match: RemoteMatchDetail;
+  isLive: boolean;
+  isFinished: boolean;
+}) {
+  const availableStats = Object.values(match.stats).filter(
+    (pair) => pair.home !== null && pair.away !== null,
+  ).length;
+  const lineupLabel =
+    match.lineups.home && match.lineups.away
+      ? "Compositions disponibles"
+      : match.lineups.home || match.lineups.away
+        ? "Composition partielle"
+        : "Compositions indisponibles";
+  const statusLabel = isLive ? "Match en direct" : isFinished ? "Match terminé" : "Match à venir";
+  const latestEvent = match.events.at(-1);
+
+  return (
+    <div className="space-y-4">
+      <section className="score-card p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="score-section-label">Lecture rapide</p>
+            <h2 className="mt-1 text-lg font-black">{statusLabel}</h2>
+          </div>
+          <span className="rounded-full bg-brand/10 px-2.5 py-1 text-[10px] font-bold text-brand">
+            API actualisée automatiquement
+          </span>
+        </div>
+        <dl className="mt-4 grid gap-2 sm:grid-cols-2">
+          <div className="rounded-lg bg-surface p-3">
+            <dt className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              Compétition
+            </dt>
+            <dd className="mt-1 text-xs font-bold">{match.league.name}</dd>
+          </div>
+          <div className="rounded-lg bg-surface p-3">
+            <dt className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              Stade
+            </dt>
+            <dd className="mt-1 truncate text-xs font-bold">{match.venue ?? "Non communiqué"}</dd>
+          </div>
+        </dl>
+      </section>
+
+      <section className="score-card p-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-black">Données disponibles</h2>
+          <ShieldCheck className="size-4 text-brand" aria-hidden />
+        </div>
+        <div className="mt-3 grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
+          <AvailabilityItem
+            label="Événements"
+            value={match.events.length ? `${match.events.length}` : "—"}
+          />
+          <AvailabilityItem label="Statistiques" value={`${availableStats}/10`} />
+          <AvailabilityItem label="Compositions" value={lineupLabel} />
+          <AvailabilityItem
+            label="Confrontations"
+            value={match.h2h.length ? `${match.h2h.length}` : "—"}
+          />
+        </div>
+      </section>
+
+      {latestEvent && (
+        <section className="score-card p-4">
+          <p className="score-section-label">Dernier événement</p>
+          <div className="mt-2 flex items-center gap-3">
+            <span className="grid size-9 shrink-0 place-items-center rounded-full bg-brand/10 text-sm font-black text-brand">
+              {latestEvent.minute}'
+            </span>
+            <div className="min-w-0">
+              <div className="truncate text-sm font-black">{latestEvent.player}</div>
+              <div className="text-xs text-muted-foreground">
+                {latestEvent.detail ?? latestEvent.type}
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+    </div>
+  );
+}
+
+function AvailabilityItem({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg border border-border/70 bg-surface/60 p-3">
+      <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+        {label}
+      </div>
+      <div className="mt-1 truncate text-xs font-black">{value}</div>
+    </div>
+  );
+}
+
 function MatchVoteCard({ match }: { match: RemoteMatchDetail }) {
-  const [votes, setVotes] = useState({ home: 58, draw: 23, away: 19 });
-  const [selected, setSelected] = useState<"home" | "draw" | "away" | null>(null);
-  const total = votes.home + votes.draw + votes.away;
+  const navigate = useNavigate();
+  const { user } = useSession();
+  const demoMode = isLocalDemo();
+  const getVotes = useServerFn(getMatchCommunityVotes);
+  const castVote = useServerFn(castMatchCommunityVote);
+  const [selected, setSelected] = useState<CommunityVoteOption | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const votesQuery = useQuery({
+    queryKey: ["community-votes", match.id],
+    queryFn: () => getVotes({ data: { fixtureId: match.id } }),
+    enabled: !demoMode,
+    staleTime: 30_000,
+    refetchInterval: 60_000,
+  });
+  const counts = votesQuery.data?.counts ?? { home: 0, draw: 0, away: 0 };
+  const total = votesQuery.data?.total ?? 0;
   const options = [
-    { id: "home" as const, label: "1", name: match.home.short, value: votes.home },
-    { id: "draw" as const, label: "N", name: "Match nul", value: votes.draw },
-    { id: "away" as const, label: "2", name: match.away.short, value: votes.away },
+    { id: "home" as const, label: "1", name: match.home.short, value: counts.home },
+    { id: "draw" as const, label: "N", name: "Match nul", value: counts.draw },
+    { id: "away" as const, label: "2", name: match.away.short, value: counts.away },
   ];
 
-  function vote(id: "home" | "draw" | "away") {
-    if (selected) return;
-    setSelected(id);
-    setVotes((current) => ({ ...current, [id]: current[id] + 1 }));
+  async function vote(id: CommunityVoteOption) {
+    if (demoMode) return;
+    if (!user) {
+      navigate({ to: "/auth", search: { redirect: `/live/${match.id}` } });
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      await castVote({
+        data: {
+          fixtureId: match.id,
+          homeTeam: match.home.name,
+          awayTeam: match.away.name,
+          prediction: id,
+        },
+      });
+      setSelected(id);
+      await votesQuery.refetch();
+      toast.success("Votre vote a été enregistré.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Impossible d'enregistrer votre vote.");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -391,47 +537,68 @@ function MatchVoteCard({ match }: { match: RemoteMatchDetail }) {
             </h2>
           </div>
           <span className="rounded-full bg-surface px-2 py-1 text-[10px] font-bold text-muted-foreground">
-            {total} votes
+            {demoMode ? "Données réelles uniquement" : `${total} vote${total > 1 ? "s" : ""}`}
           </span>
         </div>
-        <div className="mt-3 grid grid-cols-3 gap-2">
-          {options.map((option) => {
-            const percentage = Math.round((option.value / total) * 100);
-            return (
-              <button
-                key={option.id}
-                type="button"
-                aria-pressed={selected === option.id}
-                onClick={() => vote(option.id)}
-                className={cn(
-                  "rounded-xl px-2 py-2.5 text-left transition-colors",
-                  selected === option.id
-                    ? "bg-brand text-brand-foreground"
-                    : "bg-card hover:bg-surface",
-                )}
-              >
-                <span className="block text-sm font-black">{option.label}</span>
-                <span className="mt-0.5 block truncate text-[10px] font-semibold opacity-75">
-                  {option.name}
-                </span>
-                <span className="mt-2 block text-lg font-black tabular-nums">{percentage}%</span>
-              </button>
-            );
-          })}
-        </div>
-        <div className="mt-3 flex h-1.5 overflow-hidden rounded-full bg-surface" aria-hidden>
-          <div className="bg-brand" style={{ width: `${(votes.home / total) * 100}%` }} />
+
+        {demoMode ? (
+          <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+            Les votes réels seront affichés sur une rencontre chargée depuis l’API en production.
+          </p>
+        ) : votesQuery.isLoading ? (
           <div
-            className="bg-muted-foreground/50"
-            style={{ width: `${(votes.draw / total) * 100}%` }}
+            className="mt-3 h-20 animate-pulse rounded-xl bg-surface"
+            aria-label="Chargement des votes"
           />
-          <div className="bg-data" style={{ width: `${(votes.away / total) * 100}%` }} />
-        </div>
-        <p className="mt-2 text-[10px] text-muted-foreground">
-          {selected
-            ? "Votre vote a été ajouté à la tendance locale."
-            : "Votez pour comparer votre avis à celui de la communauté."}
-        </p>
+        ) : votesQuery.isError ? (
+          <p className="mt-3 text-xs text-muted-foreground">Votes momentanément indisponibles.</p>
+        ) : (
+          <>
+            <div className="mt-3 grid grid-cols-3 gap-2">
+              {options.map((option) => {
+                const percentage = total ? Math.round((option.value / total) * 100) : null;
+                return (
+                  <button
+                    key={option.id}
+                    type="button"
+                    aria-pressed={selected === option.id}
+                    disabled={submitting}
+                    onClick={() => vote(option.id)}
+                    className={cn(
+                      "rounded-xl px-2 py-2.5 text-left transition-colors disabled:cursor-wait disabled:opacity-60",
+                      selected === option.id
+                        ? "bg-brand text-brand-foreground"
+                        : "bg-card hover:bg-surface",
+                    )}
+                  >
+                    <span className="block text-sm font-black">{option.label}</span>
+                    <span className="mt-0.5 block truncate text-[10px] font-semibold opacity-75">
+                      {option.name}
+                    </span>
+                    <span className="mt-2 block text-lg font-black tabular-nums">
+                      {percentage === null ? "—" : `${percentage}%`}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            {total > 0 && (
+              <div className="mt-3 flex h-1.5 overflow-hidden rounded-full bg-surface" aria-hidden>
+                <div className="bg-brand" style={{ width: `${(counts.home / total) * 100}%` }} />
+                <div
+                  className="bg-muted-foreground/50"
+                  style={{ width: `${(counts.draw / total) * 100}%` }}
+                />
+                <div className="bg-data" style={{ width: `${(counts.away / total) * 100}%` }} />
+              </div>
+            )}
+            <p className="mt-2 text-[10px] text-muted-foreground">
+              {selected
+                ? "Votre vote est enregistré et peut être actualisé."
+                : "Connectez-vous pour voter."}
+            </p>
+          </>
+        )}
       </div>
     </section>
   );
@@ -446,8 +613,20 @@ function TacticalPitch2D({
   away: { short: string; logo: string };
   lineups: { home?: ApiLineup | null; away?: ApiLineup | null };
 }) {
-  const homeFormation = lineups.home?.formation ?? "4-3-3";
-  const awayFormation = lineups.away?.formation ?? "4-3-3";
+  const homeFormation = lineups.home?.formation;
+  const awayFormation = lineups.away?.formation;
+
+  if (!lineups.home || !lineups.away) {
+    return (
+      <div className="score-empty-state">
+        <Shirt className="mx-auto size-6 text-muted-foreground" aria-hidden />
+        <div className="mt-2 text-sm font-bold">Terrain indisponible</div>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Les compositions officielles des deux équipes sont nécessaires pour afficher le terrain.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="rounded-3xl bg-card p-4 ring-1 ring-black/5 dark:ring-white/5">
