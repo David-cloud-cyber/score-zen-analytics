@@ -14,6 +14,7 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { SessionProvider } from "@/hooks/use-session";
 import { CookieBanner } from "@/components/CookieBanner";
+import { MetaPixel } from "@/components/MetaPixel";
 import { ThemeProvider, THEME_INIT_SCRIPT } from "@/hooks/use-theme";
 
 function NotFoundComponent() {
@@ -242,6 +243,7 @@ function RootComponent() {
         <SessionProvider>
           <Outlet />
           <CookieBanner />
+          <MetaPixel />
           <Toaster position="top-center" richColors />
         </SessionProvider>
       </ThemeProvider>

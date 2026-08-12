@@ -14,6 +14,7 @@
  */
 
 import { useEffect, useRef } from "react";
+import { trackMetaPixel } from "@/lib/meta-pixel";
 
 export type AnalyticsEvent =
   | "cta_view"
@@ -66,6 +67,19 @@ export function track(event: AnalyticsEvent, props: Props = {}) {
   w.dataLayer.push(payload);
   w.gtag?.("event", event, props);
   w.plausible?.(event, { props });
+
+  const metaEvent =
+    event === "analyse_run"
+      ? "Lead"
+      : event === "analyse_view"
+        ? "ViewContent"
+        : event === "promo_affiliate_click"
+          ? "OutboundClick"
+          : "LiveFootInteraction";
+  trackMetaPixel(metaEvent, {
+    content_name: event,
+    ...(typeof props.location === "string" ? { content_category: props.location } : {}),
+  });
 
   bump(event);
   if (props.location) bump(`${event}:${props.location}`);
