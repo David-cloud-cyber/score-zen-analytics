@@ -255,11 +255,12 @@ function HomePage() {
             <button
               key={f.id}
               onClick={() => setFilter(f.id)}
+              aria-pressed={active}
               className={cn(
-                "shrink-0 rounded-full px-4 py-2 text-xs font-bold transition-all",
+                "match-filter shrink-0 rounded-full px-4 py-2 text-xs font-bold transition-all",
                 active
-                  ? "bg-foreground text-background"
-                  : "bg-surface text-muted-foreground ring-1 ring-black/5 hover:text-foreground dark:ring-white/10",
+                  ? "match-filter-active"
+                  : "",
               )}
             >
               {f.label}
@@ -282,32 +283,32 @@ function HomePage() {
           <Link
             to="/live/$id"
             params={{ id: String(topMatch.id) }}
-            className="group relative block overflow-hidden rounded-3xl bg-foreground p-5 text-background shadow-lg transition-transform hover:-translate-y-0.5 hover:shadow-xl lg:col-span-2 lg:p-7"
+            className="trending-match-card group relative block overflow-hidden p-5 transition-transform hover:-translate-y-0.5 lg:col-span-2 lg:p-9"
           >
-            <div className="pointer-events-none absolute -right-16 -top-16 size-48 rounded-full bg-data/40 blur-3xl transition-transform group-hover:scale-110" />
-            <div className="pointer-events-none absolute -bottom-20 -left-10 size-40 rounded-full bg-brand/30 blur-3xl transition-transform group-hover:scale-110" />
+            <div className="trending-match-halo trending-match-halo-blue pointer-events-none absolute -right-20 -top-24 size-64 transition-transform group-hover:scale-110" />
+            <div className="trending-match-halo trending-match-halo-green pointer-events-none absolute -bottom-28 -left-20 size-64 transition-transform group-hover:scale-110" />
             <div className="relative">
-              <div className="mb-3 inline-flex items-center gap-1.5 rounded-full bg-brand/20 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-brand ring-1 ring-brand/30">
+              <div className="trending-badge mb-4 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[10px] font-black uppercase tracking-wider">
                 <Flame className="size-3" /> Trending
               </div>
-              <h2 className="text-[22px] font-black leading-tight tracking-tight lg:text-3xl">
-                {topMatch.home.name} <span className="text-muted-foreground">vs</span>{" "}
+              <h2 className="trending-match-title text-[27px] font-black leading-[1.05] tracking-tight lg:text-[38px]">
+                {topMatch.home.name} <span className="trending-match-muted">vs</span>{" "}
                 {topMatch.away.name}
               </h2>
-              <p className="mt-2 text-xs leading-relaxed text-background/70 lg:text-sm">
+              <p className="trending-match-meta mt-4 text-sm leading-relaxed lg:text-[17px]">
                 {topMatch.league.name} · {topMatch.venue ?? topMatch.dayLabel} ·{" "}
                 {topMatch.status === "live" || topMatch.status === "ht"
                   ? `En direct${topMatch.minute ? ` · ${topMatch.minute}'` : ""}`
                   : `Coup d'envoi ${topMatch.timeLabel}`}
                 .
               </p>
-              <div className="mt-4 flex items-center gap-4">
+              <div className="mt-5 flex items-center gap-4">
                 <img
                   src={topMatch.home.logo}
                   alt={`Logo ${topMatch.home.name}`}
-                  className="size-10 object-contain"
+                  className="size-12 object-contain lg:size-14"
                 />
-                <div className="text-3xl font-black tabular-nums">
+                <div className="trending-match-score text-4xl font-black tabular-nums lg:text-[42px]">
                   {topMatch.homeScore ?? "—"}
                   <span className="mx-2 text-background/40">·</span>
                   {topMatch.awayScore ?? "—"}
@@ -315,10 +316,10 @@ function HomePage() {
                 <img
                   src={topMatch.away.logo}
                   alt={`Logo ${topMatch.away.name}`}
-                  className="size-10 object-contain"
+                  className="size-12 object-contain lg:size-14"
                 />
               </div>
-              <div className="mt-4 flex items-center justify-between text-xs font-bold">
+              <div className="mt-5 flex items-center justify-between text-sm font-bold">
                 <span>Voir la fiche complète</span>
                 <ChevronRight className="size-4 transition-transform group-hover:translate-x-1" />
               </div>

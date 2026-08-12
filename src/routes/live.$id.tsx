@@ -587,6 +587,7 @@ function MatchVoteCard({ match }: { match: RemoteMatchDetail }) {
   const castVote = useServerFn(castMatchCommunityVote);
   const [selected, setSelected] = useState<CommunityVoteOption | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [demoCounts, setDemoCounts] = useState({ home: 58, draw: 23, away: 19 });
   const votesQuery = useQuery({
     queryKey: ["community-votes", match.id],
     queryFn: () => getVotes({ data: { fixtureId: match.id } }),
@@ -594,8 +595,12 @@ function MatchVoteCard({ match }: { match: RemoteMatchDetail }) {
     staleTime: 30_000,
     refetchInterval: 60_000,
   });
-  const counts = votesQuery.data?.counts ?? { home: 0, draw: 0, away: 0 };
-  const total = votesQuery.data?.total ?? 0;
+  const counts = demoMode
+    ? demoCounts
+    : (votesQuery.data?.counts ?? { home: 0, draw: 0, away: 0 });
+  const total = demoMode
+    ? demoCounts.home + demoCounts.draw + demoCounts.away
+    : (votesQuery.data?.total ?? 0);
   const options = [
     { id: "home" as const, label: "1", name: match.home.short, value: counts.home },
     { id: "draw" as const, label: "N", name: "Match nul", value: counts.draw },
@@ -603,7 +608,17 @@ function MatchVoteCard({ match }: { match: RemoteMatchDetail }) {
   ];
 
   async function vote(id: CommunityVoteOption) {
-    if (demoMode) return;
+    if (demoMode) {
+      if (selected === id) return;
+      setSelected(id);
+      setDemoCounts((current) => ({
+        ...current,
+        [id]: current[id] + 1,
+        ...(selected ? { [selected]: Math.max(0, current[selected] - 1) } : {}),
+      }));
+      toast.success("Votre vote a été enregistré dans l’aperçu local.");
+      return;
+    }
     if (!user) {
       navigate({ to: "/auth", search: { redirect: `/live/${match.id}` } });
       return;
@@ -644,21 +659,16 @@ function MatchVoteCard({ match }: { match: RemoteMatchDetail }) {
           <span className="rounded-full bg-surface px-2 py-1 text-[10px] font-bold text-muted-foreground">
             {demoMode ? "Données réelles uniquement" : `${total} vote${total > 1 ? "s" : ""}`}
           </span>
-        </div>
-
-        {demoMode ? (
-          <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
-            Les votes réels seront affichés sur une rencontre chargée depuis l’API en production.
-          </p>
-        ) : votesQuery.isLoading ? (
-          <div
-            className="mt-3 h-20 animate-pulse rounded-xl bg-surface"
-            aria-label="Chargement des votes"
-          />
-        ) : votesQuery.isError ? (
-          <p className="mt-3 text-xs text-muted-foreground">Votes momentanément indisponibles.</p>
-        ) : (
-          <>
+          </div>
+          {votesQuery.isLoading && !demoMode ? (
+            <div
+              className="mt-3 h-20 animate-pulse rounded-xl bg-surface"
+              aria-label="Chargement des votes"
+            />
+          ) : votesQuery.isError && !demoMode ? (
+            <p className="mt-3 text-xs text-muted-foreground">Votes momentanément indisponibles.</p>
+          ) : (
+            <>
             <div className="mt-3 grid grid-cols-3 gap-2">
               {options.map((option) => {
                 const percentage = total ? Math.round((option.value / total) * 100) : null;
@@ -667,13 +677,14 @@ function MatchVoteCard({ match }: { match: RemoteMatchDetail }) {
                     key={option.id}
                     type="button"
                     aria-pressed={selected === option.id}
+                    aria-label={`Voter ${option.label}, ${option.name}`}
                     disabled={submitting}
                     onClick={() => vote(option.id)}
                     className={cn(
-                      "rounded-xl px-2 py-2.5 text-left transition-colors disabled:cursor-wait disabled:opacity-60",
+                      "rounded-xl px-2 py-2.5 text-left ring-1 ring-border/70 transition-all hover:-translate-y-0.5 hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand disabled:cursor-wait disabled:opacity-60",
                       selected === option.id
-                        ? "bg-brand text-brand-foreground"
-                        : "bg-card hover:bg-surface",
+                        ? "bg-brand text-brand-foreground ring-brand"
+                        : "bg-card",
                     )}
                   >
                     <span className="block text-sm font-black">{option.label}</span>
@@ -697,11 +708,15 @@ function MatchVoteCard({ match }: { match: RemoteMatchDetail }) {
                 <div className="bg-data" style={{ width: `${(counts.away / total) * 100}%` }} />
               </div>
             )}
-            <p className="mt-2 text-[10px] text-muted-foreground">
-              {selected
-                ? "Votre vote est enregistré et peut être actualisé."
-                : "Connectez-vous pour voter."}
-            </p>
+              <p className="mt-2 text-[10px] text-muted-foreground">
+                {selected
+                  ? "Votre vote est enregistré. Vous pouvez modifier votre choix."
+                  : demoMode
+                    ? "Choisissez 1, N ou 2 pour comparer votre avis à la communauté."
+                    : user
+                      ? "Choisissez 1, N ou 2 pour voter."
+                      : "Connectez-vous pour voter et comparer votre avis à la communauté."}
+              </p>
           </>
         )}
       </div>
