@@ -79,9 +79,39 @@ export type ApiH2H = {
   score: string;
 };
 
+export type ApiOddsSnapshot = {
+  home: number | null;
+  draw: number | null;
+  away: number | null;
+  bookmakers: number;
+  updatedAt: string | null;
+};
+
+export type ApiPredictionSnapshot = {
+  home: number | null;
+  draw: number | null;
+  away: number | null;
+  winner: "home" | "away" | null;
+  winnerName: string | null;
+  advice: string | null;
+  underOver: string | null;
+};
+
+export type ApiInjury = {
+  playerId: number;
+  name: string;
+  photo: string;
+  reason: string;
+  type: string;
+  teamId: number;
+};
+
 export type RemoteMatchDetail = RemoteMatchSummary & {
   events: ApiEvent[];
   stats: ApiStats;
   lineups: { home: ApiLineup | null; away: ApiLineup | null };
   h2h: ApiH2H[];
+  odds: ApiOddsSnapshot | null;
+  prediction: ApiPredictionSnapshot | null;
+  injuries: { home: ApiInjury[]; away: ApiInjury[] };
 };

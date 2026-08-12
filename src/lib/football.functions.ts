@@ -73,6 +73,49 @@ type ApiFixture = {
   goals: { home: number | null; away: number | null };
 };
 
+type ApiOddsResponse = {
+  update?: string;
+  bookmakers?: Array<{
+    bets?: Array<{
+      name: string;
+      values?: Array<{ value: string; odd: string }>;
+    }>;
+  }>;
+};
+
+type ApiPredictionResponse = {
+  predictions?: {
+    winner?: { id?: number | null; name?: string | null; comment?: string | null } | null;
+    percent?: { home?: string; draw?: string; away?: string };
+    advice?: string | null;
+    under_over?: string | null;
+  };
+};
+
+type ApiInjuryResponse = {
+  player: { id: number; name: string; photo: string; type: string; reason: string };
+  team: { id: number; name: string };
+};
+
+function parsePercent(value?: string): number | null {
+  if (!value) return null;
+  const number = Number(value.replace("%", "").trim());
+  return Number.isFinite(number) ? Math.max(0, Math.min(100, number)) : null;
+}
+
+function averageSelectionOdds(data: ApiOddsResponse | undefined, selection: string) {
+  const values: number[] = [];
+  for (const bookmaker of data?.bookmakers ?? []) {
+    const bet = bookmaker.bets?.find((item) => item.name.toLowerCase() === "match winner");
+    for (const value of bet?.values ?? []) {
+      if (value.value.toLowerCase() !== selection) continue;
+      const odd = Number(value.odd);
+      if (Number.isFinite(odd) && odd > 1) values.push(odd);
+    }
+  }
+  return values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : null;
+}
+
 function toSummary(f: ApiFixture): RemoteMatchSummary {
   return {
     id: f.fixture.id,
@@ -247,10 +290,15 @@ export const getFixtureDetail = createServerFn({ method: "GET" })
       const homeId = f.teams.home.id;
       const awayId = f.teams.away.id;
 
-      const h2hArr = await apiFootball<ApiFixture[]>("/fixtures/headtohead", {
-        h2h: `${homeId}-${awayId}`,
-        last: 5,
-      }).catch(() => []);
+      const [h2hArr, oddsArr, predictionArr, injuriesArr] = await Promise.all([
+        apiFootball<ApiFixture[]>("/fixtures/headtohead", {
+          h2h: `${homeId}-${awayId}`,
+          last: 5,
+        }).catch(() => []),
+        apiFootball<ApiOddsResponse[]>("/odds", { fixture: id, bet: 1 }).catch(() => []),
+        apiFootball<ApiPredictionResponse[]>("/predictions", { fixture: id }).catch(() => []),
+        apiFootball<ApiInjuryResponse[]>("/injuries", { fixture: id }).catch(() => []),
+      ]);
 
       const homeStatsRaw = statsArr.find((s) => s.team.id === homeId)?.statistics ?? [];
       const awayStatsRaw = statsArr.find((s) => s.team.id === awayId)?.statistics ?? [];
@@ -314,12 +362,66 @@ export const getFixtureDetail = createServerFn({ method: "GET" })
         competition: h.league.name,
       }));
 
+      const oddsData = oddsArr[0];
+      const odds = oddsData
+        ? {
+            home: averageSelectionOdds(oddsData, "home"),
+            draw: averageSelectionOdds(oddsData, "draw"),
+            away: averageSelectionOdds(oddsData, "away"),
+            bookmakers: oddsData.bookmakers?.length ?? 0,
+            updatedAt: oddsData.update ?? null,
+          }
+        : null;
+
+      const predictionData = predictionArr[0]?.predictions;
+      const prediction = predictionData
+        ? {
+            home: parsePercent(predictionData.percent?.home),
+            draw: parsePercent(predictionData.percent?.draw),
+            away: parsePercent(predictionData.percent?.away),
+            winner:
+              predictionData.winner?.id === homeId
+                ? ("home" as const)
+                : predictionData.winner?.id === awayId
+                  ? ("away" as const)
+                  : null,
+            winnerName: predictionData.winner?.name ?? null,
+            advice: predictionData.advice ?? null,
+            underOver: predictionData.under_over ?? null,
+          }
+        : null;
+      const injuries = {
+        home: injuriesArr
+          .filter((item) => item.team.id === homeId)
+          .map((item) => ({
+            playerId: item.player.id,
+            name: item.player.name,
+            photo: item.player.photo,
+            reason: item.player.reason,
+            type: item.player.type,
+            teamId: item.team.id,
+          })),
+        away: injuriesArr
+          .filter((item) => item.team.id === awayId)
+          .map((item) => ({
+            playerId: item.player.id,
+            name: item.player.name,
+            photo: item.player.photo,
+            reason: item.player.reason,
+            type: item.player.type,
+            teamId: item.team.id,
+          })),
+      };
+
       return {
         ...toSummary(f),
         stats,
         events,
         lineups: { home: homeLineup, away: awayLineup },
         h2h,
+        odds,
+        prediction,
+        injuries,
       };
     } catch (err) {
       console.warn(
@@ -509,6 +611,426 @@ export const getInjuries = createServerFn({ method: "GET" })
         reason: r.player.reason,
         type: r.player.type,
         fixtureId: r.fixture.id,
+      }));
+    } catch {
+      return [];
+    }
+  });
+
+export type CountryRow = { name: string; code: string | null; flag: string | null };
+
+export const getCountries = createServerFn({ method: "GET" }).handler(
+  async (): Promise<CountryRow[]> => {
+    try {
+      return await apiFootball<CountryRow[]>("/countries");
+    } catch {
+      return [];
+    }
+  },
+);
+
+export type LeagueRow = {
+  id: number;
+  name: string;
+  type: string;
+  logo: string;
+  country: string;
+  countryCode: string | null;
+  seasons: Array<{ year: number; start: string; end: string; current: boolean }>;
+};
+
+export const getLeagues = createServerFn({ method: "GET" })
+  .inputValidator((input) =>
+    z
+      .object({ country: z.string().max(80).optional(), season: z.number().int().optional() })
+      .parse(input),
+  )
+  .handler(async ({ data }): Promise<LeagueRow[]> => {
+    try {
+      const raw = await apiFootball<
+        Array<{
+          league: { id: number; name: string; type: string; logo: string };
+          country: { name: string; code: string | null };
+          seasons: Array<{ year: number; start: string; end: string; current: boolean }>;
+        }>
+      >("/leagues", data);
+      return raw.map((item) => ({
+        id: item.league.id,
+        name: item.league.name,
+        type: item.league.type,
+        logo: item.league.logo,
+        country: item.country.name,
+        countryCode: item.country.code,
+        seasons: item.seasons,
+      }));
+    } catch {
+      return [];
+    }
+  });
+
+export type TeamRow = {
+  id: number;
+  name: string;
+  code: string | null;
+  country: string;
+  founded: number | null;
+  logo: string;
+  venue: { name: string | null; city: string | null; capacity: number | null } | null;
+};
+
+export const getTeams = createServerFn({ method: "GET" })
+  .inputValidator((input) =>
+    z
+      .object({
+        search: z.string().min(2).max(80).optional(),
+        league: z.number().int().optional(),
+        season: z.number().int().optional(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data }): Promise<TeamRow[]> => {
+    try {
+      const raw = await apiFootball<
+        Array<{
+          team: {
+            id: number;
+            name: string;
+            code: string | null;
+            country: string;
+            founded: number | null;
+            logo: string;
+          };
+          venue?: { name: string | null; city: string | null; capacity: number | null } | null;
+        }>
+      >("/teams", data);
+      return raw.map((item) => ({ ...item.team, venue: item.venue ?? null }));
+    } catch {
+      return [];
+    }
+  });
+
+export type PlayerRow = {
+  id: number;
+  name: string;
+  firstname: string | null;
+  lastname: string | null;
+  age: number | null;
+  nationality: string | null;
+  photo: string;
+  team: { id: number; name: string; logo: string } | null;
+  position: string | null;
+  appearances: number | null;
+  goals: number | null;
+  assists: number | null;
+};
+
+export const getPlayers = createServerFn({ method: "GET" })
+  .inputValidator((input) =>
+    z
+      .object({
+        search: z.string().min(2).max(80).optional(),
+        team: z.number().int().optional(),
+        league: z.number().int().optional(),
+        season: z.number().int().optional(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data }): Promise<PlayerRow[]> => {
+    try {
+      const raw = await apiFootball<
+        Array<{
+          player: {
+            id: number;
+            name: string;
+            firstname: string | null;
+            lastname: string | null;
+            age: number | null;
+            nationality: string | null;
+            photo: string;
+          };
+          statistics?: Array<{
+            team: { id: number; name: string; logo: string };
+            games: { position: string | null; appearences: number | null };
+            goals: { total: number | null; assists: number | null };
+          }>;
+        }>
+      >("/players", data);
+      return raw.map((item) => {
+        const stats = item.statistics?.[0];
+        return {
+          ...item.player,
+          team: stats?.team ?? null,
+          position: stats?.games.position ?? null,
+          appearances: stats?.games.appearences ?? null,
+          goals: stats?.goals.total ?? null,
+          assists: stats?.goals.assists ?? null,
+        };
+      });
+    } catch {
+      return [];
+    }
+  });
+
+export type TransferRow = {
+  playerId: number;
+  player: string;
+  update: string;
+  date: string | null;
+  type: string | null;
+  teams: {
+    in: { id: number; name: string; logo: string } | null;
+    out: { id: number; name: string; logo: string } | null;
+  };
+};
+
+export const getTransfers = createServerFn({ method: "GET" })
+  .inputValidator((input) =>
+    z
+      .object({
+        player: z.number().int().positive().optional(),
+        team: z.number().int().positive().optional(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data }): Promise<TransferRow[]> => {
+    try {
+      const raw = await apiFootball<
+        Array<{
+          player: { id: number; name: string };
+          update: string;
+          transfers: Array<{
+            date: string | null;
+            type: string | null;
+            teams: { in: TransferRow["teams"]["in"]; out: TransferRow["teams"]["out"] };
+          }>;
+        }>
+      >("/transfers", data);
+      return raw.flatMap((item) =>
+        item.transfers.map((transfer) => ({
+          playerId: item.player.id,
+          player: item.player.name,
+          update: item.update,
+          ...transfer,
+          teams: transfer.teams,
+        })),
+      );
+    } catch {
+      return [];
+    }
+  });
+
+export type TrophyRow = {
+  league: string;
+  country: string;
+  season: string;
+  place: string;
+  wins: number | null;
+};
+
+export const getTrophies = createServerFn({ method: "GET" })
+  .inputValidator((input) =>
+    z
+      .object({
+        team: z.number().int().positive().optional(),
+        player: z.number().int().positive().optional(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data }): Promise<TrophyRow[]> => {
+    try {
+      const raw = await apiFootball<TrophyRow[]>("/trophies", data);
+      return raw;
+    } catch {
+      return [];
+    }
+  });
+
+export type CoachRow = {
+  id: number;
+  name: string;
+  firstname: string | null;
+  lastname: string | null;
+  age: number | null;
+  nationality: string | null;
+  photo: string;
+  team: { id: number; name: string; logo: string } | null;
+  career: Array<{
+    team: { id: number; name: string; logo: string };
+    start: string | null;
+    end: string | null;
+  }>;
+};
+
+export const getCoaches = createServerFn({ method: "GET" })
+  .inputValidator((input) =>
+    z
+      .object({
+        team: z.number().int().positive().optional(),
+        id: z.number().int().positive().optional(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data }): Promise<CoachRow[]> => {
+    try {
+      const raw = await apiFootball<
+        Array<{
+          id: number;
+          name: string;
+          firstname: string | null;
+          lastname: string | null;
+          age: number | null;
+          nationality: string | null;
+          photo: string;
+          team?: { id: number; name: string; logo: string } | null;
+          career?: CoachRow["career"];
+        }>
+      >("/coachs", data);
+      return raw.map((coach) => ({
+        ...coach,
+        team: coach.team ?? null,
+        career: coach.career ?? [],
+      }));
+    } catch {
+      return [];
+    }
+  });
+
+export const getSeasons = createServerFn({ method: "GET" }).handler(async (): Promise<number[]> => {
+  try {
+    return await apiFootball<number[]>("/leagues/seasons");
+  } catch {
+    return [];
+  }
+});
+
+export type LiveOddsRow = {
+  fixtureId: number;
+  update: string | null;
+  bookmakers: Array<{
+    id: number;
+    name: string;
+    bets: Array<{ id: number; name: string; values: Array<{ value: string; odd: string }> }>;
+  }>;
+};
+
+export const getLiveOdds = createServerFn({ method: "GET" })
+  .inputValidator((input) =>
+    z.object({ fixture: z.number().int().positive().optional() }).parse(input),
+  )
+  .handler(async ({ data }): Promise<LiveOddsRow[]> => {
+    try {
+      const raw = await apiFootball<
+        Array<{
+          fixture: { id: number };
+          update?: string;
+          bookmakers?: LiveOddsRow["bookmakers"];
+        }>
+      >("/odds/live", data);
+      return raw.map((row) => ({
+        fixtureId: row.fixture.id,
+        update: row.update ?? null,
+        bookmakers: row.bookmakers ?? [],
+      }));
+    } catch {
+      return [];
+    }
+  });
+
+export type TeamStatisticsRow = {
+  league: { id: number; name: string; season: number };
+  team: { id: number; name: string; logo: string };
+  form: string;
+  fixtures: Record<string, Record<string, number | null>>;
+  goals: Record<string, Record<string, number | string | null>>;
+  cleanSheets: Record<string, number | null>;
+  failedToScore: Record<string, number | null>;
+  lineups: Array<{ formation: string; played: number | null }>;
+};
+
+export const getTeamStatistics = createServerFn({ method: "GET" })
+  .inputValidator((input) =>
+    z
+      .object({
+        team: z.number().int().positive(),
+        league: z.number().int().positive(),
+        season: z.number().int().optional(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data }): Promise<TeamStatisticsRow | null> => {
+    try {
+      const raw = await apiFootball<
+        Array<{
+          league: { id: number; name: string; season: number };
+          team: { id: number; name: string; logo: string };
+          form: string;
+          fixtures: Record<string, Record<string, number | null>>;
+          goals: Record<string, Record<string, number | string | null>>;
+          clean_sheet: Record<string, number | null>;
+          failed_to_score: Record<string, number | null>;
+          lineups: Array<{ formation: string; played: number | null }>;
+        }>
+      >("/teams/statistics", data);
+      const item = raw[0];
+      return item
+        ? {
+            league: item.league,
+            team: item.team,
+            form: item.form ?? "",
+            fixtures: item.fixtures ?? {},
+            goals: item.goals ?? {},
+            cleanSheets: item.clean_sheet ?? {},
+            failedToScore: item.failed_to_score ?? {},
+            lineups: item.lineups ?? [],
+          }
+        : null;
+    } catch {
+      return null;
+    }
+  });
+
+export type SidelinedRow = {
+  playerId: number;
+  player: string;
+  photo: string;
+  teamId: number;
+  team: string;
+  type: string | null;
+  start: string | null;
+  end: string | null;
+};
+
+export const getSidelined = createServerFn({ method: "GET" })
+  .inputValidator((input) =>
+    z
+      .object({
+        player: z.number().int().positive().optional(),
+        team: z.number().int().positive().optional(),
+        league: z.number().int().positive().optional(),
+        season: z.number().int().optional(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data }): Promise<SidelinedRow[]> => {
+    try {
+      const raw = await apiFootball<
+        Array<{
+          player: { id: number; name: string; photo: string };
+          team: { id: number; name: string };
+          type: string | null;
+          start: string | null;
+          end: string | null;
+        }>
+      >("/sidelined", data);
+      return raw.map((item) => ({
+        playerId: item.player.id,
+        player: item.player.name,
+        photo: item.player.photo,
+        teamId: item.team.id,
+        team: item.team.name,
+        type: item.type,
+        start: item.start,
+        end: item.end,
       }));
     } catch {
       return [];

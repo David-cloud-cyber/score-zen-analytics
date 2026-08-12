@@ -28,7 +28,7 @@ import {
   type CommunityVoteOption,
 } from "@/lib/community.functions";
 import { buildRouteMeta } from "@/lib/seo";
-import type { RemoteMatchDetail, ApiLineup } from "@/lib/football-types";
+import type { ApiInjury, ApiLineup, RemoteMatchDetail } from "@/lib/football-types";
 import { cn } from "@/lib/utils";
 import { DEMO_MATCH_DETAIL, isLocalDemo } from "@/lib/local-demo";
 import { useSession } from "@/hooks/use-session";
@@ -235,6 +235,7 @@ function LiveMatchView({ m }: { m: RemoteMatchDetail }) {
 
           <TabsContent value="overview" className="mt-0 space-y-4 p-4">
             <MatchOverview match={m} isLive={isLive} isFinished={isFinished} />
+            <MatchDataSignals match={m} />
           </TabsContent>
 
           {/* Stats Tab */}
@@ -471,6 +472,110 @@ function AvailabilityItem({ label, value }: { label: string; value: string }) {
       </div>
       <div className="mt-1 truncate text-xs font-black">{value}</div>
     </div>
+  );
+}
+
+function MatchDataSignals({ match }: { match: RemoteMatchDetail }) {
+  const hasInjuries = match.injuries.home.length > 0 || match.injuries.away.length > 0;
+  if (!match.prediction && !match.odds && !hasInjuries) return null;
+
+  return (
+    <section className="score-card p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="score-section-label">Données enrichies</p>
+          <h2 className="mt-1 text-base font-black">Signaux disponibles pour ce match</h2>
+        </div>
+        <ShieldCheck
+          className="size-4 shrink-0 text-brand"
+          aria-label="Données vérifiées par l'API"
+        />
+      </div>
+
+      {match.prediction && (
+        <div className="mt-4 rounded-xl border border-brand/20 bg-brand/5 p-3">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[10px] font-black uppercase tracking-wider text-brand">
+              Projection disponible
+            </span>
+            {match.prediction.winnerName && (
+              <span className="truncate text-xs font-black">{match.prediction.winnerName}</span>
+            )}
+          </div>
+          <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+            {[
+              ["1", match.prediction.home],
+              ["N", match.prediction.draw],
+              ["2", match.prediction.away],
+            ].map(([label, value]) => (
+              <div key={label} className="rounded-lg bg-surface px-2 py-2">
+                <div className="text-[10px] font-bold text-muted-foreground">{label}</div>
+                <div className="mt-1 text-sm font-black">{value !== null ? `${value}%` : "—"}</div>
+              </div>
+            ))}
+          </div>
+          {(match.prediction.advice || match.prediction.underOver) && (
+            <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+              {[match.prediction.advice, match.prediction.underOver].filter(Boolean).join(" · ")}
+            </p>
+          )}
+        </div>
+      )}
+
+      {match.odds && (
+        <div className="mt-3 rounded-xl border border-border/70 bg-surface/50 p-3">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">
+              Cotes moyennes
+            </span>
+            <span className="text-[10px] font-semibold text-muted-foreground">
+              {match.odds.bookmakers > 0
+                ? `${match.odds.bookmakers} opérateurs`
+                : "Source indisponible"}
+            </span>
+          </div>
+          <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+            {[
+              ["1", match.odds.home],
+              ["N", match.odds.draw],
+              ["2", match.odds.away],
+            ].map(([label, value]) => (
+              <div key={label}>
+                <div className="text-[10px] font-bold text-muted-foreground">{label}</div>
+                <div className="mt-1 text-sm font-black tabular-nums">
+                  {typeof value === "number" ? value.toFixed(2) : "—"}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {hasInjuries && (
+        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+          {(
+            [
+              [match.home.short, match.injuries.home],
+              [match.away.short, match.injuries.away],
+            ] as Array<[string, ApiInjury[]]>
+          ).map(([team, injuries]) => (
+            <div key={team} className="rounded-xl border border-border/70 bg-surface/50 p-3">
+              <div className="flex items-center gap-2 text-xs font-black">
+                <AlertTriangle className="size-3.5 text-alert" aria-hidden />
+                <span className="truncate">Absences · {team}</span>
+              </div>
+              <ul className="mt-2 space-y-1 text-[11px] text-muted-foreground">
+                {injuries.slice(0, 4).map((injury) => (
+                  <li key={injury.playerId} className="truncate">
+                    {injury.name} · {injury.reason || "motif non communiqué"}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
   );
 }
 

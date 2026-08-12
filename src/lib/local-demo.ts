@@ -218,6 +218,17 @@ export const DEMO_MATCH_DETAIL: RemoteMatchDetail = {
   stats: DEMO_STATS,
   lineups: { home: DEMO_LINEUP, away: { ...DEMO_LINEUP, coach: "Enzo Maresca", color: "#3b82f6" } },
   h2h: DEMO_H2H,
+  odds: { home: 1.72, draw: 3.8, away: 4.6, bookmakers: 8, updatedAt: "2026-08-09T17:00:00Z" },
+  prediction: {
+    home: 58,
+    draw: 23,
+    away: 19,
+    winner: "home",
+    winnerName: "Arsenal",
+    advice: "Arsenal ou nul",
+    underOver: "Plus de 1,5 buts",
+  },
+  injuries: { home: [], away: [] },
 };
 
 export const DEMO_ANALYSIS: AnalysisResult = {
