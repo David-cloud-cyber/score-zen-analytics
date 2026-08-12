@@ -178,19 +178,37 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   errorComponent: ErrorComponent,
 });
 
+/**
+ * Styles critiques inline : garantissent un rendu correct sur mobile même si la
+ * feuille de styles principale n'est pas encore arrivée (réseau lent 3G/4G).
+ * Placés AVANT <HeadContent /> pour que la vraie CSS prenne toujours le dessus.
+ */
+const CRITICAL_CSS = `
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%;box-sizing:border-box}
+body{margin:0;background:#ffffff;color:#0b0f16;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;overflow-x:hidden}
+html.dark body{background:#090b0e;color:#f5f7fa}
+img,svg,video{max-width:100%;height:auto}
+a{color:inherit;text-decoration:none}
+ul,ol{list-style:none;margin:0;padding:0}
+button{font:inherit;color:inherit;background:none;border:0}
+`.trim();
+
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="fr">
+    <html lang="fr" suppressHydrationWarning>
       <head>
+        <meta name="color-scheme" content="light dark" />
+        <style dangerouslySetInnerHTML={{ __html: CRITICAL_CSS }} />
         <HeadContent />
       </head>
-      <body>
+      <body suppressHydrationWarning>
         {children}
         <Scripts />
       </body>
     </html>
   );
 }
+
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
