@@ -120,7 +120,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { httpEquiv: "content-language", content: "fr" },
     ],
     links: [
-      { rel: "stylesheet", href: appCss },
       { rel: "icon", href: "/favicon.svg", type: "image/svg+xml" },
       { rel: "icon", href: "/logo.png", type: "image/png", sizes: "512x512" },
       { rel: "apple-touch-icon", href: "/logo.png", sizes: "512x512" },
@@ -204,6 +203,12 @@ const CSS_GUARD_SCRIPT = `
 (function(){function c(){try{var p=document.createElement('div');p.className='hidden';p.setAttribute('style','position:absolute');document.body.appendChild(p);var ok=getComputedStyle(p).display==='none';p.remove();if(ok)return;var l=document.querySelector('link[rel=stylesheet][href*="styles"]');if(!l||l.dataset.retried)return;var n=l.cloneNode();n.dataset.retried='1';n.href=l.getAttribute('href')+(l.getAttribute('href').indexOf('?')>-1?'&':'?')+'r='+Date.now();document.head.appendChild(n);}catch(e){}}if(document.readyState==='complete'){setTimeout(c,600)}else{window.addEventListener('load',function(){setTimeout(c,600)})}})();
 `.trim();
 
+// Vite dev sert le fichier source comme module JS par défaut. Le suffixe
+// `direct` force une vraie réponse text/css pour le SSR et les téléphones qui
+// chargent la page avant l'hydratation. Le build de production conserve l'URL
+// CSS hashée et cache-safe générée par Vite.
+const APP_CSS_HREF = import.meta.env.DEV ? "/src/styles.css?direct" : appCss;
+
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
@@ -211,6 +216,7 @@ function RootShell({ children }: { children: ReactNode }) {
       <head>
         <meta name="color-scheme" content="light dark" />
         <style dangerouslySetInnerHTML={{ __html: CRITICAL_CSS }} />
+        <link rel="stylesheet" href={APP_CSS_HREF} />
         <HeadContent />
       </head>
       <body suppressHydrationWarning>
