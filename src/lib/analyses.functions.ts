@@ -69,28 +69,39 @@ const inputSchema = z.object({
   matchId: z.string().optional(),
 });
 
-const resultSchema = z.object({
-  probabilities: z.object({
-    home: z.number(),
-    draw: z.number(),
-    away: z.number(),
-  }),
-  probableScore: z.string(),
-  markets: z
-    .array(
-      z.object({
-        label: z.string(),
-        pick: z.string(),
-        confidence: z.number(),
-        risk: z.enum(["bas", "moyen", "eleve"]),
-        rationale: z.string(),
-      }),
-    )
-    .min(4)
-    .max(6),
-  aiText: z.string(),
-  keyFactors: z.array(z.string()).min(2).max(6).optional(),
-});
+const resultSchema = z
+  .object({
+    probabilities: z.object({
+      home: z.number().finite().min(0).max(100),
+      draw: z.number().finite().min(0).max(100),
+      away: z.number().finite().min(0).max(100),
+    }),
+    probableScore: z.string(),
+    markets: z
+      .array(
+        z.object({
+          label: z.string(),
+          pick: z.string(),
+          confidence: z.number().finite().min(0).max(100),
+          risk: z.enum(["bas", "moyen", "eleve"]),
+          rationale: z.string(),
+        }),
+      )
+      .min(4)
+      .max(6),
+    aiText: z.string(),
+    keyFactors: z.array(z.string()).min(2).max(6).optional(),
+  })
+  .superRefine((value, ctx) => {
+    const total = value.probabilities.home + value.probabilities.draw + value.probabilities.away;
+    if (total !== 100) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["probabilities"],
+        message: "Les probabilités doivent totaliser exactement 100.",
+      });
+    }
+  });
 
 export type AnalysisResult = z.infer<typeof resultSchema>;
 
@@ -452,12 +463,39 @@ async function fetchLiveSnapshot(matchId?: string): Promise<LiveSnapshot | null>
 async function callSmartAIRouter(
   systemPrompt: string,
   userPrompt: string,
+  isPremium: boolean,
 ): Promise<AnalysisResult> {
   const { getConfig } = await import("./config.server");
   const [geminiKey, openRouterKey] = await Promise.all([
     getConfig("GEMINI_API_KEY"),
     getConfig("OPENROUTER_API_KEY"),
   ]);
+
+  if (openRouterKey) {
+    const { getOpenRouterModels, requestOpenRouterJson } = await import("./ai-gateway.server");
+    const models = getOpenRouterModels();
+    const orderedModels = isPremium
+      ? [models.premium, models.standard, models.fallback]
+      : [models.standard, models.fallback, models.premium];
+    const deadline = Date.now() + 6_500;
+
+    for (const model of [...new Set(orderedModels)]) {
+      const remaining = deadline - Date.now();
+      if (remaining < 700) break;
+      try {
+        const raw = await requestOpenRouterJson({
+          apiKey: openRouterKey,
+          model,
+          systemPrompt,
+          userPrompt,
+          timeoutMs: Math.min(4_200, remaining - 250),
+        });
+        return resultSchema.parse(raw);
+      } catch (err) {
+        console.warn("OpenRouter provider unavailable:", err instanceof Error ? err.message : err);
+      }
+    }
+  }
 
   // 1. Fournisseur principal — quota et format JSON strict.
   if (geminiKey) {
@@ -785,7 +823,7 @@ export const runAnalysis = createServerFn({ method: "POST" })
     let enriched: StatisticalPrediction | null = null;
     try {
       const aiResult = await withTimeout(
-        callSmartAIRouter(systemPrompt, userPrompt),
+        callSmartAIRouter(systemPrompt, userPrompt, isPremium),
         7_000,
         "Le délai d'enrichissement IA est dépassé.",
       );

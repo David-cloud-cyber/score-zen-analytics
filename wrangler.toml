@@ -17,6 +17,7 @@ required = [
   "FAPSHI_API_KEY",
   "FAPSHI_WEBHOOK_SECRET",
   "OPENROUTER_API_KEY",
+  "APIFOOTBALL_KEY",
 ]
 
 # Secrets (set via: wrangler secret put SECRET_NAME)
