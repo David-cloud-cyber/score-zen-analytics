@@ -52,13 +52,21 @@ const ANALYSE_FAQ = [
 export const Route = createFileRoute("/analyse")({
   validateSearch: (
     search: Record<string, unknown>,
-  ): { home: string; away: string; matchId?: string } => ({
-    home: typeof search.home === "string" ? search.home : "",
-    away: typeof search.away === "string" ? search.away : "",
-    ...(typeof search.matchId === "string" && search.matchId.length > 0
-      ? { matchId: search.matchId }
-      : {}),
-  }),
+  ): { home: string; away: string; matchId?: string } => {
+    const rawMatchId = search.matchId;
+    const matchId =
+      typeof rawMatchId === "number" && Number.isInteger(rawMatchId) && rawMatchId > 0
+        ? String(rawMatchId)
+        : typeof rawMatchId === "string" && /^\d+$/.test(rawMatchId.trim())
+          ? rawMatchId.trim()
+          : undefined;
+
+    return {
+      home: typeof search.home === "string" ? search.home : "",
+      away: typeof search.away === "string" ? search.away : "",
+      ...(matchId ? { matchId } : {}),
+    };
+  },
   head: () => {
     const base = buildRouteMeta({
       path: "/analyse",
@@ -189,6 +197,7 @@ function AnalysePage() {
   const [live, setLive] = useState<AnalysisResult | null>(demoMode ? DEMO_ANALYSIS : null);
   const [loading, setLoading] = useState(false);
   const [loadingStep, setLoadingStep] = useState("");
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [swapping, setSwapping] = useState(false);
   const autoLaunched = useRef(false);
 
@@ -246,6 +255,7 @@ function AnalysePage() {
     }
     track("analyse_run", { source: lastCtaSource() ?? "direct" });
     setLoading(true);
+    setAnalysisError(null);
     setLoadingStep("Extraction des données H2H & formes récentes...");
 
     const steps = [
@@ -267,7 +277,16 @@ function AnalysePage() {
       setLive(result);
       toast.success("Analyse IA générée — 3 crédits débités.");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "L'analyse a échoué.");
+      const rawMessage = err instanceof Error ? err.message : "";
+      const message = /invalid_type|matchId|Identifiant de match/i.test(rawMessage)
+        ? "Le match n’a pas pu être identifié. Ouvrez l’analyse depuis la fiche du match ou vérifiez les équipes."
+        : /Données statistiques insuffisantes|API Football|momentanément indisponible/i.test(
+              rawMessage,
+            )
+          ? "Les données réelles de cette rencontre sont momentanément incomplètes. Réessayez dans quelques secondes."
+          : rawMessage || "L’analyse n’a pas pu être générée. Réessayez dans quelques secondes.";
+      setAnalysisError(message);
+      toast.error(message);
     } finally {
       clearInterval(interval);
       setLoading(false);
@@ -375,6 +394,22 @@ function AnalysePage() {
           Estimation statistique LiveFoot basée sur la forme, les absences, les confrontations
           directes et les données de marché disponibles.
         </p>
+        {analysisError && (
+          <div className="mt-4 flex flex-col gap-3 rounded-2xl border border-warn/30 bg-warn/5 p-4 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="font-semibold text-foreground">Analyse non finalisée</p>
+              <p className="mt-1">{analysisError}</p>
+            </div>
+            <button
+              type="button"
+              onClick={onSubmit}
+              disabled={loading}
+              className="shrink-0 rounded-xl bg-foreground px-3 py-2 font-bold text-background transition-opacity hover:opacity-90 disabled:opacity-50"
+            >
+              Réessayer
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Results Section */}

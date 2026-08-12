@@ -20,6 +20,8 @@ export class ApiFootballError extends Error {
 type CacheEntry = { at: number; data: unknown };
 const cache = new Map<string, CacheEntry>();
 const STALE_MAX_MS = 15 * 60_000; // serve stale up to 15 min on failure
+const REQUEST_TIMEOUT_MS = 5_000;
+const MAX_ATTEMPTS = 2;
 
 function cacheTtlMs(path: string, params: Record<string, string | number | undefined>) {
   if (params.live === "all" || path === "/odds/live") return 20_000;
@@ -58,11 +60,11 @@ export async function apiFootball<T = unknown>(
   }
 
   let lastErr: ApiFootballError | null = null;
-  // Small retry ladder: 2 retries with backoff for 429/5xx/network.
-  for (let attempt = 0; attempt < 3; attempt++) {
+  // Deux tentatives courtes évitent de bloquer l'analyse trop longtemps.
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     try {
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 8_000);
+      const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
       let res: Response;
       try {
         res = await fetch(cacheKey, {
@@ -111,7 +113,7 @@ export async function apiFootball<T = unknown>(
       }
     }
     // backoff before retrying transient failures
-    await sleep(300 * (attempt + 1));
+    await sleep(250 * (attempt + 1));
   }
 
   // Fallback to recent cached data if available

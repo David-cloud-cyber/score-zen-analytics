@@ -186,7 +186,7 @@ function DesktopSidebar({
           className={cn("flex items-center gap-3", collapsed && "justify-center")}
         >
           <div className="grid size-10 place-items-center overflow-hidden rounded-xl bg-[#202020] ring-1 ring-white/10">
-            <img src="/logo.png" alt="LiveFoot IA" className="size-10 object-cover" />
+            <img src="/livefoot-mark.svg" alt="LiveFoot IA" className="size-10" />
           </div>
           <div className={cn("flex flex-col leading-none", collapsed && "hidden")}>
             <span className="text-[16px] font-black tracking-tight">
@@ -354,7 +354,7 @@ function MobileDrawer({ pathname, onClose }: { pathname: string; onClose: () => 
       <aside className="relative flex h-full w-[min(86vw,320px)] flex-col border-r border-[#252525] bg-[#111111] text-[#fdfdfd] shadow-2xl">
         <div className="flex items-center justify-between border-b border-[#252525] px-5 py-5">
           <Link to="/" onClick={onClose} className="flex items-center gap-3">
-            <img src="/logo.png" alt="LiveFoot IA" className="size-10 rounded-xl object-cover" />
+            <img src="/livefoot-mark.svg" alt="LiveFoot IA" className="size-10 rounded-xl" />
             <span className="text-base font-black">
               LiveFoot <span className="text-brand">IA</span>
             </span>
@@ -470,7 +470,7 @@ export function TopBar({ onMenuOpen }: { onMenuOpen?: () => void }) {
         </button>
         <Link to="/" className="flex items-center gap-2">
           <div className="grid size-10 place-items-center overflow-hidden rounded-lg">
-            <img src="/logo.png" alt="LiveFoot IA" className="size-10 object-cover" />
+            <img src="/livefoot-mark.svg" alt="LiveFoot IA" className="size-10" />
           </div>
           <div className="flex flex-col leading-none">
             <span className="text-[15px] font-bold tracking-tight">

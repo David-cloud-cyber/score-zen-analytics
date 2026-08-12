@@ -63,10 +63,18 @@ async function consumeAnalysisCredit(params: {
   return data?.[0] ?? null;
 }
 
+const matchIdSchema = z.preprocess((value) => {
+  if (value === null || value === undefined || value === "") return undefined;
+  if (typeof value === "number" && Number.isInteger(value) && value > 0) {
+    return String(value);
+  }
+  return typeof value === "string" ? value.trim() : value;
+}, z.string().regex(/^\d+$/, "Identifiant de match invalide.").optional());
+
 const inputSchema = z.object({
   home: z.string().min(2).max(80),
   away: z.string().min(2).max(80),
-  matchId: z.string().optional(),
+  matchId: matchIdSchema,
 });
 
 const resultSchema = z
@@ -124,12 +132,46 @@ type HeadToHeadContext = H2HMatch & {
   away: string;
 };
 
-async function fetchTeamContext(teamName: string): Promise<TeamContext | null> {
+type FixtureIdentity = {
+  homeId: number;
+  awayId: number;
+  homeName: string;
+  awayName: string;
+};
+
+async function fetchFixtureIdentity(matchId?: string): Promise<FixtureIdentity | null> {
+  const fixtureId = Number(matchId);
+  if (!Number.isInteger(fixtureId) || fixtureId <= 0) return null;
+
+  try {
+    const { apiFootball } = await import("./apifootball.server");
+    const fixtures = await apiFootball<
+      Array<{
+        teams: {
+          home: { id: number; name: string };
+          away: { id: number; name: string };
+        };
+      }>
+    >("/fixtures", { id: fixtureId });
+    const fixture = fixtures[0];
+    if (!fixture) return null;
+    return {
+      homeId: fixture.teams.home.id,
+      awayId: fixture.teams.away.id,
+      homeName: fixture.teams.home.name,
+      awayName: fixture.teams.away.name,
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function fetchTeamContext(teamName: string, teamId?: number): Promise<TeamContext | null> {
   try {
     const { apiFootball } = await import("./apifootball.server");
     const teamsRaw = await apiFootball<
       Array<{ team: { id: number; name: string; country: string } }>
-    >("/teams", { search: teamName.slice(0, 40) });
+    >("/teams", teamId ? { id: teamId } : { search: teamName.slice(0, 40) });
     const t = teamsRaw[0]?.team;
     if (!t) return null;
 
@@ -286,12 +328,14 @@ async function fetchBookmakerOdds(
     const { apiFootball } = await import("./apifootball.server");
 
     // 1. Chercher le prochain fixture entre ces deux équipes
-    const upcoming = await apiFootball<
-      Array<{
-        fixture: { id: number; date: string; status: { short: string } };
-        teams: { home: { id: number }; away: { id: number } };
-      }>
-    >("/fixtures", { team: homeId, next: 10 }).catch(() => []);
+    const upcoming = requestedFixtureId
+      ? []
+      : await apiFootball<
+          Array<{
+            fixture: { id: number; date: string; status: { short: string } };
+            teams: { home: { id: number }; away: { id: number } };
+          }>
+        >("/fixtures", { team: homeId, next: 10 }).catch(() => []);
 
     const match = upcoming.find(
       (f) =>
@@ -659,9 +703,12 @@ export const runAnalysis = createServerFn({ method: "POST" })
       return cached.result;
     }
 
+    // Pour un lien de fiche match, l'API connaît déjà les IDs fiables des deux
+    // équipes. Les réutiliser évite les recherches textuelles fragiles (et plus lentes).
+    const fixtureIdentity = await fetchFixtureIdentity(data.matchId);
     const [homeCtx, awayCtx, liveSnapshot] = await Promise.all([
-      fetchTeamContext(data.home),
-      fetchTeamContext(data.away),
+      fetchTeamContext(fixtureIdentity?.homeName ?? data.home, fixtureIdentity?.homeId),
+      fetchTeamContext(fixtureIdentity?.awayName ?? data.away, fixtureIdentity?.awayId),
       fetchLiveSnapshot(data.matchId),
     ]);
 

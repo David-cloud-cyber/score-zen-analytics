@@ -181,29 +181,12 @@ export const getFixtures = createServerFn({ method: "GET" })
       const date = data.date ?? todayISO();
       const raw = await apiFootball<ApiFixture[]>("/fixtures", { date });
 
-      let list = raw;
-      if (!raw || raw.length < 3) {
-        const fallbacks = await Promise.all(
-          PRIORITY_LEAGUES.map((lid) =>
-            apiFootball<ApiFixture[]>("/fixtures", {
-              league: lid,
-              season: currentSeasonYear(),
-              next: 5,
-            }).catch(() => [] as ApiFixture[]),
-          ),
-        );
-        const seen = new Set(raw ? raw.map((f) => f.fixture.id) : []);
-        const extra: ApiFixture[] = [];
-        for (const arr of fallbacks) {
-          for (const f of arr) {
-            if (!seen.has(f.fixture.id)) {
-              seen.add(f.fixture.id);
-              extra.push(f);
-            }
-          }
-        }
-        list = [...(raw ?? []), ...extra];
-      } else if (raw.length > 80) {
+      // La réponse datée est la source de vérité. L'ancien fallback lançait
+      // plusieurs requêtes de ligues en parallèle lorsque la journée était
+      // peu remplie, ce qui ralentissait le premier affichage et consommait
+      // inutilement le quota API.
+      let list = raw ?? [];
+      if (list.length > 80) {
         const priority = raw.filter((f) => PRIORITY_LEAGUES.includes(f.league.id));
         list = priority.length ? priority : raw.slice(0, 80);
       }
