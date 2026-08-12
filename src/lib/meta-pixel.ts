@@ -1,6 +1,7 @@
 export const META_PIXEL_ID = "1757294315608745";
 export const COOKIE_CONSENT_KEY = "lf-cookies-consent";
 export const COOKIE_CONSENT_EVENT = "livefoot-cookie-consent";
+export const COOKIE_PREFERENCES_EVENT = "livefoot-cookie-preferences";
 
 type MetaFbq = ((...args: unknown[]) => void) & {
   callMethod?: (...args: unknown[]) => void;
@@ -20,6 +21,11 @@ export function hasAnalyticsConsent() {
   } catch {
     return false;
   }
+}
+
+export function requestCookiePreferences() {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new CustomEvent(COOKIE_PREFERENCES_EVENT));
 }
 
 export function loadMetaPixel() {

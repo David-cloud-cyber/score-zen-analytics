@@ -20,6 +20,7 @@ import { buildRouteMeta, faqSchema, ORG, SPEAKABLE } from "@/lib/seo";
 import { cn } from "@/lib/utils";
 import { PageSkeleton } from "@/components/PageSkeleton";
 import { track } from "@/lib/analytics";
+import { requestCookiePreferences } from "@/lib/meta-pixel";
 import { DEMO_FAVORITES, DEMO_FIXTURES, isLocalDemo } from "@/lib/local-demo";
 import { useSession } from "@/hooks/use-session";
 
@@ -535,6 +536,13 @@ function HomePage() {
           <Link to="/premium" className="text-muted-foreground hover:text-foreground">
             Premium
           </Link>
+          <button
+            type="button"
+            onClick={requestCookiePreferences}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            Préférences cookies
+          </button>
           <Link to="/mentions-legales" className="text-muted-foreground hover:text-foreground">
             Mentions légales
           </Link>
