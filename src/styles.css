@@ -73,6 +73,10 @@
   color: #121519;
 }
 
+.score-shell .score-sport-filter {
+  line-height: 1.25rem;
+}
+
 .score-shell .trending-match-card {
   border-radius: 2rem;
   color: #0b1118;

@@ -209,7 +209,7 @@ function HomePage() {
           <span
             key={label}
             className={cn(
-              "shrink-0 rounded-full px-3.5 py-2 text-[11px] font-bold",
+              "score-sport-filter h-9 shrink-0 rounded-full px-3.5 py-2 text-[11px] font-bold leading-5",
               active
                 ? "bg-foreground text-background"
                 : "bg-surface text-muted-foreground ring-1 ring-black/5 dark:ring-white/10",
@@ -257,7 +257,7 @@ function HomePage() {
               onClick={() => setFilter(f.id)}
               aria-pressed={active}
               className={cn(
-                "match-filter shrink-0 rounded-full px-4 py-2 text-xs font-bold transition-all",
+                "match-filter h-9 shrink-0 rounded-full px-3.5 py-2 text-[11px] font-bold leading-5 transition-all",
                 active
                   ? "match-filter-active"
                   : "",
