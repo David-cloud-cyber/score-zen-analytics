@@ -134,6 +134,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     ],
     scripts: [
       { children: THEME_INIT_SCRIPT },
+      { children: CSS_GUARD_SCRIPT },
+
       {
         type: "application/ld+json",
         children: JSON.stringify({
@@ -192,6 +194,15 @@ a{color:inherit;text-decoration:none}
 ul,ol{list-style:none;margin:0;padding:0}
 button{font:inherit;color:inherit;background:none;border:0}
 `.trim();
+
+/**
+ * Si la feuille de styles principale est bloquée (proxy, mode data-saver,
+ * extension), on la recharge une fois pour éviter une page sans mise en forme.
+ */
+const CSS_GUARD_SCRIPT = `
+(function(){function c(){try{var p=document.createElement('div');p.className='hidden';p.setAttribute('style','position:absolute');document.body.appendChild(p);var ok=getComputedStyle(p).display==='none';p.remove();if(ok)return;var l=document.querySelector('link[rel=stylesheet][href*="styles"]');if(!l||l.dataset.retried)return;var n=l.cloneNode();n.dataset.retried='1';n.href=l.getAttribute('href')+(l.getAttribute('href').indexOf('?')>-1?'&':'?')+'r='+Date.now();document.head.appendChild(n);}catch(e){}}if(document.readyState==='complete'){setTimeout(c,600)}else{window.addEventListener('load',function(){setTimeout(c,600)})}})();
+`.trim();
+
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
