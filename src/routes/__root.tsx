@@ -134,6 +134,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     ],
     scripts: [
       { children: THEME_INIT_SCRIPT },
+      { children: CSS_GUARD_SCRIPT },
+
       {
         type: "application/ld+json",
         children: JSON.stringify({
