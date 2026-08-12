@@ -3,9 +3,8 @@ import "./lib/error-capture";
 // Node 20 n'a pas de WebSocket natif — Supabase Realtime en a besoin côté SSR.
 // On le polyfille avant tout autre import pour éviter le crash.
 if (typeof globalThis.WebSocket === "undefined") {
-  // @ts-ignore
+  // @ts-expect-error WebSocket is intentionally installed on the Worker/Node global.
   const { WebSocket } = await import("ws");
-  // @ts-ignore
   globalThis.WebSocket = WebSocket;
 }
 
@@ -53,12 +52,30 @@ function isH3SwallowedErrorBody(body: string): boolean {
   }
 }
 
+function preventHtmlAssetMismatch(response: Response): Response {
+  const contentType = response.headers.get("content-type") ?? "";
+  if (!contentType.includes("text/html")) return response;
+
+  // Les pages SSR contiennent des noms d'assets CSS/JS hashés. Ne pas mettre
+  // leur HTML en cache évite qu'un téléphone conserve un ancien HTML qui
+  // référence un asset supprimé lors d'un nouveau déploiement.
+  const headers = new Headers(response.headers);
+  headers.set("Cache-Control", "no-store, max-age=0, must-revalidate");
+  headers.set("Pragma", "no-cache");
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
-      return await normalizeCatastrophicSsrResponse(response);
+      const normalized = await normalizeCatastrophicSsrResponse(response);
+      return preventHtmlAssetMismatch(normalized);
     } catch (error) {
       console.error(error);
       return new Response(renderErrorPage(), {

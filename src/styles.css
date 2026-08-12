@@ -151,15 +151,21 @@
     border-color: var(--color-border);
   }
   html {
+    width: 100%;
+    min-width: 0;
     scroll-behavior: smooth;
     scroll-padding-top: 5rem;
   }
   body {
+    width: 100%;
+    min-width: 0;
+    margin: 0;
     background-color: var(--color-background);
     color: var(--color-foreground);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     overscroll-behavior-y: none;
+    overflow-x: hidden;
   }
   :focus-visible {
     outline: 2px solid var(--brand);
