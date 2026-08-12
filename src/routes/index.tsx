@@ -209,7 +209,7 @@ function HomePage() {
           <span
             key={label}
             className={cn(
-              "score-sport-filter h-9 shrink-0 rounded-full px-3.5 py-2 text-[11px] font-bold leading-5",
+              "score-sport-filter h-8 shrink-0 rounded-full px-3 py-1.5 text-[10px] font-semibold leading-5",
               active
                 ? "bg-foreground text-background"
                 : "bg-surface text-muted-foreground ring-1 ring-black/5 dark:ring-white/10",
@@ -257,14 +257,14 @@ function HomePage() {
               onClick={() => setFilter(f.id)}
               aria-pressed={active}
               className={cn(
-                "match-filter h-9 shrink-0 rounded-full px-3.5 py-2 text-[11px] font-bold leading-5 transition-all",
+                "match-filter h-8 shrink-0 rounded-full px-3 py-1.5 text-[10px] font-semibold leading-5 transition-all",
                 active
                   ? "match-filter-active"
                   : "",
               )}
             >
               {f.label}
-              <span className={cn("ml-2 tabular-nums", active ? "opacity-70" : "opacity-50")}>
+              <span className={cn("ml-1.5 tabular-nums", active ? "opacity-70" : "opacity-50")}>
                 {count}
               </span>
             </button>

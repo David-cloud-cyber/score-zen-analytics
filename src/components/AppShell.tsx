@@ -77,6 +77,25 @@ function GlobalReferralPopup() {
   return <ReferralPopup variant={variant} onDismiss={dismiss} />;
 }
 
+function LiveFootMark({ collapsed = false }: { collapsed?: boolean }) {
+  return (
+    <span
+      className={cn(
+        "grid shrink-0 place-items-center rounded-full bg-[#202020] ring-1 ring-white/10",
+        collapsed ? "size-10" : "size-[52px]",
+      )}
+      aria-hidden
+    >
+      <span
+        className={cn(
+          "rounded-[8px] border-[3px] border-brand bg-[#fdfdfd] shadow-[0_0_0_1px_rgba(255,255,255,0.08)]",
+          collapsed ? "size-6" : "size-7",
+        )}
+      />
+    </span>
+  );
+}
+
 export function AppShell({
   children,
   hideHeader = false,
@@ -185,9 +204,7 @@ function DesktopSidebar({
           aria-label="Accueil LiveFoot IA"
           className={cn("flex items-center gap-3", collapsed && "justify-center")}
         >
-          <div className="grid size-10 place-items-center overflow-hidden rounded-xl bg-[#202020] ring-1 ring-white/10">
-            <img src="/livefoot-mark.svg" alt="LiveFoot IA" className="size-10" />
-          </div>
+          <LiveFootMark collapsed={collapsed} />
           <div className={cn("flex flex-col leading-none", collapsed && "hidden")}>
             <span className="text-[16px] font-black tracking-tight">
               LiveFoot <span className="text-brand">IA</span>
@@ -217,7 +234,7 @@ function DesktopSidebar({
           <div key={group.label} className={cn("mb-5 last:mb-0", collapsed && "mb-3")}>
             <div
               className={cn(
-                "mb-2 px-3 text-[10px] font-bold uppercase tracking-[0.18em] text-[#777777]",
+                "sidebar-nav-group-label mb-2 px-3 text-[10px] font-bold uppercase tracking-[0.18em] text-[#777777]",
                 collapsed && "sr-only",
               )}
             >
@@ -233,11 +250,11 @@ function DesktopSidebar({
                       to={item.to}
                       aria-current={active ? "page" : undefined}
                       className={cn(
-                        "group relative flex h-10 items-center gap-3 rounded-lg text-[14px] font-semibold transition-colors",
+                        "sidebar-nav-link group relative flex h-10 items-center gap-3 rounded-lg text-[14px] font-semibold transition-colors",
                         collapsed ? "justify-center px-0" : "px-3",
                         active
-                          ? "bg-[#fdfdfd] text-[#111111]"
-                          : "text-[#aaaaaa] hover:bg-[#1e1e1e] hover:text-[#fdfdfd]",
+                          ? "sidebar-nav-link-active bg-[#fdfdfd] text-[#111111]"
+                          : "sidebar-nav-link-muted text-[#aaaaaa] hover:bg-[#1e1e1e] hover:text-[#fdfdfd]",
                       )}
                       title={collapsed ? item.label : undefined}
                     >
@@ -248,7 +265,7 @@ function DesktopSidebar({
                         )}
                         strokeWidth={active ? 2.6 : 2}
                       />
-                      <span className={cn(collapsed && "sr-only")}>{item.label}</span>
+                      <span className={cn("sidebar-nav-label", collapsed && "sr-only")}>{item.label}</span>
                       {active && (
                         <span
                           className={cn(
@@ -279,10 +296,10 @@ function DesktopSidebar({
             <div className="mb-1.5 inline-flex items-center gap-1 rounded-full bg-brand/15 px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-brand">
               <Sparkles className="size-2.5" /> Intelligence Hub
             </div>
-            <div className="text-[13px] font-bold leading-tight text-[#fdfdfd]">
+            <div className="sidebar-hub-title text-[13px] font-bold leading-tight text-[#fdfdfd]">
               Radar, alertes et scorecard
             </div>
-            <p className="mt-1 text-[11px] leading-snug text-[#aaaaaa]">
+            <p className="sidebar-hub-meta mt-1 text-[11px] leading-snug text-[#aaaaaa]">
               Centralisez vos signaux Premium.
             </p>
             <Link
@@ -304,7 +321,7 @@ function DesktopSidebar({
         >
           <span
             className={cn(
-              "text-[10px] font-bold uppercase tracking-widest text-[#777777]",
+              "sidebar-nav-group-label text-[10px] font-bold uppercase tracking-widest text-[#777777]",
               collapsed && "sr-only",
             )}
           >
@@ -326,8 +343,8 @@ function DesktopSidebar({
               {initials}
             </div>
             <div className={cn("min-w-0 flex-1", collapsed && "hidden")}>
-              <div className="truncate text-xs font-bold text-[#fdfdfd]">{displayName}</div>
-              <div className="text-[10px] text-[#888888]">Mon profil</div>
+              <div className="sidebar-profile-name truncate text-xs font-bold text-[#fdfdfd]">{displayName}</div>
+              <div className="sidebar-profile-meta text-[10px] text-[#888888]">Mon profil</div>
             </div>
           </Link>
           {!collapsed && <PremiumStatusBadge profile={profile} compact />}
@@ -351,7 +368,7 @@ function MobileDrawer({ pathname, onClose }: { pathname: string; onClose: () => 
         className="absolute inset-0 bg-black/70 backdrop-blur-sm"
         onClick={onClose}
       />
-      <aside className="relative flex h-full w-[min(86vw,320px)] flex-col border-r border-[#252525] bg-[#111111] text-[#fdfdfd] shadow-2xl">
+      <aside className="score-sidebar-drawer relative flex h-full w-[min(86vw,320px)] flex-col border-r border-[#252525] bg-[#111111] text-[#fdfdfd] shadow-2xl">
         <div className="flex items-center justify-between border-b border-[#252525] px-5 py-5">
           <Link to="/" onClick={onClose} className="flex items-center gap-3">
             <img src="/livefoot-mark.svg" alt="LiveFoot IA" className="size-10 rounded-xl" />
@@ -371,7 +388,7 @@ function MobileDrawer({ pathname, onClose }: { pathname: string; onClose: () => 
         <nav className="flex-1 overflow-y-auto px-3 py-5">
           {SIDEBAR_GROUPS.map((group) => (
             <div key={group.label} className="mb-5">
-              <div className="mb-2 px-3 text-[10px] font-bold uppercase tracking-[0.18em] text-[#777777]">
+              <div className="sidebar-nav-group-label mb-2 px-3 text-[10px] font-bold uppercase tracking-[0.18em] text-[#777777]">
                 {group.label}
               </div>
               <ul className="space-y-1">
@@ -385,14 +402,14 @@ function MobileDrawer({ pathname, onClose }: { pathname: string; onClose: () => 
                         onClick={onClose}
                         aria-current={active ? "page" : undefined}
                         className={cn(
-                          "flex h-11 items-center gap-3 rounded-lg px-3 text-sm font-semibold",
+                          "sidebar-nav-link flex h-11 items-center gap-3 rounded-lg px-3 text-sm font-semibold",
                           active
-                            ? "bg-[#fdfdfd] text-[#111111]"
-                            : "text-[#aaaaaa] hover:bg-[#1e1e1e] hover:text-[#fdfdfd]",
+                            ? "sidebar-nav-link-active bg-[#fdfdfd] text-[#111111]"
+                            : "sidebar-nav-link-muted text-[#aaaaaa] hover:bg-[#1e1e1e] hover:text-[#fdfdfd]",
                         )}
                       >
                         <Icon className={cn("size-[18px]", active && "text-brand")} />
-                        <span>{item.label}</span>
+                        <span className="sidebar-nav-label">{item.label}</span>
                       </Link>
                     </li>
                   );

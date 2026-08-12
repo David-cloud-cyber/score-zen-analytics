@@ -75,6 +75,43 @@
 
 .score-shell .score-sport-filter {
   line-height: 1.25rem;
+  border: 1px solid transparent;
+}
+
+/* Navigation labels stay readable even when legacy utility classes are overridden. */
+.score-shell .score-sidebar .sidebar-nav-link,
+.score-shell .score-sidebar-drawer .sidebar-nav-link {
+  color: #aaaaaa !important;
+}
+
+.score-shell .score-sidebar .sidebar-nav-link:hover,
+.score-shell .score-sidebar-drawer .sidebar-nav-link:hover {
+  color: #fdfdfd !important;
+}
+
+.score-shell .score-sidebar .sidebar-nav-link-active,
+.score-shell .score-sidebar .sidebar-nav-link-active:hover {
+  color: #111111 !important;
+}
+
+.score-shell .score-sidebar .sidebar-nav-link-active .sidebar-nav-label,
+.score-shell .score-sidebar-drawer .sidebar-nav-link-active .sidebar-nav-label {
+  color: inherit !important;
+}
+
+.score-shell .score-sidebar .sidebar-nav-group-label,
+.score-shell .score-sidebar-drawer .sidebar-nav-group-label {
+  color: #777777 !important;
+}
+
+.score-shell .score-sidebar .sidebar-hub-title,
+.score-shell .score-sidebar .sidebar-profile-name {
+  color: #fdfdfd !important;
+}
+
+.score-shell .score-sidebar .sidebar-hub-meta,
+.score-shell .score-sidebar .sidebar-profile-meta {
+  color: #aaaaaa !important;
 }
 
 .score-shell .trending-match-card {
