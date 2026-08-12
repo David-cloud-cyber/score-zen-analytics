@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { apiFootball, todayISO } from "./apifootball.server";
+import { rankMatches, type MatchRankingSignal } from "./match-ranking";
 import type {
   ApiEvent,
   ApiH2H,
@@ -154,9 +155,86 @@ function toSummary(f: ApiFixture): RemoteMatchSummary {
   };
 }
 
-const PRIORITY_LEAGUES = [
-  61 /*L1*/, 39 /*PL*/, 140 /*Liga*/, 135 /*SerieA*/, 78 /*Bundesliga*/, 2 /*UCL*/, 3 /*UEL*/,
-];
+/**
+ * Les votes sont lus en une seule requête pour toute la journée. Les compteurs
+ * restent un signal interne de tri et ne sont jamais renvoyés dans le résumé
+ * public du match.
+ */
+async function readCommunityRankingSignals(
+  fixtureIds: number[],
+): Promise<ReadonlyMap<string, MatchRankingSignal>> {
+  if (fixtureIds.length === 0) return new Map();
+
+  const cacheKey = [...fixtureIds].sort((a, b) => a - b).join(",");
+  const cached = communityRankingCache.get(cacheKey);
+  if (cached && Date.now() - cached.at < COMMUNITY_RANKING_CACHE_TTL_MS) {
+    return cached.signals;
+  }
+
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data, error } = await supabaseAdmin
+      .from("community_predictions")
+      .select("fixture_id")
+      .in("fixture_id", fixtureIds)
+      .limit(10_000);
+
+    if (error) throw error;
+
+    const signals = new Map<string, MatchRankingSignal>();
+    for (const row of data ?? []) {
+      const key = String(row.fixture_id);
+      const current = signals.get(key) ?? {};
+      signals.set(key, { ...current, communityVotes: (current.communityVotes ?? 0) + 1 });
+    }
+    communityRankingCache.set(cacheKey, { at: Date.now(), signals });
+    return signals;
+  } catch (error) {
+    // La liste des matchs doit continuer à fonctionner si Supabase est
+    // momentanément indisponible ou si la table n'est pas encore déployée.
+    console.warn(
+      "Community ranking signals unavailable:",
+      error instanceof Error ? error.message : error,
+    );
+    return new Map();
+  }
+}
+
+const COMMUNITY_RANKING_CACHE_TTL_MS = 30_000;
+const communityRankingCache = new Map<
+  string,
+  { at: number; signals: ReadonlyMap<string, MatchRankingSignal> }
+>();
+
+function buildRankingSignals(fixtures: ApiFixture[]): ReadonlyMap<string, MatchRankingSignal> {
+  const signals = new Map<string, MatchRankingSignal>();
+  for (const fixture of fixtures) {
+    const dataRichness = [
+      fixture.fixture.venue.name,
+      fixture.fixture.venue.city,
+      fixture.league.logo,
+      fixture.league.flag,
+      fixture.league.round,
+      fixture.teams.home.logo,
+      fixture.teams.away.logo,
+    ].filter(Boolean).length;
+    signals.set(String(fixture.fixture.id), { dataRichness });
+  }
+  return signals;
+}
+
+async function rankApiFixtures(fixtures: ApiFixture[]): Promise<RemoteMatchSummary[]> {
+  const summaries = fixtures.map(toSummary);
+  const baseSignals = buildRankingSignals(fixtures);
+  const communitySignals = await readCommunityRankingSignals(
+    fixtures.map((fixture) => fixture.fixture.id),
+  );
+  const signals = new Map<string, MatchRankingSignal>(baseSignals);
+  for (const [fixtureId, communitySignal] of communitySignals) {
+    signals.set(fixtureId, { ...signals.get(fixtureId), ...communitySignal });
+  }
+  return rankMatches(summaries, { signals });
+}
 
 // ---------- server functions ----------
 
@@ -175,26 +253,23 @@ export const getFixtures = createServerFn({ method: "GET" })
       if (data.live) {
         const raw = await apiFootball<ApiFixture[]>("/fixtures", { live: "all" });
         if (!raw || raw.length === 0) return [];
-        return raw.map(toSummary);
+        return rankApiFixtures(raw);
       }
 
       const date = data.date ?? todayISO();
       const raw = await apiFootball<ApiFixture[]>("/fixtures", { date });
 
-      // La réponse datée est la source de vérité. L'ancien fallback lançait
-      // plusieurs requêtes de ligues en parallèle lorsque la journée était
-      // peu remplie, ce qui ralentissait le premier affichage et consommait
-      // inutilement le quota API.
-      let list = raw ?? [];
-      if (list.length > 80) {
-        const priority = raw.filter((f) => PRIORITY_LEAGUES.includes(f.league.id));
-        list = priority.length ? priority : raw.slice(0, 80);
-      }
+      // La réponse datée de l'API-Football est la source de vérité : elle
+      // contient déjà la compétition, son pays, son logo et la saison pour
+      // chaque rencontre. Ne tronque jamais cette réponse : sinon une journée
+      // chargée peut supprimer des matchs de Premier League, Liga, Ligue 1,
+      // Bundesliga, Serie A, coupes ou compétitions africaines. Le classement
+      // interne s'applique ensuite sans perdre la couverture API.
+      const list = raw ?? [];
 
       if (list.length === 0) return [];
 
-      list.sort((a, b) => new Date(a.fixture.date).getTime() - new Date(b.fixture.date).getTime());
-      return list.map(toSummary);
+      return rankApiFixtures(list);
     } catch (err) {
       console.warn("API Football error:", err instanceof Error ? err.message : err);
       throw err;

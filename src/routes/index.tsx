@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery, queryOptions } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import {
   Sparkles,
   ChevronRight,
@@ -13,11 +14,14 @@ import {
 import { AppShell, PageTitle } from "@/components/AppShell";
 import { RemoteMatchCard } from "@/components/RemoteMatchCard";
 import { getFixtures } from "@/lib/football.functions";
+import { getMyPremiumFavorites } from "@/lib/premium-hub.functions";
+import { rankMatches } from "@/lib/match-ranking";
 import { buildRouteMeta, faqSchema, ORG, SPEAKABLE } from "@/lib/seo";
 import { cn } from "@/lib/utils";
 import { PageSkeleton } from "@/components/PageSkeleton";
 import { track } from "@/lib/analytics";
-import { DEMO_FIXTURES, isLocalDemo } from "@/lib/local-demo";
+import { DEMO_FAVORITES, DEMO_FIXTURES, isLocalDemo } from "@/lib/local-demo";
+import { useSession } from "@/hooks/use-session";
 
 const fixturesQuery = (mode: "today" | "live", date?: string) =>
   queryOptions({
@@ -139,6 +143,8 @@ function pickTrendingMatch<T extends (typeof DEMO_FIXTURES)[number]>(matches: T[
 
 function HomePage() {
   const demoMode = isLocalDemo();
+  const { user } = useSession();
+  const getFavorites = useServerFn(getMyPremiumFavorites);
   const [dayOffset, setDayOffset] = useState(0);
   const selectedDate = new Date();
   selectedDate.setDate(selectedDate.getDate() + dayOffset);
@@ -160,7 +166,35 @@ function HomePage() {
     ...fixturesQuery("today", selectedDateIso),
     enabled: !demoMode,
   });
-  const visibleFixtures = demoMode ? DEMO_FIXTURES : fixtures;
+  const favoritesQuery = useQuery({
+    queryKey: ["me", "favorites"],
+    queryFn: () => (demoMode ? Promise.resolve(DEMO_FAVORITES) : getFavorites()),
+    enabled: demoMode || !!user,
+    staleTime: 30_000,
+  });
+  const favoriteMatchIds = useMemo(
+    () =>
+      new Set(
+        (favoritesQuery.data ?? [])
+          .filter((favorite) => favorite.kind === "match")
+          .map((favorite) => favorite.refId),
+      ),
+    [favoritesQuery.data],
+  );
+  const favoriteTeamNames = useMemo(
+    () =>
+      new Set(
+        (favoritesQuery.data ?? [])
+          .filter((favorite) => favorite.kind === "team")
+          .flatMap((favorite) => [favorite.refId, favorite.label ?? ""])
+          .filter(Boolean),
+      ),
+    [favoritesQuery.data],
+  );
+  const visibleFixtures = rankMatches(demoMode ? DEMO_FIXTURES : fixtures, {
+    favoriteMatchIds,
+    favoriteTeamNames,
+  });
   const hasLive = visibleFixtures.some((m) => m.status === "live" || m.status === "ht");
   const [filter, setFilter] = useState<(typeof FILTERS)[number]["id"]>(
     hasLive ? "live" : "upcoming",
