@@ -30,7 +30,7 @@ class_name = "LiveFootballCoordinator"
 
 [[migrations]]
 tag = "v1"
-new_classes = ["LiveFootballCoordinator"]
+new_sqlite_classes = ["LiveFootballCoordinator"]
 
 # Secrets (set via: wrangler secret put SECRET_NAME)
 # APIFOOTBALL_KEY  ← wrangler secret put APIFOOTBALL_KEY
