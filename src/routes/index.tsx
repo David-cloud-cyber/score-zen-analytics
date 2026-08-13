@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, queryOptions } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -14,12 +14,13 @@ import {
 import { AppShell } from "@/components/AppShell";
 import { RemoteMatchCard } from "@/components/RemoteMatchCard";
 import { getFixtures } from "@/lib/football.functions";
+import type { FixturesPayload, RemoteMatchSummary } from "@/lib/football-types";
 import { getMyPremiumFavorites } from "@/lib/premium-hub.functions";
 import { rankMatches, selectTrendingMatch } from "@/lib/match-ranking";
 import { buildRouteMeta, faqSchema, ORG, SPEAKABLE } from "@/lib/seo";
 import { cn } from "@/lib/utils";
 import { PageSkeleton } from "@/components/PageSkeleton";
-import { track } from "@/lib/analytics";
+import { reportFixtureDiagnostic, track } from "@/lib/analytics";
 import { requestCookiePreferences } from "@/lib/meta-pixel";
 import { DEMO_FAVORITES, DEMO_FIXTURES, isLocalDemo } from "@/lib/local-demo";
 import { useSession } from "@/hooks/use-session";
@@ -31,7 +32,8 @@ const fixturesQuery = (mode: "today" | "live", date?: string) =>
     staleTime: mode === "live" ? 30_000 : 60_000,
     refetchInterval: mode === "live" ? 30_000 : 60_000,
     refetchOnWindowFocus: true,
-    retry: 1,
+    retry: false,
+    refetchIntervalInBackground: false,
   });
 
 export const Route = createFileRoute("/")({
@@ -104,6 +106,46 @@ function HomeError({ error, reset }: { error: Error; reset: () => void }) {
   );
 }
 
+function FixturesStatusNotice({
+  payload,
+  livePayload,
+  onRetry,
+}: {
+  payload?: FixturesPayload;
+  livePayload?: FixturesPayload;
+  onRetry: () => void;
+}) {
+  const stale = payload?.state === "stale" || livePayload?.state === "stale";
+  const liveUnavailable = livePayload?.state === "unavailable";
+  const fetchedAt = payload?.fetchedAt ?? livePayload?.fetchedAt;
+  const label = fetchedAt ? formatRelativeUpdate(fetchedAt) : "dernière synchronisation disponible";
+
+  return (
+    <div className="mx-4 mb-4 rounded-xl border border-border/60 bg-card px-3 py-2.5 text-xs text-muted-foreground lg:mx-0">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <span>
+          {stale
+            ? `Matchs réels affichés — ${label}.`
+            : liveUnavailable
+              ? "Matchs du jour disponibles ; le direct se synchronise momentanément."
+              : "Actualisation momentanément indisponible."}
+        </span>
+        <button type="button" onClick={onRetry} className="font-black text-brand hover:underline">
+          Réessayer
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function formatRelativeUpdate(value: string) {
+  const elapsed = Math.max(0, Date.now() - new Date(value).getTime());
+  const minutes = Math.floor(elapsed / 60_000);
+  if (minutes < 1) return "à l'instant";
+  if (minutes === 1) return "il y a 1 minute";
+  return `il y a ${minutes} minutes`;
+}
+
 const FILTERS = [
   { id: "live", label: "En direct" },
   { id: "upcoming", label: "À venir" },
@@ -134,13 +176,22 @@ function HomePage() {
           month: "short",
         });
   const {
-    data: fixtures = [],
-    isFetching,
-    isError,
-    refetch,
+    data: todayPayload,
+    isFetching: isTodayFetching,
+    isError: isTodayQueryError,
+    refetch: refetchToday,
   } = useQuery({
     ...fixturesQuery("today", selectedDateIso),
     enabled: !demoMode,
+  });
+  const {
+    data: livePayload,
+    isFetching: isLiveFetching,
+    isError: isLiveQueryError,
+    refetch: refetchLive,
+  } = useQuery({
+    ...fixturesQuery("live"),
+    enabled: !demoMode && dayOffset === 0,
   });
   const favoritesQuery = useQuery({
     queryKey: ["me", "favorites"],
@@ -167,15 +218,26 @@ function HomePage() {
       ),
     [favoritesQuery.data],
   );
-  const visibleFixtures = rankMatches(demoMode ? DEMO_FIXTURES : fixtures, {
+  const todayMatches = demoMode ? DEMO_FIXTURES : (todayPayload?.matches ?? []);
+  const liveMatches = demoMode ? [] : (livePayload?.matches ?? []);
+  const mergedMatches = useMemo(() => {
+    const byId = new Map<number, RemoteMatchSummary>();
+    for (const match of todayMatches) byId.set(match.id, match);
+    for (const match of liveMatches) byId.set(match.id, match);
+    return Array.from(byId.values());
+  }, [todayMatches, liveMatches]);
+  const visibleFixtures = rankMatches(demoMode ? DEMO_FIXTURES : mergedMatches, {
     favoriteMatchIds,
     favoriteTeamNames,
     serverRanked: !demoMode,
   });
   const hasLive = visibleFixtures.some((m) => m.status === "live" || m.status === "ht");
-  const [filter, setFilter] = useState<(typeof FILTERS)[number]["id"]>(
-    hasLive ? "live" : "upcoming",
-  );
+  const [filter, setFilter] = useState<(typeof FILTERS)[number]["id"]>("upcoming");
+  const [filterTouched, setFilterTouched] = useState(false);
+
+  useEffect(() => {
+    if (!filterTouched && hasLive) setFilter("live");
+  }, [filterTouched, hasLive]);
 
   const filtered = visibleFixtures.filter((m) =>
     filter === "live" ? m.status === "live" || m.status === "ht" : m.status === filter,
@@ -202,6 +264,22 @@ function HomePage() {
   const topMatch = demoMode
     ? selectTrendingMatch(visibleFixtures)
     : visibleFixtures.find((match) => match.isTrending) ?? selectTrendingMatch(visibleFixtures);
+  const isFetching = isTodayFetching || isLiveFetching;
+  const todayUnavailable = !demoMode && (isTodayQueryError || todayPayload?.state === "unavailable");
+  const liveUnavailable = !demoMode && (isLiveQueryError || livePayload?.state === "unavailable");
+  const hasUsableMatches = visibleFixtures.length > 0;
+
+  useEffect(() => {
+    if (demoMode || (!todayUnavailable && !liveUnavailable)) return;
+    reportFixtureDiagnostic({
+      reason: todayUnavailable ? "today_unavailable" : "live_unavailable",
+      errorCode: todayPayload?.errorCode ?? livePayload?.errorCode ?? "network",
+      stylesLoaded: Boolean(document.querySelector("link[rel=stylesheet][href*=styles]")),
+      matchesCount: visibleFixtures.length,
+      cacheId: todayPayload?.cacheId ?? livePayload?.cacheId ?? null,
+      page: window.location.pathname,
+    });
+  }, [demoMode, todayUnavailable, liveUnavailable, todayPayload, livePayload, visibleFixtures.length]);
 
   return (
     <AppShell>
@@ -264,7 +342,10 @@ function HomePage() {
           return (
             <button
               key={f.id}
-              onClick={() => setFilter(f.id)}
+              onClick={() => {
+                setFilterTouched(true);
+                setFilter(f.id);
+              }}
               aria-pressed={active}
               className={cn(
                 "match-filter h-8 shrink-0 rounded-full px-3 py-1.5 text-[10px] font-semibold leading-5 transition-all",
@@ -286,6 +367,17 @@ function HomePage() {
           </span>
         )}
       </div>
+
+      {(todayPayload?.state === "stale" || livePayload?.state === "stale" || liveUnavailable) && (
+        <FixturesStatusNotice
+          payload={todayPayload}
+          livePayload={livePayload}
+          onRetry={() => {
+            void refetchToday();
+            void refetchLive();
+          }}
+        />
+      )}
 
       {/* Hero banner */}
       {topMatch && (
@@ -363,13 +455,27 @@ function HomePage() {
 
       {/* Grouped matches */}
       <div className="mt-8 space-y-6 px-4 lg:px-0">
-        {isError ? (
+        {todayUnavailable && !hasUsableMatches ? (
           <div className="animate-score-pop rounded-xl border border-alert/30 bg-alert/5 p-4 text-center text-sm text-muted-foreground">
             Les scores du jour sont momentanément indisponibles. Vous pouvez consulter les analyses
             et les guides pendant la prochaine actualisation.
             <button
               type="button"
-              onClick={() => void refetch()}
+              onClick={() => {
+                void refetchToday();
+                void refetchLive();
+              }}
+              className="mx-auto mt-3 block text-xs font-black text-brand hover:underline"
+            >
+              Réessayer
+            </button>
+          </div>
+        ) : liveUnavailable && filter === "live" ? (
+          <div className="animate-score-pop rounded-xl border border-alert/30 bg-alert/5 p-4 text-center text-sm text-muted-foreground">
+            Le direct est momentanément indisponible. Les matchs du jour restent consultables.
+            <button
+              type="button"
+              onClick={() => void refetchLive()}
               className="mx-auto mt-3 block text-xs font-black text-brand hover:underline"
             >
               Réessayer

@@ -175,6 +175,27 @@ function newerCache(a: CacheEnvelope | undefined, b: CacheEnvelope | undefined) 
   return b.storedAt > a.storedAt ? b : a;
 }
 
+export async function getApiFootballCacheEnvelope(
+  path: string,
+  params: Record<string, string | number | undefined> = {},
+): Promise<{ data: unknown; storedAt: number; stale: boolean; cacheId: string } | null> {
+  const url = new URL(`${BASE}${path}`);
+  for (const [name, value] of Object.entries(params)) {
+    if (value !== undefined && value !== null && value !== "") url.searchParams.set(name, String(value));
+  }
+  const cacheId = await hashedCacheKey(url.toString());
+  const now = Date.now();
+  const memory = memoryCache.get(cacheId);
+  if (memory && memory.staleUntil > now) {
+    return { data: memory.data, storedAt: memory.storedAt, stale: memory.freshUntil <= now, cacheId };
+  }
+  const profile = cacheProfile(path, params);
+  const shared = await readSharedCache(cacheId, profile.freshMs);
+  if (!shared || shared.staleUntil <= now) return null;
+  memoryCache.set(cacheId, shared);
+  return { data: shared.data, storedAt: shared.storedAt, stale: shared.freshUntil <= now, cacheId };
+}
+
 async function readQuotaState(): Promise<QuotaState> {
   const now = Date.now();
   if (now - quotaStateReadAt < 30_000) return quotaState;
@@ -370,6 +391,11 @@ async function fetchWithCache<T>(
       );
     }
     const data = await requestRemote<T>(url, key);
+    // An empty upstream response must never erase the last real fixture list.
+    // If a previous response exists, keep serving it as stale data.
+    if (Array.isArray(data) && data.length === 0 && stale && stale.staleUntil > Date.now()) {
+      return stale.data as T;
+    }
     const storedAt = Date.now();
     const envelope: CacheEnvelope = {
       data,
@@ -395,15 +421,6 @@ export async function apiFootball<T = unknown>(
   path: string,
   params: Record<string, string | number | undefined> = {},
 ): Promise<T> {
-  const key = await getConfig("APIFOOTBALL_KEY");
-  if (!key) {
-    throw new ApiFootballError(
-      "unauthorized",
-      401,
-      "APIFOOTBALL_KEY missing — add it to Cloudflare Worker secrets or Supabase app_config.",
-    );
-  }
-
   const url = new URL(`${BASE}${path}`);
   for (const [name, value] of Object.entries(params)) {
     if (value !== undefined && value !== null && value !== "") url.searchParams.set(name, String(value));

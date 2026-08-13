@@ -1,6 +1,12 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { apiFootball, getApiFootballCacheState, todayISO } from "./apifootball.server";
+import {
+  apiFootball,
+  ApiFootballError,
+  getApiFootballCacheEnvelope,
+  getApiFootballCacheState,
+  todayISO,
+} from "./apifootball.server";
 import {
   rankMatches,
   selectTrendingMatch,
@@ -14,6 +20,7 @@ import type {
   ApiStatus,
   RemoteMatchDetail,
   RemoteMatchSummary,
+  FixturesPayload,
 } from "./football-types";
 
 // ---------- helpers ----------
@@ -256,16 +263,42 @@ export const getFixtures = createServerFn({ method: "GET" })
       .default({})
       .parse(input),
   )
-  .handler(async ({ data }) => {
-    try {
-      if (data.live) {
-        const raw = await apiFootball<ApiFixture[]>("/fixtures", { live: "all" });
-        if (!raw || raw.length === 0) return [];
-        return rankApiFixtures(raw);
-      }
+  .handler(async ({ data }): Promise<FixturesPayload> => {
+    const isLiveRequest = Boolean(data.live);
+    const params = isLiveRequest ? { live: "all" as const } : { date: data.date ?? todayISO() };
+    const path = "/fixtures";
 
-      const date = data.date ?? todayISO();
-      const raw = await apiFootball<ApiFixture[]>("/fixtures", { date });
+    const errorCode = (error: unknown): FixturesPayload["errorCode"] => {
+      if (error instanceof ApiFootballError) return error.code;
+      return "network";
+    };
+
+    const fromCache = async (error?: unknown): Promise<FixturesPayload> => {
+      const cached = await getApiFootballCacheEnvelope(path, params);
+      if (cached && Array.isArray(cached.data) && cached.data.length > 0) {
+        return {
+          matches: await rankApiFixtures(cached.data as ApiFixture[]),
+          source: "cache",
+          state: "stale",
+          fetchedAt: new Date(cached.storedAt).toISOString(),
+          cacheId: cached.cacheId,
+          errorCode: error ? errorCode(error) : "empty",
+          retryAfterMs: error instanceof ApiFootballError ? error.retryAfterMs : undefined,
+        };
+      }
+      return {
+        matches: [],
+        source: isLiveRequest ? "live" : "api",
+        state: "unavailable",
+        fetchedAt: null,
+        cacheId: null,
+        errorCode: error ? errorCode(error) : "empty",
+        retryAfterMs: error instanceof ApiFootballError ? error.retryAfterMs : undefined,
+      };
+    };
+
+    try {
+      const raw = await apiFootball<ApiFixture[]>(path, params);
 
       // La réponse datée de l'API-Football est la source de vérité : elle
       // contient déjà la compétition, son pays, son logo et la saison pour
@@ -275,12 +308,20 @@ export const getFixtures = createServerFn({ method: "GET" })
       // interne s'applique ensuite sans perdre la couverture API.
       const list = raw ?? [];
 
-      if (list.length === 0) return [];
-
-      return rankApiFixtures(list);
+      const cache = await getApiFootballCacheEnvelope(path, params);
+      if (list.length === 0) {
+        return fromCache();
+      }
+      return {
+        matches: await rankApiFixtures(list),
+        source: cache?.stale ? "cache" : isLiveRequest ? "live" : "api",
+        state: cache?.stale ? "stale" : "fresh",
+        fetchedAt: cache ? new Date(cache.storedAt).toISOString() : null,
+        cacheId: cache?.cacheId ?? null,
+      };
     } catch (err) {
       console.warn("API Football error:", err instanceof Error ? err.message : err);
-      throw err;
+      return fromCache(err);
     }
   });
 

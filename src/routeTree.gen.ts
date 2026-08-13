@@ -30,6 +30,7 @@ import { Route as LiveIdRouteImport } from './routes/live.$id'
 import { Route as MatchIdRouteImport } from './routes/match.$id'
 import { Route as PremiumTableauDeBordRouteImport } from './routes/premium.tableau-de-bord'
 import { Route as ApiPublicFapshiWebhookRouteImport } from './routes/api/public/fapshi-webhook'
+import { Route as ApiPublicFixtureDiagnosticRouteImport } from './routes/api/public/fixture-diagnostic'
 import { Route as CodesPromoSlugCountryRouteImport } from './routes/codes-promo.$slug.$country'
 
 const IndexRoute = IndexRouteImport.update({
@@ -136,6 +137,12 @@ const ApiPublicFapshiWebhookRoute = ApiPublicFapshiWebhookRouteImport.update({
   path: '/api/public/fapshi-webhook',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicFixtureDiagnosticRoute =
+  ApiPublicFixtureDiagnosticRouteImport.update({
+    id: '/api/public/fixture-diagnostic',
+    path: '/api/public/fixture-diagnostic',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const CodesPromoSlugCountryRoute = CodesPromoSlugCountryRouteImport.update({
   id: '/$country',
   path: '/$country',
@@ -163,6 +170,7 @@ export interface FileRoutesByFullPath {
   '/premium/tableau-de-bord': typeof PremiumTableauDeBordRoute
   '/codes-promo/': typeof CodesPromoIndexRoute
   '/api/public/fapshi-webhook': typeof ApiPublicFapshiWebhookRoute
+  '/api/public/fixture-diagnostic': typeof ApiPublicFixtureDiagnosticRoute
   '/codes-promo/$slug/$country': typeof CodesPromoSlugCountryRoute
 }
 export interface FileRoutesByTo {
@@ -185,6 +193,7 @@ export interface FileRoutesByTo {
   '/premium/tableau-de-bord': typeof PremiumTableauDeBordRoute
   '/codes-promo': typeof CodesPromoIndexRoute
   '/api/public/fapshi-webhook': typeof ApiPublicFapshiWebhookRoute
+  '/api/public/fixture-diagnostic': typeof ApiPublicFixtureDiagnosticRoute
   '/codes-promo/$slug/$country': typeof CodesPromoSlugCountryRoute
 }
 export interface FileRoutesById {
@@ -210,6 +219,7 @@ export interface FileRoutesById {
   '/premium/tableau-de-bord': typeof PremiumTableauDeBordRoute
   '/codes-promo/': typeof CodesPromoIndexRoute
   '/api/public/fapshi-webhook': typeof ApiPublicFapshiWebhookRoute
+  '/api/public/fixture-diagnostic': typeof ApiPublicFixtureDiagnosticRoute
   '/codes-promo/$slug/$country': typeof CodesPromoSlugCountryRoute
 }
 export interface FileRouteTypes {
@@ -235,6 +245,7 @@ export interface FileRouteTypes {
     | '/premium/tableau-de-bord'
     | '/codes-promo/'
     | '/api/public/fapshi-webhook'
+    | '/api/public/fixture-diagnostic'
     | '/codes-promo/$slug/$country'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -257,6 +268,7 @@ export interface FileRouteTypes {
     | '/premium/tableau-de-bord'
     | '/codes-promo'
     | '/api/public/fapshi-webhook'
+    | '/api/public/fixture-diagnostic'
     | '/codes-promo/$slug/$country'
   id:
     | '__root__'
@@ -281,6 +293,7 @@ export interface FileRouteTypes {
     | '/premium/tableau-de-bord'
     | '/codes-promo/'
     | '/api/public/fapshi-webhook'
+    | '/api/public/fixture-diagnostic'
     | '/codes-promo/$slug/$country'
   fileRoutesById: FileRoutesById
 }
@@ -297,6 +310,7 @@ export interface RootRouteChildren {
   LiveIdRoute: typeof LiveIdRoute
   MatchIdRoute: typeof MatchIdRoute
   ApiPublicFapshiWebhookRoute: typeof ApiPublicFapshiWebhookRoute
+  ApiPublicFixtureDiagnosticRoute: typeof ApiPublicFixtureDiagnosticRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -448,6 +462,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicFapshiWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/fixture-diagnostic': {
+      id: '/api/public/fixture-diagnostic'
+      path: '/api/public/fixture-diagnostic'
+      fullPath: '/api/public/fixture-diagnostic'
+      preLoaderRoute: typeof ApiPublicFixtureDiagnosticRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/codes-promo/$slug/$country': {
       id: '/codes-promo/$slug/$country'
       path: '/$country'
@@ -537,6 +558,7 @@ const rootRouteChildren: RootRouteChildren = {
   LiveIdRoute: LiveIdRoute,
   MatchIdRoute: MatchIdRoute,
   ApiPublicFapshiWebhookRoute: ApiPublicFapshiWebhookRoute,
+  ApiPublicFixtureDiagnosticRoute: ApiPublicFixtureDiagnosticRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

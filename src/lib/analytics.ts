@@ -24,6 +24,15 @@ export type AnalyticsEvent =
   | "promo_code_copy"
   | "promo_affiliate_click";
 
+export type FixtureDiagnostic = {
+  reason: "today_unavailable" | "live_unavailable" | "render_failure";
+  errorCode: string;
+  stylesLoaded: boolean;
+  matchesCount: number;
+  cacheId: string | null;
+  page: string;
+};
+
 type Props = Record<string, string | number | boolean | undefined>;
 
 const STORE_KEY = "lf_analytics_v1";
@@ -90,6 +99,35 @@ export function track(event: AnalyticsEvent, props: Props = {}) {
     } catch {
       /* ignore */
     }
+  }
+}
+
+/** Envoie un signal technique minimal sans identifiant, email ni contenu utilisateur. */
+export function reportFixtureDiagnostic(diagnostic: FixtureDiagnostic) {
+  if (typeof window === "undefined") return;
+  const payload = JSON.stringify({
+    ...diagnostic,
+    device: window.matchMedia("(max-width: 767px)").matches ? "mobile" : "desktop",
+    viewport: `${window.innerWidth}x${window.innerHeight}`.slice(0, 24),
+    userAgent: navigator.userAgent.slice(0, 120),
+    at: new Date().toISOString(),
+  });
+  try {
+    if (navigator.sendBeacon) {
+      navigator.sendBeacon(
+        "/api/public/fixture-diagnostic",
+        new Blob([payload], { type: "application/json" }),
+      );
+      return;
+    }
+    void fetch("/api/public/fixture-diagnostic", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: payload,
+      keepalive: true,
+    }).catch(() => {});
+  } catch {
+    // Le diagnostic ne doit jamais perturber l'affichage des matchs.
   }
 }
 

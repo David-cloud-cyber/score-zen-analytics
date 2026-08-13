@@ -36,6 +36,16 @@ export type RemoteMatchSummary = {
   venue: string | null;
 };
 
+export type FixturesPayload = {
+  matches: RemoteMatchSummary[];
+  source: "live" | "api" | "cache";
+  state: "fresh" | "stale" | "unavailable";
+  fetchedAt: string | null;
+  cacheId: string | null;
+  errorCode?: "rate_limit" | "network" | "server" | "unauthorized" | "payload" | "empty";
+  retryAfterMs?: number;
+};
+
 export type ApiEvent = {
   minute: number;
   side: "home" | "away";
