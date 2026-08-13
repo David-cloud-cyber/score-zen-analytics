@@ -48,7 +48,7 @@ export const Route = createFileRoute("/premium")({
 
 function PremiumPage() {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
-  if (pathname === "/premium/tableau-de-bord") return <Outlet />;
+  if (pathname === "/premium/tableau-de-bord" || pathname === "/premium/historique") return <Outlet />;
   return <PremiumSubscriptionPage />;
 }
 

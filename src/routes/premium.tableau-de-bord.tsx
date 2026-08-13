@@ -11,6 +11,7 @@ import {
   Clock3,
   Crown,
   Gauge,
+  History,
   Info,
   Lock,
   RefreshCw,
@@ -38,6 +39,7 @@ import { track } from "@/lib/analytics";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { isLocalDemo } from "@/lib/local-demo";
+import type { PredictionHistoryItem } from "@/lib/prediction-history.functions";
 
 export const Route = createFileRoute("/premium/tableau-de-bord")({
   head: () =>
@@ -170,6 +172,17 @@ const DEMO_HUB_DATA: PremiumHubData = {
     favoriteMarket: "Double chance",
     favoriteTeam: "Arsenal",
   },
+  recentPredictions: [],
+  historySummary: {
+    total: 42,
+    settled: 31,
+    won: 21,
+    lost: 10,
+    pending: 8,
+    unresolvable: 3,
+    hitRate: 68,
+    theoreticalRoi: 11.4,
+  },
   fetchedAt: "2026-08-09T17:45:00.000Z",
   warning: null,
 };
@@ -260,6 +273,8 @@ function PremiumHubPage() {
 
         <HubOverview data={data} />
         <HubQuickNav />
+
+        <RecentPredictions items={data.recentPredictions} summary={data.historySummary} />
 
         {data.warning && (
           <div className="flex items-start gap-3 rounded-xl border border-brand/25 bg-brand/5 p-4 text-sm">
@@ -487,6 +502,7 @@ function HubQuickNav() {
     ["#alerts-title", "Alertes"],
     ["#scorecard-title", "Performances"],
     ["#teams-title", "Équipes"],
+    ["#history-title", "Historique"],
   ] as const;
   return (
     <nav
@@ -503,6 +519,80 @@ function HubQuickNav() {
         </a>
       ))}
     </nav>
+  );
+}
+
+function RecentPredictions({
+  items,
+  summary,
+}: {
+  items: PremiumHubData["recentPredictions"];
+  summary: PremiumHubData["historySummary"];
+}) {
+  const statusLabel: Record<PredictionHistoryItem["status"], string> = {
+    pending: "En attente",
+    won: "Gagnée",
+    lost: "Perdue",
+    unresolvable: "Non réglable",
+  };
+  return (
+    <section id="history-title" className="space-y-3" aria-labelledby="history-heading">
+      <div className="flex items-end justify-between gap-3">
+        <SectionHeading
+          id="history-heading"
+          eyebrow="Apprentissage Premium"
+          title="Dernières prédictions"
+          description="Retrouvez les dernières analyses et leur statut sans relancer ni débiter de crédits."
+          icon={<History className="size-5" />}
+        />
+        <Link
+          to="/premium/historique"
+          className="inline-flex shrink-0 items-center gap-1 text-xs font-black text-brand hover:underline"
+        >
+          Tout voir <ChevronRight className="size-3.5" aria-hidden />
+        </Link>
+      </div>
+      {items.length === 0 ? (
+        <div className="score-empty-state p-5">
+          <History className="mx-auto size-6 text-muted-foreground" />
+          <p className="mt-2 text-sm font-bold">Votre historique apparaîtra ici</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Lancez une analyse pour commencer à suivre vos résultats.
+          </p>
+        </div>
+      ) : (
+        <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+          {items.map((item) => (
+            <Link
+              key={item.id}
+              to="/analyse"
+              search={{ home: item.homeTeam, away: item.awayTeam, matchId: item.matchId ?? undefined }}
+              className="rounded-xl border border-border/70 bg-card p-3 transition-colors hover:border-brand/40"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="truncate text-xs font-black">{item.homeTeam} <span className="text-muted-foreground">vs</span> {item.awayTeam}</p>
+                  <p className="mt-1 text-[10px] text-muted-foreground">{item.marketLabel} · {item.pick}</p>
+                </div>
+                <span className={cn(
+                  "shrink-0 rounded-full px-2 py-1 text-[9px] font-black",
+                  item.status === "won" ? "bg-brand/10 text-brand" : item.status === "lost" ? "bg-alert/10 text-alert" : "bg-surface text-muted-foreground",
+                )}>
+                  {statusLabel[item.status]}
+                </span>
+              </div>
+              <div className="mt-3 flex items-center justify-between text-[10px] text-muted-foreground">
+                <span>{item.finalScore ? `Score ${item.finalScore}` : "Résultat en attente"}</span>
+                <span>{item.confidence === null ? "—" : `${item.confidence}% confiance`}</span>
+              </div>
+            </Link>
+          ))}
+        </div>
+      )}
+      <p className="text-[10px] text-muted-foreground">
+        {summary.settled} analyse(s) réglée(s) · taux de réussite {summary.hitRate === null ? "à venir" : `${summary.hitRate}%`}
+      </p>
+    </section>
   );
 }
 

@@ -21,7 +21,15 @@ export type Database = {
           home_team: string
           id: string
           match_id: string | null
+          prediction_confidence: number | null
+          prediction_market: string | null
+          prediction_odd: number | null
+          prediction_pick: string | null
           result: Json
+          settlement_outcome: string | null
+          settlement_status: "pending" | "won" | "lost" | "unresolvable"
+          final_score: string | null
+          settled_at: string | null
           user_id: string
         }
         Insert: {
@@ -30,7 +38,15 @@ export type Database = {
           home_team: string
           id?: string
           match_id?: string | null
+          prediction_confidence?: number | null
+          prediction_market?: string | null
+          prediction_odd?: number | null
+          prediction_pick?: string | null
           result: Json
+          settlement_outcome?: string | null
+          settlement_status?: "pending" | "won" | "lost" | "unresolvable"
+          final_score?: string | null
+          settled_at?: string | null
           user_id: string
         }
         Update: {
@@ -39,7 +55,15 @@ export type Database = {
           home_team?: string
           id?: string
           match_id?: string | null
+          prediction_confidence?: number | null
+          prediction_market?: string | null
+          prediction_odd?: number | null
+          prediction_pick?: string | null
           result?: Json
+          settlement_outcome?: string | null
+          settlement_status?: "pending" | "won" | "lost" | "unresolvable"
+          final_score?: string | null
+          settled_at?: string | null
           user_id?: string
         }
         Relationships: []

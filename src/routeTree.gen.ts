@@ -28,6 +28,7 @@ import { Route as CodesPromoCoteIvoireRouteImport } from './routes/codes-promo.c
 import { Route as CodesPromoSenegalRouteImport } from './routes/codes-promo.senegal'
 import { Route as LiveIdRouteImport } from './routes/live.$id'
 import { Route as MatchIdRouteImport } from './routes/match.$id'
+import { Route as PremiumHistoriqueRouteImport } from './routes/premium.historique'
 import { Route as PremiumTableauDeBordRouteImport } from './routes/premium.tableau-de-bord'
 import { Route as ApiPublicFapshiWebhookRouteImport } from './routes/api/public/fapshi-webhook'
 import { Route as ApiPublicFixtureDiagnosticRouteImport } from './routes/api/public/fixture-diagnostic'
@@ -127,6 +128,11 @@ const MatchIdRoute = MatchIdRouteImport.update({
   path: '/match/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PremiumHistoriqueRoute = PremiumHistoriqueRouteImport.update({
+  id: '/historique',
+  path: '/historique',
+  getParentRoute: () => PremiumRoute,
+} as any)
 const PremiumTableauDeBordRoute = PremiumTableauDeBordRouteImport.update({
   id: '/tableau-de-bord',
   path: '/tableau-de-bord',
@@ -167,6 +173,7 @@ export interface FileRoutesByFullPath {
   '/codes-promo/senegal': typeof CodesPromoSenegalRoute
   '/live/$id': typeof LiveIdRoute
   '/match/$id': typeof MatchIdRoute
+  '/premium/historique': typeof PremiumHistoriqueRoute
   '/premium/tableau-de-bord': typeof PremiumTableauDeBordRoute
   '/codes-promo/': typeof CodesPromoIndexRoute
   '/api/public/fapshi-webhook': typeof ApiPublicFapshiWebhookRoute
@@ -190,6 +197,7 @@ export interface FileRoutesByTo {
   '/codes-promo/senegal': typeof CodesPromoSenegalRoute
   '/live/$id': typeof LiveIdRoute
   '/match/$id': typeof MatchIdRoute
+  '/premium/historique': typeof PremiumHistoriqueRoute
   '/premium/tableau-de-bord': typeof PremiumTableauDeBordRoute
   '/codes-promo': typeof CodesPromoIndexRoute
   '/api/public/fapshi-webhook': typeof ApiPublicFapshiWebhookRoute
@@ -216,6 +224,7 @@ export interface FileRoutesById {
   '/codes-promo/senegal': typeof CodesPromoSenegalRoute
   '/live/$id': typeof LiveIdRoute
   '/match/$id': typeof MatchIdRoute
+  '/premium/historique': typeof PremiumHistoriqueRoute
   '/premium/tableau-de-bord': typeof PremiumTableauDeBordRoute
   '/codes-promo/': typeof CodesPromoIndexRoute
   '/api/public/fapshi-webhook': typeof ApiPublicFapshiWebhookRoute
@@ -242,6 +251,7 @@ export interface FileRouteTypes {
     | '/codes-promo/senegal'
     | '/live/$id'
     | '/match/$id'
+    | '/premium/historique'
     | '/premium/tableau-de-bord'
     | '/codes-promo/'
     | '/api/public/fapshi-webhook'
@@ -265,6 +275,7 @@ export interface FileRouteTypes {
     | '/codes-promo/senegal'
     | '/live/$id'
     | '/match/$id'
+    | '/premium/historique'
     | '/premium/tableau-de-bord'
     | '/codes-promo'
     | '/api/public/fapshi-webhook'
@@ -290,6 +301,7 @@ export interface FileRouteTypes {
     | '/codes-promo/senegal'
     | '/live/$id'
     | '/match/$id'
+    | '/premium/historique'
     | '/premium/tableau-de-bord'
     | '/codes-promo/'
     | '/api/public/fapshi-webhook'
@@ -448,6 +460,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MatchIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/premium/historique': {
+      id: '/premium/historique'
+      path: '/historique'
+      fullPath: '/premium/historique'
+      preLoaderRoute: typeof PremiumHistoriqueRouteImport
+      parentRoute: typeof PremiumRoute
+    }
     '/premium/tableau-de-bord': {
       id: '/premium/tableau-de-bord'
       path: '/tableau-de-bord'
@@ -535,10 +554,12 @@ const CodesPromoRouteWithChildren = CodesPromoRoute._addFileChildren(
 )
 
 interface PremiumRouteChildren {
+  PremiumHistoriqueRoute: typeof PremiumHistoriqueRoute
   PremiumTableauDeBordRoute: typeof PremiumTableauDeBordRoute
 }
 
 const PremiumRouteChildren: PremiumRouteChildren = {
+  PremiumHistoriqueRoute: PremiumHistoriqueRoute,
   PremiumTableauDeBordRoute: PremiumTableauDeBordRoute,
 }
 

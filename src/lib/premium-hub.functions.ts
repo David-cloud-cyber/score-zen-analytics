@@ -4,6 +4,14 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { apiFootball, todayISO } from "@/lib/apifootball.server";
 import type { Database, Json } from "@/integrations/supabase/types";
 import { isPremiumActive } from "@/lib/premium-status";
+import {
+  buildSummary,
+  settlePredictionRows,
+  toItem,
+  type PredictionHistoryItem,
+  type PredictionHistorySummary,
+  type RawAnalysisRow,
+} from "@/lib/prediction-history.functions";
 
 type FavoriteKind = Database["public"]["Enums"]["favorite_kind"];
 
@@ -59,6 +67,8 @@ export type PremiumHubData = {
   alerts: HubAlert[];
   favorites: HubFavorite[];
   scorecard: HubScorecard;
+  recentPredictions: PredictionHistoryItem[];
+  historySummary: PredictionHistorySummary;
   fetchedAt: string;
   warning: string | null;
 };
@@ -221,61 +231,9 @@ async function getRadar(): Promise<{ radar: RadarOpportunity[]; warning: string 
   }
 }
 
-function isFinished(status: string) {
-  return ["FT", "AET", "PEN", "AWD", "WO"].includes(status);
-}
-
-async function settleAnalyses(rows: Array<{ id: string; match_id: string | null; result: Json }>) {
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const settled = [] as Array<{ result: Json; hit: boolean; market: string; team: string | null }>;
-
-  for (const row of rows.slice(0, 8)) {
-    if (!row.match_id || !/^\d+$/.test(row.match_id)) continue;
-    const record = asRecord(row.result);
-    const existing = asRecord(record._settlement);
-    if (existing.hit !== undefined) {
-      settled.push({
-        result: row.result,
-        hit: existing.hit === true,
-        market: String(existing.market ?? "1X2"),
-        team: typeof existing.team === "string" ? existing.team : null,
-      });
-      continue;
-    }
-
-    try {
-      const fixture = (await apiFootball<Fixture[]>("/fixtures", { id: row.match_id }))[0];
-      if (!fixture || !isFinished(fixture.fixture.status.short)) continue;
-      const detail = fixture as Fixture & { goals?: { home: number | null; away: number | null } };
-      const goals = detail.goals;
-      if (goals?.home === null || goals?.home === undefined || goals.away === null || goals.away === undefined) continue;
-      const outcome = goals.home > goals.away ? "home" : goals.home < goals.away ? "away" : "draw";
-      const probabilities = asRecord(record.probabilities);
-      const selections: Selection[] = ["home", "draw", "away"];
-      const predicted = selections.sort(
-        (a, b) => (asNumber(probabilities[b]) ?? 0) - (asNumber(probabilities[a]) ?? 0),
-      )[0];
-      const hit = predicted === outcome;
-      const settlement = {
-        outcome,
-        hit,
-        market: "1X2",
-        team: outcome === "home" ? fixture.teams.home.name : outcome === "away" ? fixture.teams.away.name : null,
-        score: `${goals.home}-${goals.away}`,
-        settledAt: new Date().toISOString(),
-      };
-      await supabaseAdmin.from("ai_analyses").update({ result: { ...record, _settlement: settlement } }).eq("id", row.id);
-      settled.push({ result: { ...record, _settlement: settlement }, hit, market: "1X2", team: settlement.team });
-    } catch {
-      // A single unavailable fixture must not break the whole Premium dashboard.
-    }
-  }
-  return settled;
-}
-
 function buildScorecard(
   rows: Array<{ home_team: string; away_team: string; result: Json }>,
-  settled: Array<{ hit: boolean; market: string; team: string | null }>,
+  summary: PredictionHistorySummary,
 ): HubScorecard {
   const marketCount = new Map<string, number>();
   const teamCount = new Map<string, number>();
@@ -290,9 +248,9 @@ function buildScorecard(
   const top = (map: Map<string, number>) => [...map.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
   return {
     totalAnalyses: rows.length,
-    settledAnalyses: settled.length,
-    hitRate: settled.length ? Math.round((settled.filter((item) => item.hit).length / settled.length) * 100) : null,
-    theoreticalRoi: null,
+    settledAnalyses: summary.settled,
+    hitRate: summary.hitRate,
+    theoreticalRoi: summary.theoreticalRoi,
     favoriteMarket: top(marketCount),
     favoriteTeam: top(teamCount),
   };
@@ -362,6 +320,8 @@ export const getPremiumDashboard = createServerFn({ method: "GET" })
         alerts: [],
         favorites,
         scorecard: { totalAnalyses: 0, settledAnalyses: 0, hitRate: null, theoreticalRoi: null, favoriteMarket: null, favoriteTeam: null },
+        recentPredictions: [],
+        historySummary: buildSummary([]),
         fetchedAt: new Date().toISOString(),
         warning: null,
       };
@@ -369,12 +329,14 @@ export const getPremiumDashboard = createServerFn({ method: "GET" })
 
     const { data: analysisRows } = await context.supabase
       .from("ai_analyses")
-      .select("id, home_team, away_team, match_id, result, created_at")
+      .select("id, home_team, away_team, match_id, result, created_at, prediction_market, prediction_pick, prediction_confidence, prediction_odd, settlement_status, settlement_outcome, final_score, settled_at")
       .eq("user_id", context.userId)
       .order("created_at", { ascending: false })
       .limit(30);
-    const rows = analysisRows ?? [];
-    const settled = await settleAnalyses(rows.map((row) => ({ id: row.id, match_id: row.match_id, result: row.result })));
+    const rows = (analysisRows ?? []) as RawAnalysisRow[];
+    const settlementUpdates = await settlePredictionRows(rows);
+    const historyItems = rows.map((row) => toItem(row, settlementUpdates.get(row.id)));
+    const historySummary = buildSummary(historyItems);
     const radarResult = await getRadar();
 
     return {
@@ -383,7 +345,9 @@ export const getPremiumDashboard = createServerFn({ method: "GET" })
       radar: radarResult.radar,
       alerts: buildAlerts(radarResult.radar, favorites),
       favorites,
-      scorecard: buildScorecard(rows, settled),
+      scorecard: buildScorecard(rows, historySummary),
+      recentPredictions: historyItems.slice(0, 5),
+      historySummary,
       fetchedAt: new Date().toISOString(),
       warning: radarResult.warning,
     };
