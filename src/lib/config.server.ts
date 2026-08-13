@@ -16,7 +16,18 @@ export type RuntimeBinding = {
   ) => Promise<void>;
 };
 
-type RuntimeEnv = Record<string, string | RuntimeBinding | undefined>;
+export type DurableObjectStub = {
+  fetch: (request: Request) => Promise<Response>;
+};
+
+export type DurableObjectNamespaceBinding = {
+  getByName: (name: string) => DurableObjectStub;
+};
+
+type RuntimeEnv = Record<
+  string,
+  string | RuntimeBinding | DurableObjectNamespaceBinding | undefined
+>;
 
 function cloudflareEnv(): RuntimeEnv | undefined {
   return (globalThis as typeof globalThis & { __env__?: RuntimeEnv }).__env__;
@@ -28,9 +39,7 @@ export function getRuntimeEnv(name: string): string | undefined {
   return typeof process !== "undefined" ? process.env?.[name] : undefined;
 }
 
-export function getRuntimeBinding<T extends RuntimeBinding = RuntimeBinding>(
-  name: string,
-): T | undefined {
+export function getRuntimeBinding<T = RuntimeBinding>(name: string): T | undefined {
   const value = cloudflareEnv()?.[name];
   return value && typeof value === "object" ? (value as T) : undefined;
 }

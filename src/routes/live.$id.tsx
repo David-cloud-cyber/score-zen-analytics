@@ -21,7 +21,7 @@ import { AppShell } from "@/components/AppShell";
 import { MatchSkeleton } from "@/components/PageSkeleton";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { StatBar } from "@/components/StatBar";
-import { getFixtureDetail } from "@/lib/football.functions";
+import { getFixtureSections, getFixtureSummary } from "@/lib/football.functions";
 import {
   castMatchCommunityVote,
   getMatchCommunityVotes,
@@ -37,8 +37,18 @@ const detailQuery = (id: number, demoMode = false) =>
   queryOptions({
     queryKey: ["fixture", id],
     queryFn: () =>
-      demoMode ? Promise.resolve(DEMO_MATCH_DETAIL) : getFixtureDetail({ data: { id } }),
-    staleTime: 60_000,
+      demoMode ? Promise.resolve(DEMO_MATCH_DETAIL) : getFixtureSummary({ data: { id } }),
+    staleTime: 15_000,
+    refetchInterval: 30_000,
+    retry: 1,
+  });
+
+const sectionsQuery = (id: number, demoMode = false) =>
+  queryOptions({
+    queryKey: ["fixture-sections", id],
+    queryFn: () =>
+      demoMode ? Promise.resolve(DEMO_MATCH_DETAIL) : getFixtureSections({ data: { id } }),
+    staleTime: 45_000,
     refetchInterval: 60_000,
     retry: 1,
   });
@@ -92,7 +102,15 @@ export const Route = createFileRoute("/live/$id")({
 function LiveMatchPage() {
   const { id } = useParams({ from: "/live/$id" });
   const fixtureId = Number(id);
-  const { data } = useSuspenseQuery(detailQuery(fixtureId, isLocalDemo()));
+  const demoMode = isLocalDemo();
+  const { data: summary } = useSuspenseQuery(detailQuery(fixtureId, demoMode));
+  const sections = useQuery({
+    ...sectionsQuery(fixtureId, demoMode),
+    enabled: true,
+  });
+  const data = sections.data
+    ? { ...summary, ...sections.data, meta: sections.data.meta ?? summary.meta }
+    : summary;
   return <LiveMatchView m={data} />;
 }
 

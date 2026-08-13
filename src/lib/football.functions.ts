@@ -7,6 +7,8 @@ import {
   getApiFootballCacheState,
   todayISO,
 } from "./apifootball.server";
+import { getRuntimeBinding, type DurableObjectNamespaceBinding } from "./config.server";
+import { LIVE_COORDINATOR_NAME, type SharedFixtureMode } from "./live-football.shared";
 import {
   rankMatches,
   selectTrendingMatch,
@@ -253,6 +255,35 @@ async function rankApiFixtures(fixtures: ApiFixture[]): Promise<RemoteMatchSumma
 
 // ---------- server functions ----------
 
+async function readSharedFixtureSnapshot(
+  mode: SharedFixtureMode,
+  date: string,
+): Promise<FixturesPayload | null> {
+  const coordinator = getRuntimeBinding<DurableObjectNamespaceBinding>(
+    "LIVE_FOOTBALL_COORDINATOR",
+  );
+  if (!coordinator) return null;
+
+  try {
+    const path = mode === "live" ? "/api/fixtures/live" : "/api/fixtures/today";
+    const url = new URL(`https://livefoot.internal${path}`);
+    if (mode === "day") url.searchParams.set("date", date);
+    const response = await coordinator.getByName(LIVE_COORDINATOR_NAME).fetch(
+      new Request(url, { method: "GET" }),
+    );
+    if (!response.ok) return null;
+    const payload = (await response.json()) as FixturesPayload;
+    if (!Array.isArray(payload.matches) || typeof payload.state !== "string") return null;
+    return payload;
+  } catch (error) {
+    console.warn(
+      "Shared fixture coordinator unavailable:",
+      error instanceof Error ? error.message : error,
+    );
+    return null;
+  }
+}
+
 export const getFixtures = createServerFn({ method: "GET" })
   .inputValidator((input) =>
     z
@@ -265,7 +296,14 @@ export const getFixtures = createServerFn({ method: "GET" })
   )
   .handler(async ({ data }): Promise<FixturesPayload> => {
     const isLiveRequest = Boolean(data.live);
-    const params = isLiveRequest ? { live: "all" as const } : { date: data.date ?? todayISO() };
+    const requestedDate = data.date ?? todayISO();
+    const shared = await readSharedFixtureSnapshot(
+      isLiveRequest ? "live" : "day",
+      requestedDate,
+    );
+    if (shared) return shared;
+
+    const params = isLiveRequest ? { live: "all" as const } : { date: requestedDate };
     const path = "/fixtures";
 
     const errorCode = (error: unknown): FixturesPayload["errorCode"] => {
@@ -326,6 +364,45 @@ export const getFixtures = createServerFn({ method: "GET" })
   });
 
 type StatItem = { type: string; value: number | string | null };
+
+const EMPTY_STATS: ApiStats = {
+  possession: { home: null, away: null },
+  shots: { home: null, away: null },
+  shotsOnTarget: { home: null, away: null },
+  xg: { home: null, away: null },
+  corners: { home: null, away: null },
+  fouls: { home: null, away: null },
+  yellow: { home: null, away: null },
+  red: { home: null, away: null },
+  passAccuracy: { home: null, away: null },
+  offsides: { home: null, away: null },
+};
+
+function summaryDetailDefaults(meta: RemoteMatchDetail["meta"]): RemoteMatchDetail {
+  return {
+    id: 0,
+    status: "upcoming",
+    statusShort: "NS",
+    minute: null,
+    kickoff: new Date().toISOString(),
+    timeLabel: "--:--",
+    dayLabel: "Aujourd'hui",
+    home: { id: 0, name: "", short: "", logo: "" },
+    away: { id: 0, name: "", short: "", logo: "" },
+    homeScore: null,
+    awayScore: null,
+    league: { id: 0, name: "", country: "", logo: "", flag: null, season: 0 },
+    venue: null,
+    meta,
+    events: [],
+    stats: EMPTY_STATS,
+    lineups: { home: null, away: null },
+    h2h: [],
+    odds: null,
+    prediction: null,
+    injuries: { home: [], away: [] },
+  };
+}
 
 function parseNumber(v: number | string | null | undefined): number | null {
   if (v === null || v === undefined) return null;
@@ -565,6 +642,44 @@ export const getFixtureDetail = createServerFn({ method: "GET" })
       throw err;
     }
   });
+
+/**
+ * Fast first paint for the match page. It deliberately fetches only the
+ * primary fixture record; secondary sections are loaded after the score is
+ * visible through getFixtureSections.
+ */
+export const getFixtureSummary = createServerFn({ method: "GET" })
+  .inputValidator((input) => z.object({ id: z.number().int().positive() }).parse(input))
+  .handler(async ({ data }): Promise<RemoteMatchDetail> => {
+    const fixtures = await apiFootball<ApiFixture[]>("/fixtures", { id: data.id });
+    const fixture = fixtures[0];
+    if (!fixture) throw new Error("Match introuvable.");
+    const cacheState = await getApiFootballCacheState("/fixtures", { id: data.id });
+    const summary = toSummary(fixture);
+    const defaults = summaryDetailDefaults({
+      fetchedAt: new Date(cacheState?.storedAt ?? Date.now()).toISOString(),
+      stale: cacheState?.stale ?? false,
+      unavailableSections: [
+        "événements",
+        "statistiques",
+        "compositions",
+        "confrontations",
+        "cotes",
+        "prédictions",
+        "absences",
+      ],
+    });
+    return { ...defaults, ...summary };
+  });
+
+/**
+ * Secondary sections are intentionally independent from the fast summary.
+ * The existing resilient detail loader keeps Promise.allSettled and stale
+ * cache behavior, while the browser can render the primary score first.
+ */
+export const getFixtureSections = createServerFn({ method: "GET" })
+  .inputValidator((input) => z.object({ id: z.number().int().positive() }).parse(input))
+  .handler(async ({ data }) => getFixtureDetail({ data }));
 
 export type StandingRow = {
   rank: number;

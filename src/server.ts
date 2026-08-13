@@ -10,10 +10,56 @@ if (typeof globalThis.WebSocket === "undefined") {
 
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
+import { getFixtureSections, getFixtureSummary } from "./lib/football.functions";
 
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
 };
+
+type LiveCoordinatorNamespace = {
+  getByName: (name: string) => { fetch: (request: Request) => Promise<Response> };
+};
+
+const LIVE_COORDINATOR_NAME = "global";
+const SHARED_LIVE_PATHS = new Set([
+  "/api/fixtures/today",
+  "/api/fixtures/live",
+  "/api/live-stream",
+]);
+
+async function handleSharedLiveRequest(request: Request, env: unknown): Promise<Response | null> {
+  const url = new URL(request.url);
+  if (!SHARED_LIVE_PATHS.has(url.pathname)) return null;
+
+  const namespace = (env as { LIVE_FOOTBALL_COORDINATOR?: LiveCoordinatorNamespace })
+    .LIVE_FOOTBALL_COORDINATOR;
+  if (!namespace) return null;
+
+  return namespace.getByName(LIVE_COORDINATOR_NAME).fetch(request);
+}
+
+async function handleFixtureSectionRequest(request: Request): Promise<Response | null> {
+  const match = new URL(request.url).pathname.match(/^\/api\/fixture\/(\d+)\/(summary|sections)$/);
+  if (!match) return null;
+  const id = Number(match[1]);
+  const data = { id };
+  try {
+    const payload = match[2] === "summary"
+      ? await getFixtureSummary({ data })
+      : await getFixtureSections({ data });
+    return new Response(JSON.stringify(payload), {
+      headers: {
+        "content-type": "application/json; charset=utf-8",
+        "cache-control": "private, max-age=10, stale-while-revalidate=30",
+      },
+    });
+  } catch (error) {
+    return new Response(
+      JSON.stringify({ error: error instanceof Error ? error.message : "Match indisponible" }),
+      { status: 503, headers: { "content-type": "application/json; charset=utf-8" } },
+    );
+  }
+}
 
 let serverEntryPromise: Promise<ServerEntry> | undefined;
 
@@ -72,6 +118,11 @@ function preventHtmlAssetMismatch(response: Response): Response {
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
+      const sharedLiveResponse = await handleSharedLiveRequest(request, env);
+      if (sharedLiveResponse) return sharedLiveResponse;
+      const fixtureSectionResponse = await handleFixtureSectionRequest(request);
+      if (fixtureSectionResponse) return fixtureSectionResponse;
+
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
       const normalized = await normalizeCatastrophicSsrResponse(response);

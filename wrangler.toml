@@ -24,6 +24,14 @@ required = [
 binding = "FOOTBALL_CACHE"
 id = "59705697c4c941d1b4b1e76f1b9662d7"
 
+[[durable_objects.bindings]]
+name = "LIVE_FOOTBALL_COORDINATOR"
+class_name = "LiveFootballCoordinator"
+
+[[migrations]]
+tag = "v1"
+new_classes = ["LiveFootballCoordinator"]
+
 # Secrets (set via: wrangler secret put SECRET_NAME)
 # APIFOOTBALL_KEY  ← wrangler secret put APIFOOTBALL_KEY
 

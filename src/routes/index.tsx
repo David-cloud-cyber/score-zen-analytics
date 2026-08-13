@@ -24,13 +24,14 @@ import { reportFixtureDiagnostic, track } from "@/lib/analytics";
 import { requestCookiePreferences } from "@/lib/meta-pixel";
 import { DEMO_FAVORITES, DEMO_FIXTURES, isLocalDemo } from "@/lib/local-demo";
 import { useSession } from "@/hooks/use-session";
+import { useLiveFixtureStream } from "@/hooks/use-live-fixture-stream";
 
 const fixturesQuery = (mode: "today" | "live", date?: string) =>
   queryOptions({
     queryKey: ["fixtures", mode, date ?? "today"],
     queryFn: () => getFixtures({ data: mode === "live" ? { live: true } : { date } }),
     staleTime: mode === "live" ? 30_000 : 60_000,
-    refetchInterval: mode === "live" ? 30_000 : 60_000,
+    refetchInterval: mode === "live" ? false : 60_000,
     refetchOnWindowFocus: true,
     retry: false,
     refetchIntervalInBackground: false,
@@ -193,6 +194,11 @@ function HomePage() {
     ...fixturesQuery("live"),
     enabled: !demoMode && dayOffset === 0,
   });
+  const liveStream = useLiveFixtureStream({
+    enabled: !demoMode && dayOffset === 0,
+    initialPayload: livePayload,
+    loadSnapshot: () => getFixtures({ data: { live: true } }),
+  });
   const favoritesQuery = useQuery({
     queryKey: ["me", "favorites"],
     queryFn: () => (demoMode ? Promise.resolve(DEMO_FAVORITES) : getFavorites()),
@@ -219,7 +225,8 @@ function HomePage() {
     [favoritesQuery.data],
   );
   const todayMatches = demoMode ? DEMO_FIXTURES : (todayPayload?.matches ?? []);
-  const liveMatches = demoMode ? [] : (livePayload?.matches ?? []);
+  const sharedLivePayload = dayOffset === 0 ? liveStream.payload ?? livePayload : undefined;
+  const liveMatches = demoMode ? [] : (sharedLivePayload?.matches ?? []);
   const mergedMatches = useMemo(() => {
     const byId = new Map<number, RemoteMatchSummary>();
     for (const match of todayMatches) byId.set(match.id, match);
@@ -264,22 +271,23 @@ function HomePage() {
   const topMatch = demoMode
     ? selectTrendingMatch(visibleFixtures)
     : visibleFixtures.find((match) => match.isTrending) ?? selectTrendingMatch(visibleFixtures);
-  const isFetching = isTodayFetching || isLiveFetching;
+  const isFetching = isTodayFetching || isLiveFetching || liveStream.isRefreshing;
   const todayUnavailable = !demoMode && (isTodayQueryError || todayPayload?.state === "unavailable");
-  const liveUnavailable = !demoMode && (isLiveQueryError || livePayload?.state === "unavailable");
+  const liveUnavailable =
+    !demoMode && (isLiveQueryError || sharedLivePayload?.state === "unavailable");
   const hasUsableMatches = visibleFixtures.length > 0;
 
   useEffect(() => {
     if (demoMode || (!todayUnavailable && !liveUnavailable)) return;
     reportFixtureDiagnostic({
       reason: todayUnavailable ? "today_unavailable" : "live_unavailable",
-      errorCode: todayPayload?.errorCode ?? livePayload?.errorCode ?? "network",
+      errorCode: todayPayload?.errorCode ?? sharedLivePayload?.errorCode ?? "network",
       stylesLoaded: Boolean(document.querySelector("link[rel=stylesheet][href*=styles]")),
       matchesCount: visibleFixtures.length,
-      cacheId: todayPayload?.cacheId ?? livePayload?.cacheId ?? null,
+      cacheId: todayPayload?.cacheId ?? sharedLivePayload?.cacheId ?? null,
       page: window.location.pathname,
     });
-  }, [demoMode, todayUnavailable, liveUnavailable, todayPayload, livePayload, visibleFixtures.length]);
+  }, [demoMode, todayUnavailable, liveUnavailable, todayPayload, sharedLivePayload, visibleFixtures.length]);
 
   return (
     <AppShell>
@@ -368,13 +376,14 @@ function HomePage() {
         )}
       </div>
 
-      {(todayPayload?.state === "stale" || livePayload?.state === "stale" || liveUnavailable) && (
+      {(todayPayload?.state === "stale" || sharedLivePayload?.state === "stale" || liveUnavailable) && (
         <FixturesStatusNotice
           payload={todayPayload}
-          livePayload={livePayload}
+          livePayload={sharedLivePayload}
           onRetry={() => {
             void refetchToday();
             void refetchLive();
+            liveStream.retry();
           }}
         />
       )}
