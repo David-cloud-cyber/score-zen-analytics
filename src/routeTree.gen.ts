@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AnalyseRouteImport } from './routes/analyse'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as CodesPromoRouteImport } from './routes/codes-promo'
@@ -20,6 +21,16 @@ import { Route as PremiumRouteImport } from './routes/premium'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as AuthenticatedFavorisRouteImport } from './routes/_authenticated/favoris'
 import { Route as AuthenticatedProfilRouteImport } from './routes/_authenticated/profil'
+import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as AdminAnalysesRouteImport } from './routes/admin.analyses'
+import { Route as AdminApiRouteImport } from './routes/admin.api'
+import { Route as AdminAuditRouteImport } from './routes/admin.audit'
+import { Route as AdminCommunauteRouteImport } from './routes/admin.communaute'
+import { Route as AdminContenusRouteImport } from './routes/admin.contenus'
+import { Route as AdminExportsRouteImport } from './routes/admin.exports'
+import { Route as AdminPaiementsRouteImport } from './routes/admin.paiements'
+import { Route as AdminParametresRouteImport } from './routes/admin.parametres'
+import { Route as AdminUtilisateursRouteImport } from './routes/admin.utilisateurs'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as CodesPromoIndexRouteImport } from './routes/codes-promo.index'
 import { Route as CodesPromoSlugRouteImport } from './routes/codes-promo.$slug'
@@ -41,6 +52,11 @@ const IndexRoute = IndexRouteImport.update({
 } as any)
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AnalyseRoute = AnalyseRouteImport.update({
@@ -87,6 +103,56 @@ const AuthenticatedProfilRoute = AuthenticatedProfilRouteImport.update({
   id: '/profil',
   path: '/profil',
   getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminAnalysesRoute = AdminAnalysesRouteImport.update({
+  id: '/analyses',
+  path: '/analyses',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminApiRoute = AdminApiRouteImport.update({
+  id: '/api',
+  path: '/api',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminAuditRoute = AdminAuditRouteImport.update({
+  id: '/audit',
+  path: '/audit',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminCommunauteRoute = AdminCommunauteRouteImport.update({
+  id: '/communaute',
+  path: '/communaute',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminContenusRoute = AdminContenusRouteImport.update({
+  id: '/contenus',
+  path: '/contenus',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminExportsRoute = AdminExportsRouteImport.update({
+  id: '/exports',
+  path: '/exports',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminPaiementsRoute = AdminPaiementsRouteImport.update({
+  id: '/paiements',
+  path: '/paiements',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminParametresRoute = AdminParametresRouteImport.update({
+  id: '/parametres',
+  path: '/parametres',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminUtilisateursRoute = AdminUtilisateursRouteImport.update({
+  id: '/utilisateurs',
+  path: '/utilisateurs',
+  getParentRoute: () => AdminRoute,
 } as any)
 const AuthCallbackRoute = AuthCallbackRouteImport.update({
   id: '/callback',
@@ -157,6 +223,7 @@ const CodesPromoSlugCountryRoute = CodesPromoSlugCountryRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRouteWithChildren
   '/analyse': typeof AnalyseRoute
   '/auth': typeof AuthRouteWithChildren
   '/codes-promo': typeof CodesPromoRouteWithChildren
@@ -166,6 +233,15 @@ export interface FileRoutesByFullPath {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/favoris': typeof AuthenticatedFavorisRoute
   '/profil': typeof AuthenticatedProfilRoute
+  '/admin/analyses': typeof AdminAnalysesRoute
+  '/admin/api': typeof AdminApiRoute
+  '/admin/audit': typeof AdminAuditRoute
+  '/admin/communaute': typeof AdminCommunauteRoute
+  '/admin/contenus': typeof AdminContenusRoute
+  '/admin/exports': typeof AdminExportsRoute
+  '/admin/paiements': typeof AdminPaiementsRoute
+  '/admin/parametres': typeof AdminParametresRoute
+  '/admin/utilisateurs': typeof AdminUtilisateursRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/codes-promo/$slug': typeof CodesPromoSlugRouteWithChildren
   '/codes-promo/cameroun': typeof CodesPromoCamerounRoute
@@ -175,6 +251,7 @@ export interface FileRoutesByFullPath {
   '/match/$id': typeof MatchIdRoute
   '/premium/historique': typeof PremiumHistoriqueRoute
   '/premium/tableau-de-bord': typeof PremiumTableauDeBordRoute
+  '/admin/': typeof AdminIndexRoute
   '/codes-promo/': typeof CodesPromoIndexRoute
   '/api/public/fapshi-webhook': typeof ApiPublicFapshiWebhookRoute
   '/api/public/fixture-diagnostic': typeof ApiPublicFixtureDiagnosticRoute
@@ -190,6 +267,15 @@ export interface FileRoutesByTo {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/favoris': typeof AuthenticatedFavorisRoute
   '/profil': typeof AuthenticatedProfilRoute
+  '/admin/analyses': typeof AdminAnalysesRoute
+  '/admin/api': typeof AdminApiRoute
+  '/admin/audit': typeof AdminAuditRoute
+  '/admin/communaute': typeof AdminCommunauteRoute
+  '/admin/contenus': typeof AdminContenusRoute
+  '/admin/exports': typeof AdminExportsRoute
+  '/admin/paiements': typeof AdminPaiementsRoute
+  '/admin/parametres': typeof AdminParametresRoute
+  '/admin/utilisateurs': typeof AdminUtilisateursRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/codes-promo/$slug': typeof CodesPromoSlugRouteWithChildren
   '/codes-promo/cameroun': typeof CodesPromoCamerounRoute
@@ -199,6 +285,7 @@ export interface FileRoutesByTo {
   '/match/$id': typeof MatchIdRoute
   '/premium/historique': typeof PremiumHistoriqueRoute
   '/premium/tableau-de-bord': typeof PremiumTableauDeBordRoute
+  '/admin': typeof AdminIndexRoute
   '/codes-promo': typeof CodesPromoIndexRoute
   '/api/public/fapshi-webhook': typeof ApiPublicFapshiWebhookRoute
   '/api/public/fixture-diagnostic': typeof ApiPublicFixtureDiagnosticRoute
@@ -208,6 +295,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/admin': typeof AdminRouteWithChildren
   '/analyse': typeof AnalyseRoute
   '/auth': typeof AuthRouteWithChildren
   '/codes-promo': typeof CodesPromoRouteWithChildren
@@ -217,6 +305,15 @@ export interface FileRoutesById {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/_authenticated/favoris': typeof AuthenticatedFavorisRoute
   '/_authenticated/profil': typeof AuthenticatedProfilRoute
+  '/admin/analyses': typeof AdminAnalysesRoute
+  '/admin/api': typeof AdminApiRoute
+  '/admin/audit': typeof AdminAuditRoute
+  '/admin/communaute': typeof AdminCommunauteRoute
+  '/admin/contenus': typeof AdminContenusRoute
+  '/admin/exports': typeof AdminExportsRoute
+  '/admin/paiements': typeof AdminPaiementsRoute
+  '/admin/parametres': typeof AdminParametresRoute
+  '/admin/utilisateurs': typeof AdminUtilisateursRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/codes-promo/$slug': typeof CodesPromoSlugRouteWithChildren
   '/codes-promo/cameroun': typeof CodesPromoCamerounRoute
@@ -226,6 +323,7 @@ export interface FileRoutesById {
   '/match/$id': typeof MatchIdRoute
   '/premium/historique': typeof PremiumHistoriqueRoute
   '/premium/tableau-de-bord': typeof PremiumTableauDeBordRoute
+  '/admin/': typeof AdminIndexRoute
   '/codes-promo/': typeof CodesPromoIndexRoute
   '/api/public/fapshi-webhook': typeof ApiPublicFapshiWebhookRoute
   '/api/public/fixture-diagnostic': typeof ApiPublicFixtureDiagnosticRoute
@@ -235,6 +333,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/admin'
     | '/analyse'
     | '/auth'
     | '/codes-promo'
@@ -244,6 +343,15 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/favoris'
     | '/profil'
+    | '/admin/analyses'
+    | '/admin/api'
+    | '/admin/audit'
+    | '/admin/communaute'
+    | '/admin/contenus'
+    | '/admin/exports'
+    | '/admin/paiements'
+    | '/admin/parametres'
+    | '/admin/utilisateurs'
     | '/auth/callback'
     | '/codes-promo/$slug'
     | '/codes-promo/cameroun'
@@ -253,6 +361,7 @@ export interface FileRouteTypes {
     | '/match/$id'
     | '/premium/historique'
     | '/premium/tableau-de-bord'
+    | '/admin/'
     | '/codes-promo/'
     | '/api/public/fapshi-webhook'
     | '/api/public/fixture-diagnostic'
@@ -268,6 +377,15 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/favoris'
     | '/profil'
+    | '/admin/analyses'
+    | '/admin/api'
+    | '/admin/audit'
+    | '/admin/communaute'
+    | '/admin/contenus'
+    | '/admin/exports'
+    | '/admin/paiements'
+    | '/admin/parametres'
+    | '/admin/utilisateurs'
     | '/auth/callback'
     | '/codes-promo/$slug'
     | '/codes-promo/cameroun'
@@ -277,6 +395,7 @@ export interface FileRouteTypes {
     | '/match/$id'
     | '/premium/historique'
     | '/premium/tableau-de-bord'
+    | '/admin'
     | '/codes-promo'
     | '/api/public/fapshi-webhook'
     | '/api/public/fixture-diagnostic'
@@ -285,6 +404,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/_authenticated'
+    | '/admin'
     | '/analyse'
     | '/auth'
     | '/codes-promo'
@@ -294,6 +414,15 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/_authenticated/favoris'
     | '/_authenticated/profil'
+    | '/admin/analyses'
+    | '/admin/api'
+    | '/admin/audit'
+    | '/admin/communaute'
+    | '/admin/contenus'
+    | '/admin/exports'
+    | '/admin/paiements'
+    | '/admin/parametres'
+    | '/admin/utilisateurs'
     | '/auth/callback'
     | '/codes-promo/$slug'
     | '/codes-promo/cameroun'
@@ -303,6 +432,7 @@ export interface FileRouteTypes {
     | '/match/$id'
     | '/premium/historique'
     | '/premium/tableau-de-bord'
+    | '/admin/'
     | '/codes-promo/'
     | '/api/public/fapshi-webhook'
     | '/api/public/fixture-diagnostic'
@@ -312,6 +442,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  AdminRoute: typeof AdminRouteWithChildren
   AnalyseRoute: typeof AnalyseRoute
   AuthRoute: typeof AuthRouteWithChildren
   CodesPromoRoute: typeof CodesPromoRouteWithChildren
@@ -339,6 +470,13 @@ declare module '@tanstack/react-router' {
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof AuthenticatedRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/analyse': {
@@ -403,6 +541,76 @@ declare module '@tanstack/react-router' {
       fullPath: '/profil'
       preLoaderRoute: typeof AuthenticatedProfilRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/admin/': {
+      id: '/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/analyses': {
+      id: '/admin/analyses'
+      path: '/analyses'
+      fullPath: '/admin/analyses'
+      preLoaderRoute: typeof AdminAnalysesRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/api': {
+      id: '/admin/api'
+      path: '/api'
+      fullPath: '/admin/api'
+      preLoaderRoute: typeof AdminApiRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/audit': {
+      id: '/admin/audit'
+      path: '/audit'
+      fullPath: '/admin/audit'
+      preLoaderRoute: typeof AdminAuditRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/communaute': {
+      id: '/admin/communaute'
+      path: '/communaute'
+      fullPath: '/admin/communaute'
+      preLoaderRoute: typeof AdminCommunauteRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/contenus': {
+      id: '/admin/contenus'
+      path: '/contenus'
+      fullPath: '/admin/contenus'
+      preLoaderRoute: typeof AdminContenusRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/exports': {
+      id: '/admin/exports'
+      path: '/exports'
+      fullPath: '/admin/exports'
+      preLoaderRoute: typeof AdminExportsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/paiements': {
+      id: '/admin/paiements'
+      path: '/paiements'
+      fullPath: '/admin/paiements'
+      preLoaderRoute: typeof AdminPaiementsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/parametres': {
+      id: '/admin/parametres'
+      path: '/parametres'
+      fullPath: '/admin/parametres'
+      preLoaderRoute: typeof AdminParametresRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/utilisateurs': {
+      id: '/admin/utilisateurs'
+      path: '/utilisateurs'
+      fullPath: '/admin/utilisateurs'
+      preLoaderRoute: typeof AdminUtilisateursRouteImport
+      parentRoute: typeof AdminRoute
     }
     '/auth/callback': {
       id: '/auth/callback'
@@ -511,6 +719,34 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
 const AuthenticatedRouteRouteWithChildren =
   AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
 
+interface AdminRouteChildren {
+  AdminAnalysesRoute: typeof AdminAnalysesRoute
+  AdminApiRoute: typeof AdminApiRoute
+  AdminAuditRoute: typeof AdminAuditRoute
+  AdminCommunauteRoute: typeof AdminCommunauteRoute
+  AdminContenusRoute: typeof AdminContenusRoute
+  AdminExportsRoute: typeof AdminExportsRoute
+  AdminPaiementsRoute: typeof AdminPaiementsRoute
+  AdminParametresRoute: typeof AdminParametresRoute
+  AdminUtilisateursRoute: typeof AdminUtilisateursRoute
+  AdminIndexRoute: typeof AdminIndexRoute
+}
+
+const AdminRouteChildren: AdminRouteChildren = {
+  AdminAnalysesRoute: AdminAnalysesRoute,
+  AdminApiRoute: AdminApiRoute,
+  AdminAuditRoute: AdminAuditRoute,
+  AdminCommunauteRoute: AdminCommunauteRoute,
+  AdminContenusRoute: AdminContenusRoute,
+  AdminExportsRoute: AdminExportsRoute,
+  AdminPaiementsRoute: AdminPaiementsRoute,
+  AdminParametresRoute: AdminParametresRoute,
+  AdminUtilisateursRoute: AdminUtilisateursRoute,
+  AdminIndexRoute: AdminIndexRoute,
+}
+
+const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
+
 interface AuthRouteChildren {
   AuthCallbackRoute: typeof AuthCallbackRoute
 }
@@ -569,6 +805,7 @@ const PremiumRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  AdminRoute: AdminRouteWithChildren,
   AnalyseRoute: AnalyseRoute,
   AuthRoute: AuthRouteWithChildren,
   CodesPromoRoute: CodesPromoRouteWithChildren,

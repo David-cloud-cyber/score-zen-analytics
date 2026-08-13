@@ -56,6 +56,8 @@ type QuotaState = {
   minuteRemaining?: number;
 };
 
+export type ApiFootballQuotaState = Omit<QuotaState, "updatedAt"> & { updatedAt: number };
+
 const memoryCache = new Map<string, CacheEnvelope>();
 const inflight = new Map<string, Promise<unknown>>();
 let activeUpstreamRequests = 0;
@@ -469,4 +471,8 @@ export function todayISO(): string {
   const m = String(d.getUTCMonth() + 1).padStart(2, "0");
   const day = String(d.getUTCDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
+}
+
+export async function getApiFootballQuotaState(): Promise<ApiFootballQuotaState> {
+  return { ...(await readQuotaState()) };
 }

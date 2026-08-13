@@ -68,6 +68,78 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_audit_log: {
+        Row: {
+          id: string
+          actor_id: string
+          action: string
+          target_type: string
+          target_id: string | null
+          reason: string | null
+          before_state: Json | null
+          after_state: Json | null
+          request_id: string | null
+          metadata: Json | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          actor_id: string
+          action: string
+          target_type: string
+          target_id?: string | null
+          reason?: string | null
+          before_state?: Json | null
+          after_state?: Json | null
+          request_id?: string | null
+          metadata?: Json | null
+          created_at?: string
+        }
+        Update: never
+        Relationships: []
+      }
+      admin_action_requests: {
+        Row: {
+          id: string
+          action_type: string
+          target_type: string
+          target_id: string | null
+          requested_by: string
+          approved_by: string | null
+          reason: string
+          payload: Json
+          status: string
+          created_at: string
+          approved_at: string | null
+          executed_at: string | null
+          result: Json | null
+        }
+        Insert: {
+          id?: string
+          action_type: string
+          target_type: string
+          target_id?: string | null
+          requested_by: string
+          approved_by?: string | null
+          reason: string
+          payload?: Json
+          status?: string
+          created_at?: string
+          approved_at?: string | null
+          executed_at?: string | null
+          result?: Json | null
+        }
+        Update: {
+          approved_by?: string | null
+          approved_at?: string | null
+          executed_at?: string | null
+          payload?: Json
+          reason?: string
+          result?: Json | null
+          status?: string
+        }
+        Relationships: []
+      }
       community_predictions: {
         Row: {
           id: string
@@ -235,6 +307,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          account_status: "active" | "suspended"
           avatar_url: string | null
           created_at: string
           credits: number
@@ -245,8 +318,12 @@ export type Database = {
           referral_code: string | null
           referred_by: string | null
           updated_at: string
+          suspended_at: string | null
+          suspended_by: string | null
+          suspension_reason: string | null
         }
         Insert: {
+          account_status?: "active" | "suspended"
           avatar_url?: string | null
           created_at?: string
           credits?: number
@@ -257,8 +334,12 @@ export type Database = {
           referral_code?: string | null
           referred_by?: string | null
           updated_at?: string
+          suspended_at?: string | null
+          suspended_by?: string | null
+          suspension_reason?: string | null
         }
         Update: {
+          account_status?: "active" | "suspended"
           avatar_url?: string | null
           created_at?: string
           credits?: number
@@ -269,6 +350,9 @@ export type Database = {
           referral_code?: string | null
           referred_by?: string | null
           updated_at?: string
+          suspended_at?: string | null
+          suspended_by?: string | null
+          suspension_reason?: string | null
         }
         Relationships: [
           {
@@ -398,7 +482,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "user"
+      app_role: "admin" | "owner" | "user"
       credit_kind: "analysis" | "topup" | "bonus" | "refund" | "subscription"
       favorite_kind: "team" | "competition" | "match"
       plan_tier: "free" | "premium"
@@ -530,7 +614,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "user"],
+      app_role: ["admin", "owner", "user"],
       credit_kind: ["analysis", "topup", "bonus", "refund", "subscription"],
       favorite_kind: ["team", "competition", "match"],
       plan_tier: ["free", "premium"],
