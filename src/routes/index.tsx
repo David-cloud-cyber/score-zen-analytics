@@ -11,7 +11,7 @@ import {
   CalendarDays,
   Flame,
 } from "lucide-react";
-import { AppShell, PageTitle } from "@/components/AppShell";
+import { AppShell } from "@/components/AppShell";
 import { RemoteMatchCard } from "@/components/RemoteMatchCard";
 import { getFixtures } from "@/lib/football.functions";
 import { getMyPremiumFavorites } from "@/lib/premium-hub.functions";
@@ -227,11 +227,6 @@ function HomePage() {
 
   return (
     <AppShell>
-      <PageTitle
-        eyebrow={`${selectedDateLabel} · ${today}`}
-        title="Matchs du jour et scores en direct"
-      />
-
       <div className="no-scrollbar flex gap-2 overflow-x-auto px-4 pb-3 lg:px-0">
         {(
           [
@@ -314,36 +309,36 @@ function HomePage() {
 
       {/* Hero banner */}
       {topMatch && (
-        <div className="grid gap-4 px-4 lg:grid-cols-3 lg:gap-5 lg:px-0">
+        <div className="grid items-start gap-4 px-4 lg:grid-cols-3 lg:gap-5 lg:px-0">
           <Link
             to="/live/$id"
             params={{ id: String(topMatch.id) }}
-            className="trending-match-card group relative block overflow-hidden p-5 transition-transform hover:-translate-y-0.5 lg:col-span-2 lg:p-9"
+            className="trending-match-card group relative block overflow-hidden p-5 transition-transform hover:-translate-y-0.5 lg:col-span-2 lg:p-7"
           >
-            <div className="trending-match-halo trending-match-halo-blue pointer-events-none absolute -right-20 -top-24 size-64 transition-transform group-hover:scale-110" />
-            <div className="trending-match-halo trending-match-halo-green pointer-events-none absolute -bottom-28 -left-20 size-64 transition-transform group-hover:scale-110" />
+            <div className="trending-match-halo trending-match-halo-blue pointer-events-none absolute -right-16 -top-16 size-48 transition-transform group-hover:scale-110" />
+            <div className="trending-match-halo trending-match-halo-green pointer-events-none absolute -bottom-20 -left-10 size-40 transition-transform group-hover:scale-110" />
             <div className="relative">
-              <div className="trending-badge mb-4 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[10px] font-black uppercase tracking-wider">
+              <div className="trending-badge mb-3 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-wider">
                 <Flame className="size-3" /> Trending
               </div>
-              <h2 className="trending-match-title text-[27px] font-black leading-[1.05] tracking-tight lg:text-[38px]">
+              <h2 className="trending-match-title text-[22px] font-black leading-tight tracking-tight lg:text-3xl">
                 {topMatch.home.name} <span className="trending-match-muted">vs</span>{" "}
                 {topMatch.away.name}
               </h2>
-              <p className="trending-match-meta mt-4 text-sm leading-relaxed lg:text-[17px]">
+              <p className="trending-match-meta mt-2 text-xs leading-relaxed lg:text-sm">
                 {topMatch.league.name} · {topMatch.venue ?? topMatch.dayLabel} ·{" "}
                 {topMatch.status === "live" || topMatch.status === "ht"
                   ? `En direct${topMatch.minute ? ` · ${topMatch.minute}'` : ""}`
                   : `Coup d'envoi ${topMatch.timeLabel}`}
                 .
               </p>
-              <div className="mt-5 flex items-center gap-4">
+              <div className="mt-4 flex items-center gap-4">
                 <img
                   src={topMatch.home.logo}
                   alt={`Logo ${topMatch.home.name}`}
-                  className="size-12 object-contain lg:size-14"
+                  className="size-10 object-contain"
                 />
-                <div className="trending-match-score text-4xl font-black tabular-nums lg:text-[42px]">
+                <div className="trending-match-score text-3xl font-black tabular-nums">
                   {topMatch.homeScore ?? "—"}
                   <span className="mx-2 text-background/40">·</span>
                   {topMatch.awayScore ?? "—"}
@@ -351,10 +346,10 @@ function HomePage() {
                 <img
                   src={topMatch.away.logo}
                   alt={`Logo ${topMatch.away.name}`}
-                  className="size-12 object-contain lg:size-14"
+                  className="size-10 object-contain"
                 />
               </div>
-              <div className="mt-5 flex items-center justify-between text-sm font-bold">
+              <div className="mt-4 flex items-center justify-between text-xs font-bold">
                 <span>Voir la fiche complète</span>
                 <ChevronRight className="size-4 transition-transform group-hover:translate-x-1" />
               </div>
@@ -365,21 +360,21 @@ function HomePage() {
             to="/analyse"
             search={{ home: "", away: "" }}
             onClick={() => track("cta_click", { location: "home_desktop_card" })}
-            className="hidden overflow-hidden rounded-3xl bg-brand/10 p-6 ring-1 ring-brand/20 transition-all hover:bg-brand/15 lg:flex lg:flex-col lg:justify-between"
+            className="hidden self-start overflow-hidden rounded-3xl bg-brand/10 p-5 ring-1 ring-brand/20 transition-all hover:bg-brand/15 lg:flex lg:flex-col"
           >
             <div>
-              <div className="mb-3 inline-flex items-center gap-1.5 rounded-full bg-brand/20 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-brand">
+              <div className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-brand/20 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-brand">
                 <Sparkles className="size-3" /> Prédictions
               </div>
 
-              <h3 className="text-xl font-black leading-tight tracking-tight">
+              <h3 className="text-lg font-black leading-tight tracking-tight">
                 Analysez deux équipes de votre choix
               </h3>
-              <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+              <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
                 Probabilités 1X2, marchés recommandés et facteurs clés — instantanément.
               </p>
             </div>
-            <div className="mt-4 inline-flex items-center gap-2 text-xs font-black text-brand">
+            <div className="mt-5 inline-flex items-center gap-2 text-[11px] font-black text-brand">
               Lancer une analyse <ChevronRight className="size-4" />
             </div>
           </Link>
