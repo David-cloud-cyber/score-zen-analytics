@@ -20,6 +20,7 @@ import { WinProbabilityDonut, WinProbabilityLegend } from "@/components/WinProba
 import { MarketCard } from "@/components/MarketCard";
 import { useServerFn } from "@tanstack/react-start";
 import { runAnalysis, type AnalysisResult } from "@/lib/analyses.functions";
+import { getTeams, type TeamRow } from "@/lib/football.functions";
 import { useSession } from "@/hooks/use-session";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -121,7 +122,15 @@ export const Route = createFileRoute("/analyse")({
   component: AnalysePage,
 });
 
-// Popular teams database for instant selection & autocompletion
+type TeamSuggestion = {
+  id?: number;
+  name: string;
+  league: string;
+  logo: string;
+};
+
+// Repères de démarrage : la recherche distante API-Football complète toujours
+// cette liste dès que l'utilisateur saisit au moins deux caractères.
 const POPULAR_TEAMS = [
   {
     name: "Real Madrid",
@@ -183,7 +192,7 @@ const POPULAR_TEAMS = [
     league: "Ligue 1 🇫🇷",
     logo: "https://media.api-sports.io/football/teams/81.png",
   },
-];
+] satisfies TeamSuggestion[];
 
 function AnalysePage() {
   const demoMode = isLocalDemo();
@@ -548,13 +557,56 @@ function TeamAutocompleteInput({
   placeholder?: string;
 }) {
   const [open, setOpen] = useState(false);
+  const [remoteTeams, setRemoteTeams] = useState<TeamRow[]>([]);
+  const [remoteLoading, setRemoteLoading] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const inputId = useId();
+  const getTeamsFn = useServerFn(getTeams);
 
-  const filtered =
-    value.trim().length >= 1
-      ? POPULAR_TEAMS.filter((t) => t.name.toLowerCase().includes(value.toLowerCase()))
+  useEffect(() => {
+    const query = value.trim();
+    if (query.length < 2) {
+      setRemoteTeams([]);
+      setRemoteLoading(false);
+      return;
+    }
+
+    let active = true;
+    const timer = window.setTimeout(() => {
+      setRemoteLoading(true);
+      void getTeamsFn({ data: { search: query } })
+        .then((teams) => {
+          if (active) setRemoteTeams(teams);
+        })
+        .catch(() => {
+          if (active) setRemoteTeams([]);
+        })
+        .finally(() => {
+          if (active) setRemoteLoading(false);
+        });
+    }, 300);
+
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
+  }, [getTeamsFn, value]);
+
+  const query = value.trim().toLowerCase();
+  const remoteSuggestions: TeamSuggestion[] = remoteTeams.map((team) => ({
+    id: team.id,
+    name: team.name,
+    league: [team.country, team.code].filter(Boolean).join(" · "),
+    logo: team.logo,
+  }));
+  const localSuggestions =
+    query.length >= 1
+      ? POPULAR_TEAMS.filter((team) => team.name.toLowerCase().includes(query))
       : [];
+  const filtered = [...remoteSuggestions, ...localSuggestions].filter(
+    (team, index, all) =>
+      all.findIndex((candidate) => candidate.name.toLowerCase() === team.name.toLowerCase()) === index,
+  ).slice(0, 8);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -601,11 +653,16 @@ function TeamAutocompleteInput({
       </div>
 
       {/* Autocomplete Dropdown */}
-      {open && filtered.length > 0 && (
+      {open && (filtered.length > 0 || remoteLoading) && (
         <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-56 overflow-y-auto rounded-2xl bg-card p-1.5 shadow-xl ring-1 ring-black/10 dark:ring-white/10">
+          {remoteLoading && (
+            <div className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-muted-foreground">
+              <Loader2 className="size-3.5 animate-spin text-brand" /> Recherche des équipes…
+            </div>
+          )}
           {filtered.map((team) => (
             <button
-              key={team.name}
+              key={`${team.id ?? "popular"}-${team.name}`}
               type="button"
               onClick={() => {
                 onChange(team.name);
