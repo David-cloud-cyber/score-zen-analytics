@@ -126,14 +126,19 @@ function hasReference(reference: string, id: number, names: string[]): boolean {
   );
 }
 
+function toArray(
+  references: ReadonlySet<string> | readonly string[] | undefined,
+): readonly string[] {
+  if (!references) return [];
+  return references instanceof Set ? [...references] : (references as readonly string[]);
+}
+
 function includesReference(
   references: MatchRankingOptions["favoriteTeamIds"] | MatchRankingOptions["favoriteTeamNames"],
   id: number,
   names: string[],
 ): boolean {
-  if (!references) return false;
-  const values = references instanceof Set ? [...references] : references;
-  return values.some((reference) => hasReference(String(reference), id, names));
+  return toArray(references).some((reference) => hasReference(String(reference), id, names));
 }
 
 function isFavorite(
@@ -142,12 +147,9 @@ function isFavorite(
   favoriteTeamIds?: MatchRankingOptions["favoriteTeamIds"],
   favoriteTeamNames?: MatchRankingOptions["favoriteTeamNames"],
 ): boolean {
-  const matchIsFavorite = favoriteMatchIds
-    ? favoriteMatchIds instanceof Set
-      ? favoriteMatchIds.has(String(match.id))
-      : favoriteMatchIds.includes(String(match.id))
-    : false;
+  const matchIsFavorite = toArray(favoriteMatchIds).includes(String(match.id));
   if (matchIsFavorite) return true;
+
 
   const teamReferences = [favoriteTeamIds, favoriteTeamNames].filter(Boolean) as string[][];
   return [match.home, match.away].some((team) =>
