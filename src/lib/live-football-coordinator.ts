@@ -178,7 +178,9 @@ export class LiveFootballCoordinator extends DurableObject<CoordinatorEnv> {
   }
 
   private async readEnvelope(key: string): Promise<SharedSnapshotEnvelope | null> {
-    const value = await this.env.FOOTBALL_CACHE?.get(key, { type: "json", cacheTtl: 15 });
+    // Cloudflare KV requires cacheTtl >= 30 seconds. The snapshot freshness
+    // itself remains 15 seconds; this only controls the edge read cache.
+    const value = await this.env.FOOTBALL_CACHE?.get(key, { type: "json", cacheTtl: 30 });
     return isSnapshotEnvelope(value) ? value : null;
   }
 
@@ -189,7 +191,7 @@ export class LiveFootballCoordinator extends DurableObject<CoordinatorEnv> {
   }
 
   private async readQuotaBlockedUntil(): Promise<number> {
-    const value = await this.env.FOOTBALL_CACHE?.get(QUOTA_KEY, { type: "json", cacheTtl: 15 });
+    const value = await this.env.FOOTBALL_CACHE?.get(QUOTA_KEY, { type: "json", cacheTtl: 30 });
     return value && typeof value === "object" && typeof (value as { blockedUntil?: unknown }).blockedUntil === "number"
       ? ((value as { blockedUntil: number }).blockedUntil)
       : 0;
