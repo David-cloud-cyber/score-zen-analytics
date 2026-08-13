@@ -196,12 +196,33 @@ button{font:inherit;color:inherit;background:none;border:0}
 `.trim();
 
 /**
- * Si la feuille de styles principale est bloquée (proxy, mode data-saver,
- * extension), on la recharge une fois pour éviter une page sans mise en forme.
+ * Si la feuille de styles principale est bloquée (proxy opérateur, mode
+ * data-saver type Opera Max, extension), on tente d'abord un rechargement du
+ * <link>, puis un fetch + injection inline. Vérifié plusieurs fois car les
+ * proxies mobiles peuvent couper la réponse en cours de route.
  */
 const CSS_GUARD_SCRIPT = `
-(function(){function c(){try{var p=document.createElement('div');p.className='hidden';p.setAttribute('style','position:absolute');document.body.appendChild(p);var ok=getComputedStyle(p).display==='none';p.remove();if(ok)return;var l=document.querySelector('link[rel=stylesheet][href*="styles"]');if(!l||l.dataset.retried)return;var n=l.cloneNode();n.dataset.retried='1';n.href=l.getAttribute('href')+(l.getAttribute('href').indexOf('?')>-1?'&':'?')+'r='+Date.now();document.head.appendChild(n);}catch(e){}}if(document.readyState==='complete'){setTimeout(c,600)}else{window.addEventListener('load',function(){setTimeout(c,600)})}})();
+(function(){
+var tries=0;
+function styled(){try{var p=document.createElement('div');p.className='hidden';p.setAttribute('style','position:absolute');(document.body||document.documentElement).appendChild(p);var ok=getComputedStyle(p).display==='none';p.remove();return ok}catch(e){return true}}
+function href(){var l=document.querySelector('link[rel=stylesheet][href*="styles"]');return l&&l.getAttribute('href')}
+function check(){
+  if(styled())return;
+  tries++;
+  var h=href();if(!h)return;
+  var u=h+(h.indexOf('?')>-1?'&':'?')+'r='+Date.now();
+  if(tries===1){var n=document.createElement('link');n.rel='stylesheet';n.href=u;document.head.appendChild(n);return}
+  if(tries===2){
+    try{fetch(u,{cache:'reload'}).then(function(r){return r.ok?r.text():null}).then(function(t){
+      if(!t||styled())return;var s=document.createElement('style');s.setAttribute('data-css-guard','1');s.textContent=t;document.head.appendChild(s);
+    }).catch(function(){})}catch(e){}
+  }
+}
+function schedule(){setTimeout(check,400);setTimeout(check,1600);setTimeout(check,4000)}
+if(document.readyState==='complete'){schedule()}else{window.addEventListener('load',schedule)}
+})();
 `.trim();
+
 
 // Vite dev sert le fichier source comme module JS par défaut. Le suffixe
 // `direct` force une vraie réponse text/css pour le SSR et les téléphones qui
