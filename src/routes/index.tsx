@@ -227,27 +227,29 @@ function HomePage() {
 
   return (
     <AppShell>
-      <div className="no-scrollbar flex gap-2 overflow-x-auto px-4 pb-3 lg:px-0">
-        {(
-          [
-            ["Football", true],
-            ["Basket-ball", false],
-            ["Tennis", false],
-            ["Handball", false],
-          ] as const
-        ).map(([label, active]) => (
-          <span
-            key={label}
-            className={cn(
-              "score-sport-filter h-8 shrink-0 rounded-full px-3 py-1.5 text-[10px] font-semibold leading-5",
-              active
-                ? "bg-foreground text-background"
-                : "bg-surface text-muted-foreground ring-1 ring-black/5 dark:ring-white/10",
-            )}
-          >
-            {label}
-          </span>
-        ))}
+      <div className="no-scrollbar overflow-x-auto px-4 pb-3 pt-6 lg:px-0 lg:pt-6">
+        <div className="flex w-max min-w-full justify-center gap-2">
+          {(
+            [
+              ["Football", true],
+              ["Basket-ball", false],
+              ["Tennis", false],
+              ["Handball", false],
+            ] as const
+          ).map(([label, active]) => (
+            <span
+              key={label}
+              className={cn(
+                "score-sport-filter h-8 shrink-0 rounded-full px-3 py-1.5 text-[10px] font-semibold leading-5",
+                active
+                  ? "bg-foreground text-background"
+                  : "bg-surface text-muted-foreground ring-1 ring-black/5 dark:ring-white/10",
+              )}
+            >
+              {label}
+            </span>
+          ))}
+        </div>
       </div>
 
       <div className="mx-4 mb-4 flex items-center justify-between rounded-xl border border-border/60 bg-card px-3 py-2.5 lg:mx-0">
