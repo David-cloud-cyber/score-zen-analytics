@@ -31,8 +31,12 @@ async function handleSharedLiveRequest(request: Request, env: unknown): Promise<
   const url = new URL(request.url);
   if (!SHARED_LIVE_PATHS.has(url.pathname)) return null;
 
-  const namespace = (env as { LIVE_FOOTBALL_COORDINATOR?: LiveCoordinatorNamespace })
-    .LIVE_FOOTBALL_COORDINATOR;
+  // TanStack Start invokes this server entry from Nitro without forwarding the
+  // Cloudflare env argument. Nitro stores it on __env__ before dispatching the
+  // SSR handler, so use it as the fallback for Worker-only bindings.
+  const runtimeEnv = env ?? (globalThis as { __env__?: unknown }).__env__;
+  const namespace = (runtimeEnv as { LIVE_FOOTBALL_COORDINATOR?: LiveCoordinatorNamespace } | undefined)
+    ?.LIVE_FOOTBALL_COORDINATOR;
   if (!namespace) return null;
 
   return namespace.getByName(LIVE_COORDINATOR_NAME).fetch(request);
