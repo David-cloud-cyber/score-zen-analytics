@@ -1,7 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { apiFootball, todayISO } from "./apifootball.server";
-import { rankMatches, type MatchRankingSignal } from "./match-ranking";
+import {
+  rankMatches,
+  selectTrendingMatch,
+  type MatchRankingSignal,
+} from "./match-ranking";
 import type {
   ApiEvent,
   ApiH2H,
@@ -233,7 +237,11 @@ async function rankApiFixtures(fixtures: ApiFixture[]): Promise<RemoteMatchSumma
   for (const [fixtureId, communitySignal] of communitySignals) {
     signals.set(fixtureId, { ...signals.get(fixtureId), ...communitySignal });
   }
-  return rankMatches(summaries, { signals });
+  const trending = selectTrendingMatch(summaries, signals);
+  return rankMatches(summaries, { signals }).map((match) => ({
+    ...match,
+    isTrending: match.id === trending?.id,
+  }));
 }
 
 // ---------- server functions ----------

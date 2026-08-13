@@ -20,6 +20,8 @@ export type ApiLeagueRef = {
 
 export type RemoteMatchSummary = {
   id: number;
+  /** Marque interne calculée côté serveur pour la carte Trending. */
+  isTrending?: boolean;
   status: ApiStatus;
   statusShort: string;
   minute: number | null;

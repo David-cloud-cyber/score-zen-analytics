@@ -95,6 +95,17 @@ export type MatchRankingOptions = {
   now?: number;
 };
 
+function isTrendingCandidate(match: RemoteMatchSummary, now: number): boolean {
+  if (LIVE_STATUSES.has(match.status)) return true;
+
+  const kickoff = kickoffTime(match);
+  return (
+    match.status === "upcoming" &&
+    kickoff >= now &&
+    kickoff - now <= IMMINENT_WINDOW_MS
+  );
+}
+
 function kickoffTime(match: RemoteMatchSummary): number {
   const value = new Date(match.kickoff).getTime();
   return Number.isFinite(value) ? value : Number.MAX_SAFE_INTEGER;
@@ -199,6 +210,45 @@ function dataRichnessScore(match: RemoteMatchSummary, signal?: MatchRankingSigna
     match.venue,
   ].filter(Boolean).length;
   return (signal?.dataRichness ?? 0) + availableSummaryFields;
+}
+
+/**
+ * Sélectionne la rencontre réellement la plus populaire parmi les matchs
+ * actuellement pertinents pour Trending. Les votes communautaires sont un
+ * signal réel quand ils existent; les signaux de compétition et d'équipes
+ * servent de référence stable quand aucun vote n'est encore disponible.
+ */
+export function selectTrendingMatch<T extends RemoteMatchSummary>(
+  matches: T[],
+  signals?: ReadonlyMap<string, MatchRankingSignal>,
+  now = Date.now(),
+): T | undefined {
+  return matches
+    .map((match, index) => ({ match, index }))
+    .filter(({ match }) => isTrendingCandidate(match, now))
+    .sort((a, b) => {
+      const popularityDifference =
+        popularityScore(b.match, signals?.get(String(b.match.id))) -
+        popularityScore(a.match, signals?.get(String(a.match.id)));
+      if (popularityDifference !== 0) return popularityDifference;
+
+      const importanceDifference = importanceScore(b.match) - importanceScore(a.match);
+      if (importanceDifference !== 0) return importanceDifference;
+
+      // À signaux équivalents, le match en direct est le plus pertinent.
+      const liveDifference =
+        Number(LIVE_STATUSES.has(b.match.status)) - Number(LIVE_STATUSES.has(a.match.status));
+      if (liveDifference !== 0) return liveDifference;
+
+      const richnessDifference =
+        dataRichnessScore(b.match, signals?.get(String(b.match.id))) -
+        dataRichnessScore(a.match, signals?.get(String(a.match.id)));
+      if (richnessDifference !== 0) return richnessDifference;
+
+      const kickoffDifference = kickoffTime(a.match) - kickoffTime(b.match);
+      if (kickoffDifference !== 0) return kickoffDifference;
+      return a.index - b.index;
+    })[0]?.match;
 }
 
 function rankingBucket(

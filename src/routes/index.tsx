@@ -15,7 +15,7 @@ import { AppShell } from "@/components/AppShell";
 import { RemoteMatchCard } from "@/components/RemoteMatchCard";
 import { getFixtures } from "@/lib/football.functions";
 import { getMyPremiumFavorites } from "@/lib/premium-hub.functions";
-import { rankMatches } from "@/lib/match-ranking";
+import { rankMatches, selectTrendingMatch } from "@/lib/match-ranking";
 import { buildRouteMeta, faqSchema, ORG, SPEAKABLE } from "@/lib/seo";
 import { cn } from "@/lib/utils";
 import { PageSkeleton } from "@/components/PageSkeleton";
@@ -28,8 +28,9 @@ const fixturesQuery = (mode: "today" | "live", date?: string) =>
   queryOptions({
     queryKey: ["fixtures", mode, date ?? "today"],
     queryFn: () => getFixtures({ data: mode === "live" ? { live: true } : { date } }),
-    staleTime: mode === "live" ? 30_000 : 5 * 60_000,
-    refetchInterval: mode === "live" ? 30_000 : false,
+    staleTime: mode === "live" ? 30_000 : 60_000,
+    refetchInterval: mode === "live" ? 30_000 : 60_000,
+    refetchOnWindowFocus: true,
     retry: 1,
   });
 
@@ -116,32 +117,6 @@ function formatDate(date: Date) {
   return `${year}-${month}-${day}`;
 }
 
-const TRENDING_LEAGUES = new Set([2, 39, 61, 78, 135, 140]);
-const TRENDING_TEAMS = new Set([42, 49, 50, 40, 541, 529, 530, 85, 157, 165]);
-const TRENDING_WINDOW_MS = 6 * 60 * 60 * 1000;
-
-function trendingScore(match: (typeof DEMO_FIXTURES)[number], now: number): number | null {
-  const isLive = match.status === "live" || match.status === "ht";
-  const kickoff = new Date(match.kickoff).getTime();
-  const isSoon =
-    match.status === "upcoming" && kickoff >= now && kickoff - now <= TRENDING_WINDOW_MS;
-  if (!isLive && !isSoon) return null;
-
-  const teamWeight =
-    (TRENDING_TEAMS.has(match.home.id) ? 24 : 0) + (TRENDING_TEAMS.has(match.away.id) ? 24 : 0);
-  const leagueWeight = TRENDING_LEAGUES.has(match.league.id) ? 30 : 0;
-  const urgencyWeight = isLive ? 1000 + (match.minute ?? 0) : 500 - (kickoff - now) / 60_000;
-  return urgencyWeight + teamWeight + leagueWeight;
-}
-
-function pickTrendingMatch<T extends (typeof DEMO_FIXTURES)[number]>(matches: T[]): T | undefined {
-  const now = Date.now();
-  return matches
-    .map((match) => ({ match, score: trendingScore(match, now) }))
-    .filter((item): item is { match: T; score: number } => item.score !== null)
-    .sort((a, b) => b.score - a.score)[0]?.match;
-}
-
 function HomePage() {
   const demoMode = isLocalDemo();
   const { user } = useSession();
@@ -195,6 +170,7 @@ function HomePage() {
   const visibleFixtures = rankMatches(demoMode ? DEMO_FIXTURES : fixtures, {
     favoriteMatchIds,
     favoriteTeamNames,
+    serverRanked: !demoMode,
   });
   const hasLive = visibleFixtures.some((m) => m.status === "live" || m.status === "ht");
   const [filter, setFilter] = useState<(typeof FILTERS)[number]["id"]>(
@@ -223,7 +199,9 @@ function HomePage() {
   const grouped = Array.from(groupedMap.values());
   const today = selectedDate.toLocaleDateString("fr-FR", { day: "2-digit", month: "short" });
 
-  const topMatch = pickTrendingMatch(visibleFixtures);
+  const topMatch = demoMode
+    ? selectTrendingMatch(visibleFixtures)
+    : visibleFixtures.find((match) => match.isTrending) ?? selectTrendingMatch(visibleFixtures);
 
   return (
     <AppShell>
