@@ -4,14 +4,35 @@
  * service-role key (server-side only; the table is not readable by anon/authenticated).
  */
 
-type RuntimeEnv = Record<string, string | undefined>;
+export type RuntimeBinding = {
+  get: (
+    key: string,
+    options?: { type?: "text" | "json"; cacheTtl?: number },
+  ) => Promise<unknown>;
+  put: (
+    key: string,
+    value: string,
+    options?: { expirationTtl?: number },
+  ) => Promise<void>;
+};
+
+type RuntimeEnv = Record<string, string | RuntimeBinding | undefined>;
 
 function cloudflareEnv(): RuntimeEnv | undefined {
   return (globalThis as typeof globalThis & { __env__?: RuntimeEnv }).__env__;
 }
 
 export function getRuntimeEnv(name: string): string | undefined {
-  return cloudflareEnv()?.[name] ?? (typeof process !== "undefined" ? process.env?.[name] : undefined);
+  const value = cloudflareEnv()?.[name];
+  if (typeof value === "string") return value;
+  return typeof process !== "undefined" ? process.env?.[name] : undefined;
+}
+
+export function getRuntimeBinding<T extends RuntimeBinding = RuntimeBinding>(
+  name: string,
+): T | undefined {
+  const value = cloudflareEnv()?.[name];
+  return value && typeof value === "object" ? (value as T) : undefined;
 }
 
 const configCache = new Map<string, string>();

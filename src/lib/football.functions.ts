@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { apiFootball, todayISO } from "./apifootball.server";
+import { apiFootball, getApiFootballCacheState, todayISO } from "./apifootball.server";
 import {
   rankMatches,
   selectTrendingMatch,
@@ -318,14 +318,30 @@ function mapStats(homeStats: StatItem[] = [], awayStats: StatItem[] = []): ApiSt
   };
 }
 
+function settledValue<T>(
+  result: PromiseSettledResult<T>,
+  fallback: T,
+  label: string,
+  unavailableSections: string[],
+): T {
+  if (result.status === "fulfilled") return result.value;
+  unavailableSections.push(label);
+  return fallback;
+}
+
 export const getFixtureDetail = createServerFn({ method: "GET" })
   .inputValidator((input) => z.object({ id: z.number().int().positive() }).parse(input))
   .handler(async ({ data }) => {
     const id = data.id;
 
     try {
-      const [fixtureArr, eventsArr, statsArr, lineupsArr] = await Promise.all([
-        apiFootball<ApiFixture[]>("/fixtures", { id }),
+      const fixtureArr = await apiFootball<ApiFixture[]>("/fixtures", { id });
+      const f = fixtureArr[0];
+      if (!f) throw new Error("Match introuvable.");
+      const primaryCacheState = await getApiFootballCacheState("/fixtures", { id });
+
+      const unavailableSections: string[] = [];
+      const [eventsResult, statsResult, lineupsResult] = await Promise.allSettled([
         apiFootball<
           Array<{
             time: { elapsed: number };
@@ -335,11 +351,11 @@ export const getFixtureDetail = createServerFn({ method: "GET" })
             type: string;
             detail: string;
           }>
-        >("/fixtures/events", { fixture: id }).catch(() => []),
+        >("/fixtures/events", { fixture: id }),
         apiFootball<Array<{ team: { id: number }; statistics: StatItem[] }>>(
           "/fixtures/statistics",
           { fixture: id },
-        ).catch(() => []),
+        ),
         apiFootball<
           Array<{
             team: { id: number; name: string; colors: { player: { primary: string } } | null };
@@ -347,24 +363,30 @@ export const getFixtureDetail = createServerFn({ method: "GET" })
             coach: { name: string };
             startXI: Array<{ player: { name: string; number: number; pos: string } }>;
           }>
-        >("/fixtures/lineups", { fixture: id }).catch(() => []),
+        >("/fixtures/lineups", { fixture: id }),
       ]);
 
-      const f = fixtureArr[0];
-      if (!f) throw new Error("Match introuvable.");
+      const eventsArr = settledValue(eventsResult, [], "événements", unavailableSections);
+      const statsArr = settledValue(statsResult, [], "statistiques", unavailableSections);
+      const lineupsArr = settledValue(lineupsResult, [], "compositions", unavailableSections);
 
       const homeId = f.teams.home.id;
       const awayId = f.teams.away.id;
 
-      const [h2hArr, oddsArr, predictionArr, injuriesArr] = await Promise.all([
+      const [h2hResult, oddsResult, predictionResult, injuriesResult] = await Promise.allSettled([
         apiFootball<ApiFixture[]>("/fixtures/headtohead", {
           h2h: `${homeId}-${awayId}`,
           last: 5,
-        }).catch(() => []),
-        apiFootball<ApiOddsResponse[]>("/odds", { fixture: id, bet: 1 }).catch(() => []),
-        apiFootball<ApiPredictionResponse[]>("/predictions", { fixture: id }).catch(() => []),
-        apiFootball<ApiInjuryResponse[]>("/injuries", { fixture: id }).catch(() => []),
+        }),
+        apiFootball<ApiOddsResponse[]>("/odds", { fixture: id, bet: 1 }),
+        apiFootball<ApiPredictionResponse[]>("/predictions", { fixture: id }),
+        apiFootball<ApiInjuryResponse[]>("/injuries", { fixture: id }),
       ]);
+
+      const h2hArr = settledValue(h2hResult, [], "confrontations", unavailableSections);
+      const oddsArr = settledValue(oddsResult, [], "cotes", unavailableSections);
+      const predictionArr = settledValue(predictionResult, [], "prédictions", unavailableSections);
+      const injuriesArr = settledValue(injuriesResult, [], "absences", unavailableSections);
 
       const homeStatsRaw = statsArr.find((s) => s.team.id === homeId)?.statistics ?? [];
       const awayStatsRaw = statsArr.find((s) => s.team.id === awayId)?.statistics ?? [];
@@ -481,6 +503,11 @@ export const getFixtureDetail = createServerFn({ method: "GET" })
 
       return {
         ...toSummary(f),
+        meta: {
+          fetchedAt: new Date(primaryCacheState?.storedAt ?? Date.now()).toISOString(),
+          stale: primaryCacheState?.stale ?? false,
+          unavailableSections: [...new Set(unavailableSections)],
+        },
         stats,
         events,
         lineups: { home: homeLineup, away: awayLineup },

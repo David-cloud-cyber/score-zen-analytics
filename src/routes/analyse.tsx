@@ -131,7 +131,7 @@ type TeamSuggestion = {
 
 // Repères de démarrage : la recherche distante API-Football complète toujours
 // cette liste dès que l'utilisateur saisit au moins deux caractères.
-const POPULAR_TEAMS = [
+const POPULAR_TEAMS: TeamSuggestion[] = [
   {
     name: "Real Madrid",
     league: "LaLiga 🇪🇸",

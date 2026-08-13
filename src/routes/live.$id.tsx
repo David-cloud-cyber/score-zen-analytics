@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate, useParams } from "@tanstack/react-router";
 import { useQuery, useSuspenseQuery, queryOptions } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
   ArrowLeft,
@@ -60,7 +60,8 @@ export const Route = createFileRoute("/live/$id")({
   },
   pendingComponent: MatchSkeleton,
   pendingMs: 0,
-  errorComponent: ({ error, reset }) => (
+  errorComponent: ({ error, reset }) => <MatchErrorState error={error} reset={reset} />,
+  /* errorComponent: ({ error, reset }) => (
     <AppShell>
       <div className="mx-4 mt-8 rounded-2xl border border-alert/30 bg-alert/5 p-6 text-center lg:mx-0">
         <AlertTriangle className="mx-auto size-6 text-alert" aria-hidden />
@@ -84,7 +85,7 @@ export const Route = createFileRoute("/live/$id")({
         </div>
       </div>
     </AppShell>
-  ),
+  ), */
   component: LiveMatchPage,
 });
 
@@ -206,6 +207,22 @@ function LiveMatchView({ m }: { m: RemoteMatchDetail }) {
             </div>
           </div>
         </div>
+
+        {(m.meta?.stale || m.meta?.unavailableSections.length) && (
+          <div className="mx-4 mt-3 rounded-xl border border-amber-400/25 bg-amber-400/5 px-3 py-2.5 text-xs text-muted-foreground lg:mx-0">
+            <div className="font-bold text-foreground">
+              {m.meta?.stale ? "Données réelles en cache" : "Données secondaires partielles"}
+            </div>
+            <div className="mt-0.5">
+              {m.meta?.stale
+                ? `Dernière mise à jour : ${formatFetchedAt(m.meta.fetchedAt)}.`
+                : "Le score et les informations principales restent disponibles."}
+              {m.meta?.unavailableSections.length
+                ? ` Sections indisponibles : ${m.meta.unavailableSections.join(", ")}.`
+                : ""}
+            </div>
+          </div>
+        )}
 
         <MatchVoteCard match={m} />
 
@@ -371,6 +388,58 @@ function LiveMatchView({ m }: { m: RemoteMatchDetail }) {
             )}
           </TabsContent>
         </Tabs>
+      </div>
+    </AppShell>
+  );
+}
+
+function formatFetchedAt(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "récemment";
+  return `${date.toISOString().slice(11, 16)} UTC`;
+}
+
+function MatchErrorState({ error, reset }: { error: Error; reset: () => void }) {
+  const isQuotaError = /quota|limite|rate|429|requests|requêtes/i.test(error.message ?? "");
+  const [cooldown, setCooldown] = useState(isQuotaError ? 15 : 0);
+
+  useEffect(() => {
+    if (!isQuotaError || cooldown <= 0) return;
+    const timer = window.setInterval(() => {
+      setCooldown((value) => Math.max(0, value - 1));
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [cooldown, isQuotaError]);
+
+  const retryDisabled = isQuotaError && cooldown > 0;
+
+  return (
+    <AppShell>
+      <div className="mx-4 mt-8 rounded-2xl border border-alert/30 bg-alert/5 p-6 text-center lg:mx-0">
+        <AlertTriangle className="mx-auto size-6 text-alert" aria-hidden />
+        <h2 className="mt-3 text-base font-black">Match indisponible</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {error.message || "Impossible de charger cette rencontre."}
+        </p>
+        <div className="mt-4 flex justify-center gap-2">
+          <button
+            onClick={() => {
+              if (retryDisabled) return;
+              reset();
+            }}
+            disabled={retryDisabled}
+            className="inline-flex items-center gap-2 rounded-full bg-foreground px-4 py-2 text-xs font-bold text-background disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <RefreshCw className="size-3.5" />
+            {retryDisabled ? `Réessayer dans ${cooldown}s` : "Réessayer"}
+          </button>
+          <Link
+            to="/"
+            className="inline-flex items-center rounded-full bg-surface px-4 py-2 text-xs font-bold ring-1 ring-black/5 dark:ring-white/10"
+          >
+            Retour
+          </Link>
+        </div>
       </div>
     </AppShell>
   );

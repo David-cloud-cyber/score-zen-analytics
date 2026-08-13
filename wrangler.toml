@@ -20,6 +20,10 @@ required = [
   "APIFOOTBALL_KEY",
 ]
 
+[[kv_namespaces]]
+binding = "FOOTBALL_CACHE"
+id = "59705697c4c941d1b4b1e76f1b9662d7"
+
 # Secrets (set via: wrangler secret put SECRET_NAME)
 # APIFOOTBALL_KEY  ← wrangler secret put APIFOOTBALL_KEY
 
