@@ -371,7 +371,7 @@ function MobileDrawer({ pathname, onClose }: { pathname: string; onClose: () => 
       <aside className="score-sidebar-drawer relative flex h-full w-[min(86vw,320px)] flex-col border-r border-[#252525] bg-[#111111] text-[#fdfdfd] shadow-2xl">
         <div className="flex items-center justify-between border-b border-[#252525] px-5 py-5">
           <Link to="/" onClick={onClose} className="flex items-center gap-3">
-            <img src="/livefoot-mark.svg" alt="LiveFoot IA" className="size-10 rounded-xl" />
+            <LiveFootMark collapsed />
             <span className="text-base font-black">
               LiveFoot <span className="text-brand">IA</span>
             </span>
@@ -487,7 +487,7 @@ export function TopBar({ onMenuOpen }: { onMenuOpen?: () => void }) {
         </button>
         <Link to="/" className="flex items-center gap-2">
           <div className="grid size-10 place-items-center overflow-hidden rounded-lg">
-            <img src="/livefoot-mark.svg" alt="LiveFoot IA" className="size-10" />
+            <LiveFootMark collapsed />
           </div>
           <div className="flex flex-col leading-none">
             <span className="text-[15px] font-bold tracking-tight">

@@ -6,20 +6,15 @@
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
+  "id": "/",
   "background_color": "#05070d",
   "theme_color": "#10b981",
   "icons": [
     {
-      "src": "/livefoot-mark.svg",
+      "src": "/livefoot-brand-v2.svg?v=20260813",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any"
-    },
-    {
-      "src": "/logo.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "maskable"
     }
   ]
 }

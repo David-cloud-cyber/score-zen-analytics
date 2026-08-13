@@ -120,10 +120,19 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { httpEquiv: "content-language", content: "fr" },
     ],
     links: [
-      { rel: "icon", href: "/favicon.svg", type: "image/svg+xml" },
-      { rel: "icon", href: "/logo.png", type: "image/png", sizes: "512x512" },
-      { rel: "apple-touch-icon", href: "/logo.png", sizes: "512x512" },
-      { rel: "manifest", href: "/site.webmanifest" },
+      {
+        rel: "icon",
+        href: "/livefoot-brand-v2.svg?v=20260813",
+        type: "image/svg+xml",
+        sizes: "64x64",
+      },
+      {
+        rel: "apple-touch-icon",
+        href: "/livefoot-brand-v2.svg?v=20260813",
+        sizes: "180x180",
+      },
+      { rel: "mask-icon", href: "/livefoot-brand-v2.svg?v=20260813", color: "#10d99a" },
+      { rel: "manifest", href: "/site.webmanifest?v=20260813" },
       { rel: "preconnect", href: "https://media.api-sports.io", crossOrigin: "anonymous" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
