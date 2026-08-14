@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useState, useId, useRef, useEffect } from "react";
 import {
   Sparkles,
@@ -13,6 +13,7 @@ import {
   Calendar,
   ShieldCheck,
   Trophy,
+  ArrowRight,
 } from "lucide-react";
 import { AppShell, PageTitle } from "@/components/AppShell";
 import { Disclaimer } from "@/components/Disclaimer";
@@ -224,9 +225,15 @@ function AnalysePage() {
   // Rediriger vers /auth si l'utilisateur n'est pas connecté (après chargement)
   useEffect(() => {
     if (!demoMode && !sessionLoading && !user) {
-      navigate({ to: "/auth", search: { redirect: "/analyse" } });
+      const context = [homeParam, awayParam].every(Boolean)
+        ? `/analyse?home=${encodeURIComponent(homeParam)}&away=${encodeURIComponent(awayParam)}`
+        : "/analyse";
+      navigate({
+        to: "/auth",
+        search: { mode: "signup", redirect: context, source: "analyse_gate" },
+      });
     }
-  }, [demoMode, sessionLoading, user, navigate]);
+  }, [demoMode, sessionLoading, user, navigate, homeParam, awayParam]);
 
   // Auto-lancer l'analyse quand les équipes viennent de la page match
   useEffect(() => {
@@ -250,7 +257,13 @@ function AnalysePage() {
 
   async function onSubmit() {
     if (!user) {
-      navigate({ to: "/auth", search: { redirect: "/analyse" } });
+      const context = home.trim() && away.trim()
+        ? `/analyse?home=${encodeURIComponent(home.trim())}&away=${encodeURIComponent(away.trim())}`
+        : "/analyse";
+      navigate({
+        to: "/auth",
+        search: { mode: "signup", redirect: context, source: "analyse_gate" },
+      });
       return;
     }
     if (home.trim().length < 2 || away.trim().length < 2) {
@@ -284,6 +297,10 @@ function AnalysePage() {
         data: { home: home.trim(), away: away.trim(), matchId: matchIdParam || undefined },
       });
       setLive(result);
+      track("analysis_result_view", {
+        source: lastCtaSource() ?? "direct",
+        matchId: matchIdParam ?? "",
+      });
       toast.success("Analyse IA générée — 3 crédits débités.");
     } catch (err) {
       const rawMessage = err instanceof Error ? err.message : "";
@@ -518,6 +535,24 @@ function AnalysePage() {
                 ))}
               </div>
             </div>
+
+            {!demoMode && (
+              <div className="flex flex-col gap-3 rounded-xl border border-brand/20 bg-brand/5 p-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm font-black">Besoin de plus d'analyses ?</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Premium inclut 100 crédits par mois, soit environ 33 analyses, plus l'historique complet.
+                  </p>
+                </div>
+                <Link
+                  to="/premium"
+                  onClick={() => track("premium_cta_click", { location: "analysis_result" })}
+                  className="inline-flex shrink-0 items-center justify-center rounded-xl bg-brand px-3.5 py-2 text-xs font-black text-brand-foreground transition-transform active:scale-95"
+                >
+                  Découvrir Premium <ArrowRight className="ml-1 size-3.5" />
+                </Link>
+              </div>
+            )}
           </>
         )}
 

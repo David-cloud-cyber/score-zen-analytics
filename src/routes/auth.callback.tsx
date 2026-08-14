@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
@@ -15,6 +15,12 @@ const PENDING_REF_KEY = "lfai_pending_ref";
  */
 export const Route = createFileRoute("/auth/callback")({
   ssr: false,
+  validateSearch: (search) => ({
+    redirect:
+      typeof search.redirect === "string" && search.redirect.startsWith("/") && !search.redirect.startsWith("//")
+        ? search.redirect
+        : "/",
+  }),
   head: () =>
     buildRouteMeta({
       path: "/auth/callback",
@@ -27,6 +33,7 @@ export const Route = createFileRoute("/auth/callback")({
 
 function AuthCallbackPage() {
   const navigate = useNavigate();
+  const { redirect } = useSearch({ from: "/auth/callback" });
 
   useEffect(() => {
     async function handleCallback() {
@@ -53,19 +60,19 @@ function AuthCallbackPage() {
           } catch {
             // Silencieux — ne pas bloquer la navigation
           }
-          navigate({ to: "/" });
+          navigate({ to: redirect as never });
         }
       });
 
       // Fallback : session déjà disponible (rechargement)
       const { data } = await supabase.auth.getSession();
-      if (data.session) navigate({ to: "/" });
+      if (data.session) navigate({ to: redirect as never });
 
       return () => sub.subscription.unsubscribe();
     }
 
     handleCallback();
-  }, [navigate]);
+  }, [navigate, redirect]);
 
   return (
     <div className="grid min-h-dvh place-items-center bg-background">

@@ -1,5 +1,5 @@
-import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
-import { useState } from "react";
+import { createFileRoute, Link, Outlet, useNavigate, useRouterState, useSearch } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Crown,
@@ -22,8 +22,15 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { formatPremiumExpiry, isPremiumActive, premiumDaysRemaining } from "@/lib/premium-status";
 import { DEMO_PROFILE, isLocalDemo } from "@/lib/local-demo";
+import { track } from "@/lib/analytics";
 
 export const Route = createFileRoute("/premium")({
+  validateSearch: (search) => ({
+    plan:
+      search.plan === "premium_monthly" || search.plan === "premium_yearly"
+        ? search.plan
+        : undefined,
+  }),
   head: () => ({
     ...buildRouteMeta({
       title: "Abonnement Premium & Packs de Crédits",
@@ -56,6 +63,7 @@ function PremiumSubscriptionPage() {
   const demoMode = isLocalDemo();
   const { user } = useSession();
   const navigate = useNavigate();
+  const { plan: selectedPlan } = useSearch({ from: "/premium" });
   const { data: profile } = useQuery({
     queryKey: ["me", "balance"],
     queryFn: () => (demoMode ? Promise.resolve(DEMO_PROFILE) : getMyBalance()),
@@ -72,6 +80,13 @@ function PremiumSubscriptionPage() {
   const subCheckoutFn = useServerFn(createSubscriptionCheckout);
   const topupCheckoutFn = useServerFn(createTopupCheckout);
 
+  useEffect(() => {
+    track("premium_view", {
+      source: selectedPlan ? "auth_return" : "direct",
+      plan: selectedPlan ?? "",
+    });
+  }, [selectedPlan]);
+
   const handleSubscribe = async (plan: PremiumPlan) => {
     if (demoMode) {
       toast.info("Aperçu local : le paiement est désactivé et aucune donnée n'est envoyée.");
@@ -84,16 +99,27 @@ function PremiumSubscriptionPage() {
     }
     if (!user) {
       toast.info("Veuillez vous connecter pour vous abonner.");
-      navigate({ to: "/auth" });
+      track("premium_cta_click", { plan: plan.id, location: "premium_plan_card" });
+      navigate({
+        to: "/auth",
+        search: {
+          mode: "signup",
+          redirect: `/premium?plan=${encodeURIComponent(plan.id)}`,
+          plan: plan.id,
+          source: "premium_plan_card",
+        },
+      });
       return;
     }
 
     setBusyPlan(plan.id);
     try {
+      track("premium_checkout_started", { plan: plan.id, location: "premium_plan_card" });
       const res = await subCheckoutFn({
         data: { planId: plan.id },
       });
       toast.success(`Souscription à ${plan.name} initiée !`);
+      track("premium_checkout_redirected", { plan: plan.id });
       window.location.href = res.link;
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Erreur d'initiation du paiement.");
@@ -216,6 +242,7 @@ function PremiumSubscriptionPage() {
                 plan.badge
                   ? "ring-brand shadow-lg shadow-brand/10"
                   : "ring-black/5 dark:ring-white/5",
+                selectedPlan === plan.id && "ring-2 ring-brand/40 ring-offset-2 ring-offset-background",
               )}
             >
               {plan.badge && (

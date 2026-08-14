@@ -41,6 +41,7 @@ import { Route as LiveIdRouteImport } from './routes/live.$id'
 import { Route as MatchIdRouteImport } from './routes/match.$id'
 import { Route as PremiumHistoriqueRouteImport } from './routes/premium.historique'
 import { Route as PremiumTableauDeBordRouteImport } from './routes/premium.tableau-de-bord'
+import { Route as ApiPublicConversionEventRouteImport } from './routes/api/public/conversion-event'
 import { Route as ApiPublicFapshiWebhookRouteImport } from './routes/api/public/fapshi-webhook'
 import { Route as ApiPublicFixtureDiagnosticRouteImport } from './routes/api/public/fixture-diagnostic'
 import { Route as CodesPromoSlugCountryRouteImport } from './routes/codes-promo.$slug.$country'
@@ -204,6 +205,12 @@ const PremiumTableauDeBordRoute = PremiumTableauDeBordRouteImport.update({
   path: '/tableau-de-bord',
   getParentRoute: () => PremiumRoute,
 } as any)
+const ApiPublicConversionEventRoute =
+  ApiPublicConversionEventRouteImport.update({
+    id: '/api/public/conversion-event',
+    path: '/api/public/conversion-event',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicFapshiWebhookRoute = ApiPublicFapshiWebhookRouteImport.update({
   id: '/api/public/fapshi-webhook',
   path: '/api/public/fapshi-webhook',
@@ -253,6 +260,7 @@ export interface FileRoutesByFullPath {
   '/premium/tableau-de-bord': typeof PremiumTableauDeBordRoute
   '/admin/': typeof AdminIndexRoute
   '/codes-promo/': typeof CodesPromoIndexRoute
+  '/api/public/conversion-event': typeof ApiPublicConversionEventRoute
   '/api/public/fapshi-webhook': typeof ApiPublicFapshiWebhookRoute
   '/api/public/fixture-diagnostic': typeof ApiPublicFixtureDiagnosticRoute
   '/codes-promo/$slug/$country': typeof CodesPromoSlugCountryRoute
@@ -287,6 +295,7 @@ export interface FileRoutesByTo {
   '/premium/tableau-de-bord': typeof PremiumTableauDeBordRoute
   '/admin': typeof AdminIndexRoute
   '/codes-promo': typeof CodesPromoIndexRoute
+  '/api/public/conversion-event': typeof ApiPublicConversionEventRoute
   '/api/public/fapshi-webhook': typeof ApiPublicFapshiWebhookRoute
   '/api/public/fixture-diagnostic': typeof ApiPublicFixtureDiagnosticRoute
   '/codes-promo/$slug/$country': typeof CodesPromoSlugCountryRoute
@@ -325,6 +334,7 @@ export interface FileRoutesById {
   '/premium/tableau-de-bord': typeof PremiumTableauDeBordRoute
   '/admin/': typeof AdminIndexRoute
   '/codes-promo/': typeof CodesPromoIndexRoute
+  '/api/public/conversion-event': typeof ApiPublicConversionEventRoute
   '/api/public/fapshi-webhook': typeof ApiPublicFapshiWebhookRoute
   '/api/public/fixture-diagnostic': typeof ApiPublicFixtureDiagnosticRoute
   '/codes-promo/$slug/$country': typeof CodesPromoSlugCountryRoute
@@ -363,6 +373,7 @@ export interface FileRouteTypes {
     | '/premium/tableau-de-bord'
     | '/admin/'
     | '/codes-promo/'
+    | '/api/public/conversion-event'
     | '/api/public/fapshi-webhook'
     | '/api/public/fixture-diagnostic'
     | '/codes-promo/$slug/$country'
@@ -397,6 +408,7 @@ export interface FileRouteTypes {
     | '/premium/tableau-de-bord'
     | '/admin'
     | '/codes-promo'
+    | '/api/public/conversion-event'
     | '/api/public/fapshi-webhook'
     | '/api/public/fixture-diagnostic'
     | '/codes-promo/$slug/$country'
@@ -434,6 +446,7 @@ export interface FileRouteTypes {
     | '/premium/tableau-de-bord'
     | '/admin/'
     | '/codes-promo/'
+    | '/api/public/conversion-event'
     | '/api/public/fapshi-webhook'
     | '/api/public/fixture-diagnostic'
     | '/codes-promo/$slug/$country'
@@ -452,6 +465,7 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   LiveIdRoute: typeof LiveIdRoute
   MatchIdRoute: typeof MatchIdRoute
+  ApiPublicConversionEventRoute: typeof ApiPublicConversionEventRoute
   ApiPublicFapshiWebhookRoute: typeof ApiPublicFapshiWebhookRoute
   ApiPublicFixtureDiagnosticRoute: typeof ApiPublicFixtureDiagnosticRoute
 }
@@ -682,6 +696,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PremiumTableauDeBordRouteImport
       parentRoute: typeof PremiumRoute
     }
+    '/api/public/conversion-event': {
+      id: '/api/public/conversion-event'
+      path: '/api/public/conversion-event'
+      fullPath: '/api/public/conversion-event'
+      preLoaderRoute: typeof ApiPublicConversionEventRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/fapshi-webhook': {
       id: '/api/public/fapshi-webhook'
       path: '/api/public/fapshi-webhook'
@@ -815,6 +836,7 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   LiveIdRoute: LiveIdRoute,
   MatchIdRoute: MatchIdRoute,
+  ApiPublicConversionEventRoute: ApiPublicConversionEventRoute,
   ApiPublicFapshiWebhookRoute: ApiPublicFapshiWebhookRoute,
   ApiPublicFixtureDiagnosticRoute: ApiPublicFixtureDiagnosticRoute,
 }

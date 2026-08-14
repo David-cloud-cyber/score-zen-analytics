@@ -1,5 +1,5 @@
 /**
- * Suivi analytics léger, 100 % front-end (aucune dépendance externe requise).
+ * Suivi analytics léger côté client, avec journal first-party best-effort côté serveur.
  *
  * Objectifs mesurés :
  *  - `cta_view`      : une carte/bouton CTA « Analyser un match » est apparu à l'écran
@@ -17,10 +17,18 @@ import { useEffect, useRef } from "react";
 import { trackMetaPixel } from "@/lib/meta-pixel";
 
 export type AnalyticsEvent =
+  | "landing_view"
   | "cta_view"
   | "cta_click"
   | "analyse_view"
   | "analyse_run"
+  | "signup_started"
+  | "signup_completed"
+  | "analysis_result_view"
+  | "premium_view"
+  | "premium_cta_click"
+  | "premium_checkout_started"
+  | "premium_checkout_redirected"
   | "promo_code_copy"
   | "promo_affiliate_click";
 
@@ -37,6 +45,7 @@ type Props = Record<string, string | number | boolean | undefined>;
 
 const STORE_KEY = "lf_analytics_v1";
 const LAST_CTA_KEY = "lf_last_cta";
+const CONVERSION_SESSION_KEY = "lf_conversion_session";
 
 type Store = Record<string, number>;
 
@@ -60,11 +69,58 @@ function bump(key: string) {
   }
 }
 
+function conversionSessionId() {
+  if (typeof window === "undefined") return undefined;
+  try {
+    const existing = window.sessionStorage.getItem(CONVERSION_SESSION_KEY);
+    if (existing && /^[a-zA-Z0-9_-]{16,80}$/.test(existing)) return existing;
+    const next = crypto.randomUUID().replaceAll("-", "");
+    window.sessionStorage.setItem(CONVERSION_SESSION_KEY, next);
+    return next;
+  } catch {
+    return undefined;
+  }
+}
+
+function conversionContext() {
+  if (typeof window === "undefined") return {};
+  const params = new URLSearchParams(window.location.search);
+  return {
+    route: window.location.pathname,
+    source: params.get("utm_source")?.slice(0, 80),
+    medium: params.get("utm_medium")?.slice(0, 80),
+    campaign: params.get("utm_campaign")?.slice(0, 120),
+  };
+}
+
+function sendFirstPartyEvent(event: AnalyticsEvent, props: Props) {
+  const sessionId = conversionSessionId();
+  if (!sessionId || typeof window === "undefined") return;
+  const context = conversionContext();
+  const metadata = Object.fromEntries(
+    Object.entries(props).filter(([, value]) =>
+      typeof value === "string" || typeof value === "number" || typeof value === "boolean",
+    ),
+  );
+  const body = JSON.stringify({ event, sessionId, ...context, metadata });
+  try {
+    void fetch("/api/public/conversion-event", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body,
+      keepalive: true,
+    }).catch(() => {});
+  } catch {
+    // Le suivi ne doit jamais ralentir ou bloquer le parcours utilisateur.
+  }
+}
+
 /** Envoie un événement analytics. Sûr en SSR (no-op côté serveur). */
 export function track(event: AnalyticsEvent, props: Props = {}) {
   if (typeof window === "undefined") return;
 
   const payload = { event, ...props, ts: Date.now() };
+  sendFirstPartyEvent(event, props);
 
   const w = window as unknown as {
     dataLayer?: unknown[];

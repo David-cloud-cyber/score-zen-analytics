@@ -163,6 +163,9 @@ function formatDate(date: Date) {
 function HomePage() {
   const demoMode = isLocalDemo();
   const { user } = useSession();
+  useEffect(() => {
+    track("landing_view", { location: "home" });
+  }, []);
   const getFavorites = useServerFn(getMyPremiumFavorites);
   const [dayOffset, setDayOffset] = useState(0);
   const selectedDate = new Date();
@@ -386,6 +389,36 @@ function HomePage() {
             liveStream.retry();
           }}
         />
+      )}
+
+      {!demoMode && (
+        <div className="mx-4 mb-4 flex flex-col gap-3 rounded-xl border border-brand/20 bg-brand/5 px-4 py-3 sm:flex-row sm:items-center sm:justify-between lg:mx-0">
+          <div>
+            <p className="text-sm font-black">Votre première analyse commence ici.</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              5 crédits offerts à l'inscription · une analyse coûte 3 crédits.
+            </p>
+          </div>
+          {user ? (
+            <Link
+              to="/analyse"
+              search={{ home: "", away: "" }}
+              onClick={() => track("cta_click", { location: "home_value_strip" })}
+              className="inline-flex shrink-0 items-center justify-center rounded-xl bg-brand px-3.5 py-2 text-xs font-black text-brand-foreground transition-transform active:scale-95"
+            >
+              Lancer une analyse <ChevronRight className="ml-1 size-3.5" />
+            </Link>
+          ) : (
+            <Link
+              to="/auth"
+              search={{ mode: "signup", redirect: "/analyse", source: "home_value_strip" }}
+              onClick={() => track("cta_click", { location: "home_value_strip" })}
+              className="inline-flex shrink-0 items-center justify-center rounded-xl bg-brand px-3.5 py-2 text-xs font-black text-brand-foreground transition-transform active:scale-95"
+            >
+              Créer mon compte <ChevronRight className="ml-1 size-3.5" />
+            </Link>
+          )}
+        </div>
       )}
 
       {/* Hero banner */}

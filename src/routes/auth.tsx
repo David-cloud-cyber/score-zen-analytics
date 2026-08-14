@@ -7,10 +7,14 @@ import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { applyReferral } from "@/lib/referral.functions";
 import livefootIcon from "@/assets/livefoot-icon.png.asset.json";
+import { track } from "@/lib/analytics";
 
 const searchSchema = z.object({
   redirect: z.string().optional(),
   ref: z.string().optional(), // code de parrainage
+  mode: z.enum(["signin", "signup"]).optional(),
+  plan: z.enum(["premium_monthly", "premium_yearly"]).optional(),
+  source: z.string().max(80).optional(),
 });
 
 export const Route = createFileRoute("/auth")({
@@ -38,15 +42,23 @@ export const Route = createFileRoute("/auth")({
 
 const PENDING_REF_KEY = "lfai_pending_ref";
 
+function safeRedirect(value: string | undefined) {
+  return value && value.startsWith("/") && !value.startsWith("//") ? value : "/";
+}
+
 function AuthPage() {
   const navigate = useNavigate();
-  const { redirect, ref } = useSearch({ from: "/auth" });
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const { redirect, ref, mode: requestedMode, plan, source } = useSearch({ from: "/auth" });
+  const [mode, setMode] = useState<"signin" | "signup">(requestedMode ?? (ref ? "signup" : "signin"));
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [loading, setLoading] = useState(false);
   const applyReferralFn = useServerFn(applyReferral);
+
+  useEffect(() => {
+    if (mode === "signup") track("signup_started", { source: source ?? "auth", plan: plan ?? "" });
+  }, [mode, plan, source]);
 
   // Persister le code de parrainage dans sessionStorage pour ne pas le perdre
   // si la page se recharge ou si l'utilisateur passe par Google OAuth.
@@ -87,25 +99,30 @@ function AuthPage() {
   async function handleEmail(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
+    const dest = safeRedirect(redirect);
     try {
       if (mode === "signin") {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         toast.success("Bienvenue ! Connexion réussie.");
       } else {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
-            emailRedirectTo: `${window.location.origin}/`,
+            emailRedirectTo: `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(dest)}`,
             data: { name: displayName || email.split("@")[0] },
           },
         });
         if (error) throw error;
-        toast.success("Compte créé avec succès ! Vous pouvez vous connecter.");
+        track("signup_completed", { source: source ?? "auth", plan: plan ?? "" });
+        if (!data.session) {
+          toast.success("Compte créé. Vérifiez votre email pour continuer.");
+          return;
+        }
+        toast.success("Compte créé avec succès !");
       }
       await tryApplyPendingReferral();
-      const dest = typeof redirect === "string" && redirect.startsWith("/") ? redirect : "/";
       navigate({ to: dest as never });
     } catch (err) {
       toast.error(
@@ -121,7 +138,9 @@ function AuthPage() {
     try {
       const callbackUrl =
         typeof window !== "undefined"
-          ? `${window.location.origin}/auth/callback`
+          ? `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(
+              safeRedirect(redirect),
+            )}`
           : "https://www.livefoot.fun/auth/callback";
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
