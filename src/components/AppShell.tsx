@@ -219,7 +219,7 @@ function DesktopSidebar({
           onClick={onToggle}
           aria-label={collapsed ? "Développer la sidebar" : "Réduire la sidebar"}
           title={collapsed ? "Développer la sidebar" : "Réduire la sidebar"}
-          className="absolute right-2 top-2 grid size-6 place-items-center rounded-md text-[#888888] transition-colors hover:bg-[#202020] hover:text-[#fdfdfd] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+          className="absolute right-2 top-2 grid size-6 place-items-center rounded-md bg-[#181818] text-[#888888] transition-colors hover:bg-[#202020] hover:text-[#fdfdfd] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
         >
           {collapsed ? (
             <PanelLeftOpen className="size-3.5" />

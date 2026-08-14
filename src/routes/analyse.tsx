@@ -292,8 +292,12 @@ function AnalysePage() {
         : /Données statistiques insuffisantes|API Football|momentanément indisponible/i.test(
               rawMessage,
             )
-          ? "Les données réelles de cette rencontre sont momentanément incomplètes. Réessayez dans quelques secondes."
-          : rawMessage || "L’analyse n’a pas pu être générée. Réessayez dans quelques secondes.";
+          ? "Certaines informations sont encore en cours de mise à jour. Réessayez dans quelques instants."
+          : /Crédits insuffisants|Limite atteinte|Limite quotidienne|Profil introuvable|Impossible de lire votre profil/i.test(
+                rawMessage,
+              )
+            ? rawMessage
+            : "L’analyse n’a pas pu être générée. Réessayez dans quelques secondes.";
       setAnalysisError(message);
       toast.error(message);
     } finally {
@@ -417,6 +421,12 @@ function AnalysePage() {
             >
               Réessayer
             </button>
+          </div>
+        )}
+        {live?.dataQuality?.level === "partial" && !analysisError && (
+          <div className="mt-4 rounded-2xl border border-brand/25 bg-brand/5 p-3 text-xs text-muted-foreground">
+            <p className="font-semibold text-foreground">Analyse disponible avec les informations vérifiées.</p>
+            <p className="mt-1">Certaines statistiques sont encore en cours de mise à jour ; la confiance a été ajustée en conséquence.</p>
           </div>
         )}
       </div>
@@ -644,7 +654,7 @@ function TeamAutocompleteInput({
           <button
             type="button"
             onClick={() => onChange("")}
-            className="text-muted-foreground hover:text-foreground"
+            className="grid size-7 place-items-center rounded-lg bg-surface text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             aria-label="Effacer"
           >
             <X className="size-4" />
@@ -668,7 +678,7 @@ function TeamAutocompleteInput({
                 onChange(team.name);
                 setOpen(false);
               }}
-              className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-xs font-semibold hover:bg-surface"
+              className="flex w-full items-center justify-between rounded-xl bg-card px-3 py-2 text-left text-xs font-semibold transition-colors hover:bg-surface"
             >
               <div className="flex items-center gap-2">
                 <img src={team.logo} alt="" className="size-4 object-contain" />

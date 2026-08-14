@@ -201,7 +201,7 @@ html.dark body{background:#090b0e;color:#f5f7fa}
 img,svg,video{max-width:100%;height:auto}
 a{color:inherit;text-decoration:none}
 ul,ol{list-style:none;margin:0;padding:0}
-button{font:inherit;color:inherit;background:none;border:0}
+button{font:inherit;color:inherit;border:0}
 `.trim();
 
 /**

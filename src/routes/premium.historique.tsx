@@ -136,9 +136,9 @@ function PredictionHistoryPage() {
         <div className="flex items-center justify-between gap-3 border-t border-border/60 pt-4">
           <span className="text-xs text-muted-foreground">{data.total} analyse(s) dans cette sélection</span>
           <div className="flex items-center gap-2">
-            <button type="button" disabled={page <= 1} onClick={() => setPage((value) => Math.max(1, value - 1))} className="grid size-9 place-items-center rounded-xl border border-border/70 disabled:opacity-40" aria-label="Page précédente"><ChevronLeft className="size-4" /></button>
+            <button type="button" disabled={page <= 1} onClick={() => setPage((value) => Math.max(1, value - 1))} className="grid size-9 place-items-center rounded-xl border border-border/70 bg-card text-foreground transition-colors hover:bg-surface disabled:opacity-40" aria-label="Page précédente"><ChevronLeft className="size-4" /></button>
             <span className="min-w-8 text-center text-xs font-black">{page}</span>
-            <button type="button" disabled={!data.hasMore} onClick={() => setPage((value) => value + 1)} className="grid size-9 place-items-center rounded-xl border border-border/70 disabled:opacity-40" aria-label="Page suivante"><ChevronRight className="size-4" /></button>
+            <button type="button" disabled={!data.hasMore} onClick={() => setPage((value) => value + 1)} className="grid size-9 place-items-center rounded-xl border border-border/70 bg-card text-foreground transition-colors hover:bg-surface disabled:opacity-40" aria-label="Page suivante"><ChevronRight className="size-4" /></button>
           </div>
         </div>
       </div>

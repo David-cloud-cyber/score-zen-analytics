@@ -155,7 +155,7 @@ export function PromoCodeCard({ b }: { b: Bookmaker }) {
           <Link
             to="/codes-promo/$slug"
             params={{ slug: b.slug }}
-            className="inline-flex flex-1 items-center justify-center gap-1 rounded-xl border border-border px-5 py-3 text-sm font-bold transition-colors hover:bg-surface"
+            className="inline-flex flex-1 items-center justify-center gap-1 rounded-xl border border-border bg-card px-5 py-3 text-sm font-bold transition-colors hover:bg-surface"
           >
             Lire l'analyse <ChevronRight className="size-4" aria-hidden />
           </Link>

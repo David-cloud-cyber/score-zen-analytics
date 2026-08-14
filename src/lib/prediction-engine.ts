@@ -19,6 +19,7 @@ export type TeamPredictionContext = {
   rank: number | null;
   points: number | null;
   goalsDiff: number | null;
+  dataQuality?: "complete" | "partial" | "identity";
 };
 
 export type H2HMatch = { homeGoals: number | null; awayGoals: number | null };
@@ -91,6 +92,7 @@ export type StatisticalPrediction = {
   }>;
   aiText: string;
   keyFactors: string[];
+  dataQuality?: { level: "complete" | "partial"; score: number };
 };
 
 type TeamMetrics = {
@@ -264,6 +266,9 @@ export function buildStatisticalPrediction(context: PredictionContext): Statisti
     throw new Error("Données statistiques insuffisantes pour établir une prédiction fiable.");
   }
 
+  const partialContext =
+    context.home.dataQuality !== "complete" || context.away.dataQuality !== "complete";
+
   const homeMetrics = metricsFor(context.home, true, {
     goalsFor: 1.42,
     goalsAgainst: 1.18,
@@ -424,16 +429,27 @@ export function buildStatisticalPrediction(context: PredictionContext): Statisti
   const livePrefix = live
     ? `À la ${live.minute}e minute, le score et les statistiques live sont intégrés. `
     : "";
-  const keyFactors = [
-    `Forme pondérée : ${context.home.name} ${homeMetrics.points.toFixed(2)} point(s)/match à domicile, ${context.away.name} ${awayMetrics.points.toFixed(2)} à l'extérieur.`,
-    `Projection de buts : ${finalHomeExpected.toFixed(2)} pour ${context.home.name} et ${finalAwayExpected.toFixed(2)} pour ${context.away.name}.`,
+  const keyFactors = partialContext
+    ? [
+        `Identité confirmée : ${context.home.name} reçoit ${context.away.name}.`,
+        `Projection prudente calculée à partir des informations vérifiées disponibles ; l'historique détaillé est encore incomplet.`,
+      ]
+    : [
+        `Forme pondérée : ${context.home.name} ${homeMetrics.points.toFixed(2)} point(s)/match à domicile, ${context.away.name} ${awayMetrics.points.toFixed(2)} à l'extérieur.`,
+        `Projection de buts : ${finalHomeExpected.toFixed(2)} pour ${context.home.name} et ${finalAwayExpected.toFixed(2)} pour ${context.away.name}.`,
+      ];
+  keyFactors.push(
     context.odds
       ? `Consensus de marché intégré avec ${context.odds.sources} source(s) de cotes, sans le laisser dominer le modèle.`
-      : "Aucune cote exploitable : projection fondée sur les statistiques d'équipe disponibles.",
+      : partialContext
+        ? "Aucune cote exploitable dans les informations actuellement disponibles."
+        : "Aucune cote exploitable : projection fondée sur les statistiques d'équipe disponibles.",
     context.home.injuries.length || context.away.injuries.length
       ? `Absences signalées : ${context.home.injuries.length} côté ${context.home.name}, ${context.away.injuries.length} côté ${context.away.name}.`
-      : "Aucune absence exploitable n'a été remontée dans le snapshot courant.",
-  ];
+      : partialContext
+        ? "Les absences n'ont pas encore pu être vérifiées."
+        : "Aucune absence exploitable n'a été remontée dans le snapshot courant.",
+  );
   if (live) {
     keyFactors.push(
       `Données live : ${live.homeShotsOnTarget}-${live.awayShotsOnTarget} tirs cadrés et ${live.homeXg.toFixed(2)}-${live.awayXg.toFixed(2)} xG lorsque disponibles.`,
@@ -520,8 +536,12 @@ export function buildStatisticalPrediction(context: PredictionContext): Statisti
     probabilities: normalized,
     probableScore,
     markets,
-    aiText: `${livePrefix}La projection statistique favorise ${winnerName} (${winnerProbability}%), avec un score modal de ${probableScore}. Elle combine la forme récente, les rendements domicile/extérieur, les absences, le classement, les confrontations, le marché et les signaux disponibles. La confiance diminue automatiquement si le contexte est incomplet ou contradictoire.`,
+    aiText: `${livePrefix}${context.home.dataQuality !== "complete" || context.away.dataQuality !== "complete" ? "Certaines statistiques d’équipe sont encore en cours de mise à jour. " : ""}La projection statistique favorise ${winnerName} (${winnerProbability}%), avec un score modal de ${probableScore}. Elle combine uniquement les informations vérifiées disponibles et réduit la confiance lorsque le contexte est incomplet ou contradictoire.`,
     keyFactors: keyFactors.slice(0, 5),
+    dataQuality: {
+      level: partialContext ? "partial" : "complete",
+      score: Math.round(dataQuality * 100),
+    },
   };
 }
 
@@ -537,7 +557,13 @@ export function blendPredictions(
       Math.abs(base.probabilities.away - enriched.probabilities.away)) /
     3;
   // L'IA peut ajuster, mais un écart fort réduit son poids et protège la calibration.
-  const aiWeight = divergence > 18 ? 0.16 : divergence > 10 ? 0.24 : 0.34;
+  const aiWeight = base.dataQuality?.level === "partial"
+    ? 0.12
+    : divergence > 18
+      ? 0.16
+      : divergence > 10
+        ? 0.24
+        : 0.34;
   const probabilities = normalize({
     home: base.probabilities.home * (1 - aiWeight) + enriched.probabilities.home * aiWeight,
     draw: base.probabilities.draw * (1 - aiWeight) + enriched.probabilities.draw * aiWeight,
@@ -571,5 +597,6 @@ export function blendPredictions(
       (enriched.keyFactors?.filter(Boolean).slice(0, 5) ?? []).length >= 2
         ? enriched.keyFactors.slice(0, 5)
         : base.keyFactors,
+    dataQuality: base.dataQuality,
   };
 }

@@ -255,7 +255,7 @@ async function rankApiFixtures(fixtures: ApiFixture[]): Promise<RemoteMatchSumma
 
 // ---------- server functions ----------
 
-async function readSharedFixtureSnapshot(
+export async function readSharedFixtureSnapshot(
   mode: SharedFixtureMode,
   date: string,
 ): Promise<FixturesPayload | null> {

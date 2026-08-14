@@ -125,7 +125,7 @@ export function RemoteMatchCard({ match }: { match: RemoteMatchSummary }) {
         }
         aria-pressed={isFavorite}
         title={isFavorite ? "Retirer des favoris" : "Ajouter aux favoris"}
-        className="absolute right-8 top-2.5 grid size-7 place-items-center rounded-full text-[#777777] transition-colors hover:bg-white/5 hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand disabled:cursor-wait disabled:opacity-60"
+        className="absolute right-8 top-2.5 grid size-7 place-items-center rounded-full bg-surface text-[#777777] transition-colors hover:bg-muted hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand disabled:cursor-wait disabled:opacity-60"
       >
         <Star className={cn("size-4", isFavorite && "fill-current text-brand")} aria-hidden />
       </button>

@@ -19,6 +19,8 @@ const ANALYSIS_COST = 3;
 // adaptée aux matchs live, aux fixtures identifiés et aux requêtes manuelles.
 type CacheEntry = { at: number; ttlMs: number; result: AnalysisResult };
 const analysisCache = new Map<string, CacheEntry>();
+const teamContextInflight = new Map<string, Promise<TeamContext | null>>();
+const fixtureIdentityInflight = new Map<string, Promise<FixtureIdentity | null>>();
 const MANUAL_CACHE_TTL_MS = 10 * 60_000;
 const FIXTURE_CACHE_TTL_MS = 5 * 60_000;
 const LIVE_CACHE_TTL_MS = 45_000;
@@ -99,6 +101,12 @@ const resultSchema = z
       .max(6),
     aiText: z.string(),
     keyFactors: z.array(z.string()).min(2).max(6).optional(),
+    dataQuality: z
+      .object({
+        level: z.enum(["complete", "partial"]),
+        score: z.number().int().min(0).max(100),
+      })
+      .optional(),
   })
   .superRefine((value, ctx) => {
     const total = value.probabilities.home + value.probabilities.draw + value.probabilities.away;
@@ -124,6 +132,8 @@ type TeamContext = TeamPredictionContext & {
   formHome: string[];
   formAway: string[];
   rankInfo: string | null;
+  dataQuality: "complete" | "partial" | "identity";
+  unavailableSections: string[];
 };
 
 type HeadToHeadContext = H2HMatch & {
@@ -143,8 +153,54 @@ async function fetchFixtureIdentity(matchId?: string): Promise<FixtureIdentity |
   const fixtureId = Number(matchId);
   if (!Number.isInteger(fixtureId) || fixtureId <= 0) return null;
 
+  const existing = fixtureIdentityInflight.get(String(fixtureId));
+  if (existing) return existing;
+
+  const pending = resolveFixtureIdentity(fixtureId);
+  fixtureIdentityInflight.set(String(fixtureId), pending);
   try {
-    const { apiFootball } = await import("./apifootball.server");
+    return await pending;
+  } finally {
+    fixtureIdentityInflight.delete(String(fixtureId));
+  }
+}
+
+async function resolveFixtureIdentity(fixtureId: number): Promise<FixtureIdentity | null> {
+  const fromSummary = (fixture: {
+    id: number;
+    home: { id: number; name: string };
+    away: { id: number; name: string };
+  }): FixtureIdentity => ({
+    homeId: fixture.home.id,
+    awayId: fixture.away.id,
+    homeName: fixture.home.name,
+    awayName: fixture.away.name,
+  });
+
+  try {
+    const { readSharedFixtureSnapshot } = await import("./football.functions");
+    const { todayISO } = await import("./apifootball.server");
+    const [liveSnapshot, daySnapshot] = await Promise.all([
+      readSharedFixtureSnapshot("live", todayISO()),
+      readSharedFixtureSnapshot("day", todayISO()),
+    ]);
+    for (const snapshot of [liveSnapshot, daySnapshot]) {
+      const match = snapshot?.matches.find((item) => item.id === fixtureId);
+      if (match) return fromSummary(match);
+    }
+
+    const { apiFootball, getApiFootballCacheEnvelope } = await import("./apifootball.server");
+    const cached = await getApiFootballCacheEnvelope("/fixtures", { id: fixtureId });
+    const cachedFixture = Array.isArray(cached?.data) ? cached.data[0] : null;
+    if (cachedFixture?.teams?.home && cachedFixture?.teams?.away) {
+      return {
+        homeId: cachedFixture.teams.home.id,
+        awayId: cachedFixture.teams.away.id,
+        homeName: cachedFixture.teams.home.name,
+        awayName: cachedFixture.teams.away.name,
+      };
+    }
+
     const fixtures = await apiFootball<
       Array<{
         teams: {
@@ -166,19 +222,38 @@ async function fetchFixtureIdentity(matchId?: string): Promise<FixtureIdentity |
   }
 }
 
+function identityTeamContext(id: number, name: string): TeamContext {
+  return {
+    id,
+    name,
+    form: [],
+    formHome: [],
+    formAway: [],
+    recent: [],
+    injuries: [],
+    rank: null,
+    points: null,
+    goalsDiff: null,
+    rankInfo: null,
+    dataQuality: "identity",
+    unavailableSections: ["forme", "blessures", "classement"],
+  };
+}
+
 async function fetchTeamContext(teamName: string, teamId?: number): Promise<TeamContext | null> {
+  const identityFallback = teamId && teamName.trim() ? identityTeamContext(teamId, teamName) : null;
   try {
     const { apiFootball } = await import("./apifootball.server");
     const teamsRaw = await apiFootball<
       Array<{ team: { id: number; name: string; country: string } }>
     >("/teams", teamId ? { id: teamId } : { search: teamName.slice(0, 40) });
     const t = teamsRaw[0]?.team;
-    if (!t) return null;
+    if (!t) return identityFallback;
 
     // Forme récente : 10 derniers matchs pour séparer domicile / extérieur
     // Sources indépendantes en parallèle : l'algorithme et l'IA reçoivent le
     // même snapshot normalisé, jamais des données client ou des clés API.
-    const [fixtures, injuries, standingsRaw] = await Promise.all([
+    const [fixturesResult, injuriesResult, standingsResult] = await Promise.allSettled([
       apiFootball<
         Array<{
           fixture: { date: string };
@@ -186,11 +261,11 @@ async function fetchTeamContext(teamName: string, teamId?: number): Promise<Team
           teams: { home: { id: number; name: string }; away: { id: number; name: string } };
           goals: { home: number | null; away: number | null };
         }>
-      >("/fixtures", { team: t.id, last: 10 }).catch(() => []),
+      >("/fixtures", { team: t.id, last: 10 }),
       apiFootball<Array<{ player: { name: string; reason: string } }>>("/injuries", {
         team: t.id,
         season: seasonYear,
-      }).catch(() => []),
+      }),
       apiFootball<
         Array<{
           league: {
@@ -205,8 +280,13 @@ async function fetchTeamContext(teamName: string, teamId?: number): Promise<Team
             >;
           };
         }>
-      >("/standings", { team: t.id, season: seasonYear }).catch(() => []),
+      >("/standings", { team: t.id, season: seasonYear }),
     ]);
+
+    const unavailableSections: string[] = [];
+    const fixtures = fixturesResult.status === "fulfilled" ? fixturesResult.value : (unavailableSections.push("forme"), []);
+    const injuries = injuriesResult.status === "fulfilled" ? injuriesResult.value : (unavailableSections.push("blessures"), []);
+    const standingsRaw = standingsResult.status === "fulfilled" ? standingsResult.value : (unavailableSections.push("classement"), []);
 
     const formAll: string[] = [];
     const formHome: string[] = [];
@@ -255,10 +335,27 @@ async function fetchTeamContext(teamName: string, teamId?: number): Promise<Team
       points: standing?.points ?? null,
       goalsDiff: standing?.goalsDiff ?? null,
       rankInfo,
+      dataQuality: unavailableSections.length ? "partial" : "complete",
+      unavailableSections,
     };
   } catch {
-    return null;
+    return identityFallback;
   }
+}
+
+function fetchTeamContextDeduped(teamName: string, teamId?: number): Promise<TeamContext | null> {
+  const key = teamId ? `id:${teamId}` : `name:${teamName.trim().toLowerCase()}`;
+  const existing = teamContextInflight.get(key);
+  if (existing) return existing;
+  const pending = fetchTeamContext(teamName, teamId);
+  teamContextInflight.set(key, pending);
+  // Ne pas laisser la promesse de nettoyage produire un rejet non géré si la
+  // récupération échoue avant que le consommateur ne l'ait observée.
+  void pending.then(
+    () => teamContextInflight.delete(key),
+    () => teamContextInflight.delete(key),
+  );
+  return pending;
 }
 
 async function fetchHeadToHead(homeId: number, awayId: number): Promise<HeadToHeadContext[]> {
@@ -706,11 +803,32 @@ export const runAnalysis = createServerFn({ method: "POST" })
     // Pour un lien de fiche match, l'API connaît déjà les IDs fiables des deux
     // équipes. Les réutiliser évite les recherches textuelles fragiles (et plus lentes).
     const fixtureIdentity = await fetchFixtureIdentity(data.matchId);
-    const [homeCtx, awayCtx, liveSnapshot] = await Promise.all([
-      fetchTeamContext(fixtureIdentity?.homeName ?? data.home, fixtureIdentity?.homeId),
-      fetchTeamContext(fixtureIdentity?.awayName ?? data.away, fixtureIdentity?.awayId),
+    const [homeResult, awayResult, liveResult] = await Promise.allSettled([
+      fetchTeamContextDeduped(fixtureIdentity?.homeName ?? data.home, fixtureIdentity?.homeId),
+      fetchTeamContextDeduped(fixtureIdentity?.awayName ?? data.away, fixtureIdentity?.awayId),
       fetchLiveSnapshot(data.matchId),
     ]);
+    const homeCtx =
+      homeResult.status === "fulfilled"
+        ? homeResult.value ??
+          (fixtureIdentity ? identityTeamContext(fixtureIdentity.homeId, fixtureIdentity.homeName) : null)
+        : fixtureIdentity
+          ? identityTeamContext(fixtureIdentity.homeId, fixtureIdentity.homeName)
+          : null;
+    const awayCtx =
+      awayResult.status === "fulfilled"
+        ? awayResult.value ??
+          (fixtureIdentity ? identityTeamContext(fixtureIdentity.awayId, fixtureIdentity.awayName) : null)
+        : fixtureIdentity
+          ? identityTeamContext(fixtureIdentity.awayId, fixtureIdentity.awayName)
+          : null;
+    const liveSnapshot = liveResult.status === "fulfilled" ? liveResult.value : null;
+
+    if (!homeCtx || !awayCtx) {
+      throw new Error(
+        "Le match n’a pas pu être identifié avec suffisamment d’informations vérifiées.",
+      );
+    }
 
     // H2H + bookmaker odds en parallèle une fois les IDs connus
     const [h2h, bookmakerOdds, communitySnapshot] = await Promise.all([
@@ -748,8 +866,18 @@ export const runAnalysis = createServerFn({ method: "POST" })
     const competitionImportance =
       competitionId === null ? 0 : majorCompetitions.has(competitionId) ? 1 : 0.55;
     const coverage =
-      [homeCtx, awayCtx, h2h.length >= 3, bookmakerOdds, analysisLiveSnapshot].filter(Boolean)
-        .length / 5;
+      [
+        homeCtx.dataQuality === "complete",
+        awayCtx.dataQuality === "complete",
+        h2h.length >= 3,
+        bookmakerOdds,
+        analysisLiveSnapshot,
+      ].filter(Boolean).length / 5;
+    const isPartial = homeCtx.dataQuality !== "complete" || awayCtx.dataQuality !== "complete";
+    const dataQuality = {
+      level: isPartial || coverage < 0.8 ? ("partial" as const) : ("complete" as const),
+      score: Math.round(coverage * 100),
+    };
     const signals: MatchSignals = {
       community: communitySnapshot,
       competition: analysisLiveSnapshot
@@ -844,6 +972,7 @@ export const runAnalysis = createServerFn({ method: "POST" })
       odds: bookmakerOdds,
       live: analysisLiveSnapshot,
       signals,
+      dataQuality,
       statisticalProjection: basePrediction,
     };
 
@@ -855,6 +984,7 @@ export const runAnalysis = createServerFn({ method: "POST" })
       "Probabilités : home, draw et away sont des nombres entiers compris entre 0 et 100 et leur somme doit être exactement 100. Le score probable doit rester plausible et cohérent avec le niveau de buts attendu.\n" +
       "Marchés : retourne 5 objets maximum couvrant 1X2 ou Double Chance, BTTS, Over/Under 2.5 et, seulement si les données le permettent, corners ou cartons. Une recommandation n'est jamais une garantie de gain.\n" +
       "Confiance : nombre entre 0 et 85. Risque : exactement bas, moyen ou eleve. La confiance baisse si les équipes sont mal identifiées, si l'historique est faible ou si des données clés manquent.\n" +
+      "Couverture : si le champ dataQuality indique partial, conserve une confiance prudente et précise que certaines statistiques sont en cours de mise à jour ; ne transforme jamais une valeur par défaut en fait observé.\n" +
       "aiText : 3 à 4 phrases utiles et nuancées. keyFactors : 3 à 5 phrases courtes, chacune reliée à un fait fourni. N'affiche jamais de nom de modèle, de fournisseur, de clé technique ou de promesse de gain.\n" +
       "Les scores internes de couverture, d'anomalie de marché et de volume sont des signaux de calibration uniquement : ne les présente jamais comme une preuve de match truqué, ne les affiche pas dans aiText ou keyFactors et n'invente aucune information absente.\n" +
       "Une projection statistique déterministe est incluse dans le snapshot. Tu peux l'affiner avec les données fournies, mais n'écarte pas fortement ses probabilités sans fait précis ; tu ne dois jamais créer de donnée absente.";
@@ -881,7 +1011,20 @@ export const runAnalysis = createServerFn({ method: "POST" })
         error instanceof Error ? error.message : error,
       );
     }
-    const result = resultSchema.parse(blendPredictions(basePrediction, enriched));
+    const blended = blendPredictions(basePrediction, enriched);
+    const result = resultSchema.parse({
+      ...blended,
+      dataQuality,
+      markets: blended.markets.map((market) =>
+        dataQuality.level === "partial"
+          ? { ...market, confidence: Math.min(market.confidence, 64), risk: "eleve" as const }
+          : market,
+      ),
+      aiText:
+        dataQuality.level === "partial"
+          ? `Certaines statistiques sont encore en cours de mise à jour. ${blended.aiText}`
+          : blended.aiText,
+    });
 
     // 4. Débit + log.
     await consumeAnalysisCredit({

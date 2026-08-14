@@ -103,7 +103,7 @@ function CountryPartnerCard({ bookmaker, country }: { bookmaker: Bookmaker; coun
           </AffiliateButton>
           <a
             href={getCountryBookmakerPath(bookmaker.slug, country.slug)}
-            className="inline-flex flex-1 items-center justify-center gap-1 rounded-xl border border-border px-5 py-3 text-sm font-bold transition-colors hover:bg-surface"
+            className="inline-flex flex-1 items-center justify-center gap-1 rounded-xl border border-border bg-card px-5 py-3 text-sm font-bold transition-colors hover:bg-surface"
           >
             Lire l’analyse <ArrowRight className="size-4" aria-hidden />
           </a>
@@ -293,7 +293,7 @@ export function CountryBookmakerPage({
               onClick={() =>
                 track("cta_click", { location: `country_${bookmaker.slug}_${country.slug}_hero` })
               }
-              className="inline-flex items-center gap-2 rounded-xl border border-brand/40 px-4 py-3 text-sm font-black text-brand transition-colors hover:bg-brand/10"
+              className="inline-flex items-center gap-2 rounded-xl border border-brand/40 bg-card px-4 py-3 text-sm font-black text-brand transition-colors hover:bg-brand/10"
             >
               <Sparkles className="size-4" aria-hidden />
               {ANALYSE_CTA}

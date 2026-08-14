@@ -180,7 +180,7 @@ function PromoFilters() {
                   "rounded-full border px-3 py-1.5 text-xs font-bold transition-colors",
                   bonusType === t
                     ? "border-brand bg-brand text-brand-foreground"
-                    : "border-border text-muted-foreground hover:bg-surface",
+                    : "border-border bg-card text-muted-foreground hover:bg-surface",
                 )}
               >
                 {t === "all" ? "Tous les bonus" : t}
@@ -238,7 +238,7 @@ function PromoHub() {
                   <a
                     key={country.slug}
                     href={`/codes-promo/${country.slug}`}
-                    className="inline-flex items-center gap-1 rounded-xl border border-brand/30 px-3 py-2 text-xs font-black text-brand transition-colors hover:bg-brand/10"
+                    className="inline-flex items-center gap-1 rounded-xl border border-brand/30 bg-card px-3 py-2 text-xs font-black text-brand transition-colors hover:bg-brand/10"
                   >
                     {country.name} <ArrowRight className="size-3.5" aria-hidden />
                   </a>

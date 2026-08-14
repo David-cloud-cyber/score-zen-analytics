@@ -321,7 +321,7 @@ function HomePage() {
           type="button"
           aria-label="Jour précédent"
           onClick={() => setDayOffset((value) => value - 1)}
-          className="grid size-8 place-items-center rounded-full text-muted-foreground hover:bg-surface hover:text-foreground"
+          className="grid size-8 place-items-center rounded-full bg-surface text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
         >
           <ChevronRight className="size-4 rotate-180" />
         </button>
@@ -334,7 +334,7 @@ function HomePage() {
           type="button"
           aria-label="Jour suivant"
           onClick={() => setDayOffset((value) => value + 1)}
-          className="grid size-8 place-items-center rounded-full text-muted-foreground hover:bg-surface hover:text-foreground"
+          className="grid size-8 place-items-center rounded-full bg-surface text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
         >
           <ChevronRight className="size-4" />
         </button>

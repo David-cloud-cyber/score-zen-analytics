@@ -731,7 +731,7 @@ function RadarCard({
               "inline-flex items-center justify-center gap-2 rounded-xl border px-4 py-3 text-xs font-black transition-colors disabled:opacity-50",
               followed
                 ? "border-brand/40 bg-brand/10 text-brand"
-                : "border-border hover:bg-surface",
+                : "border-border bg-card text-foreground hover:bg-surface",
             )}
           >
             <Star className={cn("size-3.5", followed && "fill-current")} aria-hidden />{" "}

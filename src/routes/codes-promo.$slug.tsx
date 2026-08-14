@@ -433,7 +433,7 @@ function BookmakerArticle() {
               to="/analyse"
               search={{ home: "", away: "" }}
               onClick={() => track("cta_click", { location: `promo_${b.slug}_hero` })}
-              className="inline-flex items-center gap-2 rounded-xl border border-brand/40 px-4 py-3 text-sm font-black text-brand transition-colors hover:bg-brand/10"
+              className="inline-flex items-center gap-2 rounded-xl border border-brand/40 bg-card px-4 py-3 text-sm font-black text-brand transition-colors hover:bg-brand/10"
             >
               <Sparkles className="size-4" aria-hidden />
               Analyser un match
@@ -633,7 +633,7 @@ function BookmakerArticle() {
               to="/analyse"
               search={{ home: "", away: "" }}
               onClick={() => track("cta_click", { location: `promo_${b.slug}_final` })}
-              className="inline-flex items-center gap-2 rounded-xl border border-brand/40 px-4 py-3 text-sm font-black text-brand transition-colors hover:bg-brand/10"
+              className="inline-flex items-center gap-2 rounded-xl border border-brand/40 bg-card px-4 py-3 text-sm font-black text-brand transition-colors hover:bg-brand/10"
             >
               <Sparkles className="size-4" aria-hidden />
               Analyser un match
@@ -653,7 +653,7 @@ function BookmakerArticle() {
                 <a
                   key={country.slug}
                   href={`/codes-promo/${b.slug}/${country.slug}`}
-                  className="rounded-xl border border-border px-3 py-2 text-xs font-bold transition-colors hover:bg-surface"
+                  className="rounded-xl border border-border bg-card px-3 py-2 text-xs font-bold transition-colors hover:bg-surface"
                 >
                   {b.name} au {country.name}
                 </a>
