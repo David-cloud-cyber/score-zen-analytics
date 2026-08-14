@@ -21,12 +21,12 @@ export const Route = createFileRoute("/auth")({
       {
         name: "description",
         content:
-          "Connectez-vous ou créez votre compte Livefoot IA. 10 crédits d'analyse IA offerts à l'inscription.",
+          "Connectez-vous ou créez votre compte Livefoot IA. 5 crédits d'analyse IA offerts à l'inscription.",
       },
       { property: "og:title", content: "Connexion & Inscription — Livefoot IA" },
       {
         property: "og:description",
-        content: "Rejoignez Livefoot IA : 10 crédits offerts, favoris et historique personnalisés.",
+        content: "Rejoignez Livefoot IA : 5 crédits offerts, favoris et historique personnalisés.",
       },
       { property: "og:url", content: "https://www.livefoot.fun/auth" },
       { name: "robots", content: "noindex" },
@@ -182,7 +182,7 @@ function AuthPage() {
           <p className="mb-5 text-sm text-muted-foreground">
             {mode === "signin"
               ? "Retrouvez vos favoris, crédits et prédictions."
-              : "10 crédits offerts à l'inscription."}
+              : "5 crédits offerts à l'inscription."}
           </p>
 
           <button

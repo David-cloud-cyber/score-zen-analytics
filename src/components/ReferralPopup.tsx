@@ -171,7 +171,7 @@ function FreeInviteContent({ onDismiss }: { onDismiss: () => void }) {
       </div>
 
       <p className="mt-3 text-center text-[10px] text-muted-foreground">
-        Votre proche reçoit ses crédits de bienvenue habituels. Vous gagnez +5 crédits par
+        Votre proche reçoit ses 5 crédits de bienvenue. Vous gagnez +5 crédits par
         inscription attribuée.
       </p>
     </>
