@@ -1,5 +1,12 @@
-import { createFileRoute, Link, Outlet, useNavigate, useRouterState, useSearch } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import {
+  createFileRoute,
+  Link,
+  Outlet,
+  useNavigate,
+  useRouterState,
+  useSearch,
+} from "@tanstack/react-router";
+import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Crown,
@@ -55,7 +62,8 @@ export const Route = createFileRoute("/premium")({
 
 function PremiumPage() {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
-  if (pathname === "/premium/tableau-de-bord" || pathname === "/premium/historique") return <Outlet />;
+  if (pathname === "/premium/tableau-de-bord" || pathname === "/premium/historique")
+    return <Outlet />;
   return <PremiumSubscriptionPage />;
 }
 
@@ -77,8 +85,18 @@ function PremiumSubscriptionPage() {
   // /premium est le parent de /premium/tableau-de-bord : le Hub doit être
   // rendu dans l'Outlet, sinon le parent recouvre l'interface enfant.
   const [busyPlan, setBusyPlan] = useState<string | null>(null);
+  const [busyPack, setBusyPack] = useState<string | null>(null);
+  const checkoutRequestIds = useRef(new Map<string, string>());
   const subCheckoutFn = useServerFn(createSubscriptionCheckout);
   const topupCheckoutFn = useServerFn(createTopupCheckout);
+
+  const checkoutRequestIdFor = (key: string) => {
+    const current = checkoutRequestIds.current.get(key);
+    if (current) return current;
+    const next = crypto.randomUUID();
+    checkoutRequestIds.current.set(key, next);
+    return next;
+  };
 
   useEffect(() => {
     track("premium_view", {
@@ -113,13 +131,14 @@ function PremiumSubscriptionPage() {
     }
 
     setBusyPlan(plan.id);
+    const startedAt = Date.now();
     try {
       track("premium_checkout_started", { plan: plan.id, location: "premium_plan_card" });
       const res = await subCheckoutFn({
-        data: { planId: plan.id },
+        data: { planId: plan.id, checkoutRequestId: checkoutRequestIdFor(`sub:${plan.id}`) },
       });
       toast.success(`Souscription à ${plan.name} initiée !`);
-      track("premium_checkout_redirected", { plan: plan.id });
+      track("premium_checkout_redirected", { plan: plan.id, durationMs: Date.now() - startedAt });
       window.location.href = res.link;
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Erreur d'initiation du paiement.");
@@ -146,13 +165,18 @@ function PremiumSubscriptionPage() {
       return;
     }
 
+    setBusyPack(packId);
+    const startedAt = Date.now();
     try {
       const res = await topupCheckoutFn({
-        data: { packId },
+        data: { packId, checkoutRequestId: checkoutRequestIdFor(`pack:${packId}`) },
       });
+      track("topup_checkout_redirected", { pack: packId, durationMs: Date.now() - startedAt });
       window.location.href = res.link;
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Erreur de recharge.");
+    } finally {
+      setBusyPack(null);
     }
   };
 
@@ -242,7 +266,8 @@ function PremiumSubscriptionPage() {
                 plan.badge
                   ? "ring-brand shadow-lg shadow-brand/10"
                   : "ring-black/5 dark:ring-white/5",
-                selectedPlan === plan.id && "ring-2 ring-brand/40 ring-offset-2 ring-offset-background",
+                selectedPlan === plan.id &&
+                  "ring-2 ring-brand/40 ring-offset-2 ring-offset-background",
               )}
             >
               {plan.badge && (
@@ -291,7 +316,7 @@ function PremiumSubscriptionPage() {
 
               <button
                 onClick={() => handleSubscribe(plan)}
-                disabled={busyPlan !== null}
+                disabled={busyPlan !== null || busyPack !== null}
                 className={cn(
                   "mt-6 flex w-full items-center justify-center gap-2 rounded-2xl py-3.5 text-xs font-black transition-transform active:scale-95 disabled:opacity-50",
                   plan.badge
@@ -302,7 +327,7 @@ function PremiumSubscriptionPage() {
                 {isPremium
                   ? "Accéder au Hub"
                   : busyPlan === plan.id
-                    ? "Redirection..."
+                    ? "Préparation sécurisée…"
                     : `Souscrire (${formatXaf(plan.priceXaf)})`}
                 <ArrowRight className="size-4" />
               </button>
@@ -391,14 +416,19 @@ function PremiumSubscriptionPage() {
 
               <button
                 onClick={() => handleBuyPack(pack.id)}
+                disabled={busyPack !== null || busyPlan !== null}
                 className={cn(
-                  "mt-3 w-full rounded-xl py-2 text-[11px] font-black transition-transform active:scale-95",
+                  "mt-3 w-full rounded-xl py-2 text-[11px] font-black transition-transform active:scale-95 disabled:cursor-wait disabled:opacity-60",
                   isPremium
                     ? "bg-foreground text-background"
                     : "bg-surface text-muted-foreground ring-1 ring-black/5 dark:ring-white/10",
                 )}
               >
-                {isPremium ? "Acheter" : "🔒 Débloquer avec Premium"}
+                {busyPack === pack.id
+                  ? "Préparation sécurisée…"
+                  : isPremium
+                    ? "Acheter"
+                    : "🔒 Débloquer avec Premium"}
               </button>
             </div>
           ))}

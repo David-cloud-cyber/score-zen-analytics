@@ -4,10 +4,12 @@ import { z } from "zod";
 
 const packCheckoutInput = z.object({
   packId: z.string().min(1).max(40),
+  checkoutRequestId: z.string().uuid(),
 });
 
 const subCheckoutInput = z.object({
   planId: z.enum(["premium_monthly", "premium_yearly"]),
+  checkoutRequestId: z.string().uuid(),
 });
 
 function appOrigin() {
@@ -23,6 +25,10 @@ function createExternalId(prefix: "sub" | "pk") {
   return `${prefix}_${crypto.randomUUID().replaceAll("-", "")}`;
 }
 
+function duplicateCheckoutMessage() {
+  return new Error("Ce paiement est déjà en préparation. Réessayez dans quelques instants.");
+}
+
 /** Crée un lien de souscription Fapshi pour l'Abonnement Premium. */
 export const createSubscriptionCheckout = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -32,36 +38,78 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
     const plan = findPremiumPlan(data.planId);
     if (!plan) throw new Error("Plan d'abonnement inconnu.");
 
-    const { initiatePay } = await import("./fapshi.server");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: existing, error: existingError } = await supabaseAdmin
+      .from("subscriptions")
+      .select("id, trans_id, checkout_link, status")
+      .eq("user_id", context.userId)
+      .eq("checkout_request_id", data.checkoutRequestId)
+      .maybeSingle();
+    if (existingError) throw new Error("Impossible de préparer le paiement.");
+    if (existing) {
+      if (existing.checkout_link) {
+        return {
+          link: existing.checkout_link,
+          transId: existing.trans_id,
+          amountXaf: plan.priceXaf,
+          planId: plan.id,
+        };
+      }
+      throw duplicateCheckoutMessage();
+    }
 
     const externalId = createExternalId("sub");
 
-    const res = await initiatePay({
-      amount: plan.priceXaf,
-      email: context.claims?.email as string | undefined,
-      userId: context.userId.replace(/-/g, ""),
-      externalId,
-      redirectUrl: `${appOrigin()}/profil`,
-      message: `Abonnement ${plan.name} Livefoot IA`,
-    });
-
-    const { error } = await supabaseAdmin.from("subscriptions").insert({
+    // Reserve the checkout before calling Fapshi. This prevents a double click,
+    // while the nullable provider id is reconciled by the webhook/verification.
+    const { error: reservationError } = await supabaseAdmin.from("subscriptions").insert({
       user_id: context.userId,
       provider: "fapshi",
-      trans_id: res.transId,
+      trans_id: null,
       external_id: externalId,
+      checkout_request_id: data.checkoutRequestId,
+      checkout_link: null,
       plan_id: plan.id,
       amount_xaf: plan.priceXaf,
       status: "PENDING",
     });
-
-    if (error) {
-      console.error("Subscription insert error:", error);
-      throw new Error("Impossible d'enregistrer la souscription.");
+    if (reservationError) {
+      if (reservationError.code === "23505") throw duplicateCheckoutMessage();
+      throw new Error("Impossible de préparer le paiement.");
     }
 
-    return { link: res.link, transId: res.transId, amountXaf: plan.priceXaf, planId: plan.id };
+    const { initiatePay } = await import("./fapshi.server");
+
+    try {
+      const res = await initiatePay({
+        amount: plan.priceXaf,
+        email: context.claims?.email as string | undefined,
+        userId: context.userId.replace(/-/g, ""),
+        externalId,
+        redirectUrl: `${appOrigin()}/profil`,
+        message: `Abonnement ${plan.name} Livefoot IA`,
+      });
+
+      // Do not hold the browser on a second database write. The webhook and
+      // manual verification attach trans_id/external_id idempotently later.
+      void supabaseAdmin
+        .from("subscriptions")
+        .update({ trans_id: res.transId, checkout_link: res.link })
+        .eq("user_id", context.userId)
+        .eq("external_id", externalId)
+        .then(() => undefined)
+        .catch((error) => console.error("Subscription checkout reconciliation failed:", error));
+
+      return { link: res.link, transId: res.transId, amountXaf: plan.priceXaf, planId: plan.id };
+    } catch (error) {
+      await supabaseAdmin
+        .from("subscriptions")
+        .update({ status: "FAILED" })
+        .eq("user_id", context.userId)
+        .eq("checkout_request_id", data.checkoutRequestId);
+      throw error;
+    }
   });
 
 /** Crée un lien de paiement Fapshi (FCFA) pour un pack de crédits (Réservé aux membres Premium). */
@@ -70,7 +118,7 @@ export const createTopupCheckout = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => packCheckoutInput.parse(data))
   .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    
+
     // Vérification du plan : Seuls les membres Premium peuvent acheter des packs
     const { data: profile } = await supabaseAdmin
       .from("profiles")
@@ -78,50 +126,102 @@ export const createTopupCheckout = createServerFn({ method: "POST" })
       .eq("id", context.userId)
       .maybeSingle();
 
-    const isPremium = profile?.plan === "premium" && (!profile.premium_until || new Date(profile.premium_until) > new Date());
+    const isPremium =
+      profile?.plan === "premium" &&
+      (!profile.premium_until || new Date(profile.premium_until) > new Date());
 
     if (!isPremium) {
-      throw new Error("Les packs de crédits sont réservés aux membres Premium. Passez Premium d'abord !");
+      throw new Error(
+        "Les packs de crédits sont réservés aux membres Premium. Passez Premium d'abord !",
+      );
     }
 
     const { findPack } = await import("./pricing");
     const pack = findPack(data.packId);
     if (!pack) throw new Error("Pack de crédits inconnu.");
 
+    const { data: existing, error: existingError } = await supabaseAdmin
+      .from("payments")
+      .select("id, trans_id, link, checkout_link, status")
+      .eq("user_id", context.userId)
+      .eq("checkout_request_id", data.checkoutRequestId)
+      .maybeSingle();
+    if (existingError) throw new Error("Impossible de préparer le paiement.");
+    if (existing) {
+      const existingLink = existing.checkout_link ?? existing.link;
+      if (existingLink) {
+        return {
+          link: existingLink,
+          transId: existing.trans_id,
+          amountXaf: pack.priceXaf,
+          credits: pack.credits,
+        };
+      }
+      throw duplicateCheckoutMessage();
+    }
+
     const { initiatePay } = await import("./fapshi.server");
 
     const externalId = createExternalId("pk");
 
-    const res = await initiatePay({
-      amount: pack.priceXaf,
-      email: context.claims?.email as string | undefined,
-      userId: context.userId.replace(/-/g, ""),
-      externalId,
-      redirectUrl: `${appOrigin()}/profil`,
-      message: `Recharge ${pack.credits} crédits Livefoot IA`,
-    });
-
-    const { error } = await supabaseAdmin.from("payments").insert({
+    const { error: reservationError } = await supabaseAdmin.from("payments").insert({
       user_id: context.userId,
       provider: "fapshi",
-      trans_id: res.transId,
+      trans_id: null,
       external_id: externalId,
+      checkout_request_id: data.checkoutRequestId,
+      checkout_link: null,
       pack_id: pack.id,
       credits: pack.credits,
       amount_xaf: pack.priceXaf,
       status: "PENDING",
-      link: res.link,
+      link: null,
     });
+    if (reservationError) {
+      if (reservationError.code === "23505") throw duplicateCheckoutMessage();
+      throw new Error("Impossible de préparer le paiement.");
+    }
 
-    if (error) throw new Error("Impossible d'enregistrer le paiement.");
+    try {
+      const res = await initiatePay({
+        amount: pack.priceXaf,
+        email: context.claims?.email as string | undefined,
+        userId: context.userId.replace(/-/g, ""),
+        externalId,
+        redirectUrl: `${appOrigin()}/profil`,
+        message: `Recharge ${pack.credits} crédits Livefoot IA`,
+      });
 
-    return { link: res.link, transId: res.transId, amountXaf: pack.priceXaf, credits: pack.credits };
+      void supabaseAdmin
+        .from("payments")
+        .update({ trans_id: res.transId, link: res.link, checkout_link: res.link })
+        .eq("user_id", context.userId)
+        .eq("checkout_request_id", data.checkoutRequestId)
+        .then(() => undefined)
+        .catch((error) => console.error("Payment checkout reconciliation failed:", error));
+
+      return {
+        link: res.link,
+        transId: res.transId,
+        amountXaf: pack.priceXaf,
+        credits: pack.credits,
+      };
+    } catch (error) {
+      await supabaseAdmin
+        .from("payments")
+        .update({ status: "FAILED" })
+        .eq("user_id", context.userId)
+        .eq("checkout_request_id", data.checkoutRequestId);
+      throw error;
+    }
   });
 
 /** Vérifie manuellement un paiement ou souscription (retour depuis Fapshi) et crédite si payé. */
 export const verifyTopup = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) => z.object({ transId: z.string().trim().min(1).max(120) }).parse(data))
+  .inputValidator((data: unknown) =>
+    z.object({ transId: z.string().trim().min(1).max(120) }).parse(data),
+  )
   .handler(async ({ data, context }) => {
     const { settlePaymentOrSubscription } = await import("./payments.server");
     return await settlePaymentOrSubscription(data.transId, context.userId);

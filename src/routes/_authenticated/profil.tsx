@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useSuspenseQuery, useQuery, queryOptions, useQueryClient } from "@tanstack/react-query";
 import {
   Crown,
@@ -135,8 +135,17 @@ function ProfilPage() {
     .toUpperCase();
 
   const [busyPack, setBusyPack] = useState<string | null>(null);
+  const checkoutRequestIds = useRef(new Map<string, string>());
   const checkoutFn = useServerFn(createTopupCheckout);
   const verifyFn = useServerFn(verifyTopup);
+
+  const checkoutRequestIdFor = (packId: string) => {
+    const current = checkoutRequestIds.current.get(packId);
+    if (current) return current;
+    const next = crypto.randomUUID();
+    checkoutRequestIds.current.set(packId, next);
+    return next;
+  };
 
   const handleTopup = async (pack: PricedPack) => {
     if (demoMode) {
@@ -151,7 +160,7 @@ function ProfilPage() {
     setBusyPack(pack.id);
     try {
       const res = await checkoutFn({
-        data: { packId: pack.id },
+        data: { packId: pack.id, checkoutRequestId: checkoutRequestIdFor(pack.id) },
       });
       setShowTopup(false);
       setFlash(`Paiement de ${formatXaf(res.amountXaf)} initié — finalisez sur Fapshi.`);

@@ -12,6 +12,8 @@ export type PaymentOutcome = {
 type PaymentRecord = {
   id: string;
   user_id: string;
+  trans_id: string | null;
+  external_id: string;
   credits: number;
   amount_xaf: number;
   status: string;
@@ -21,50 +23,123 @@ type PaymentRecord = {
 type SubscriptionRecord = {
   id: string;
   user_id: string;
+  trans_id: string | null;
+  external_id: string;
   plan_id: string;
   amount_xaf: number;
   status: string;
 };
 
-export async function settlePaymentOrSubscription(transId: string, expectedUserId?: string): Promise<PaymentOutcome> {
+export async function settlePaymentOrSubscription(
+  transId: string,
+  expectedUserId?: string,
+): Promise<PaymentOutcome> {
+  const direct = await findByTransactionId(transId, expectedUserId);
+  if (direct) {
+    const tx = await paymentStatus(transId);
+    return direct.kind === "subscription"
+      ? settleSubscriptionRecord(direct.record, tx)
+      : settlePackPaymentRecord(direct.record, tx);
+  }
+
+  // Fapshi can answer before the non-blocking reconciliation update finishes.
+  // Resolve the reservation by externalId and attach the provider id once.
+  const tx = await paymentStatus(transId);
+  if (!tx.externalId) return { status: "UNKNOWN", credited: false };
+
+  const fallback = await findByExternalId(tx.externalId, expectedUserId);
+  if (!fallback) return { status: "UNKNOWN", credited: false };
+
+  if (!fallback.record.trans_id) {
+    const table = fallback.kind === "subscription" ? "subscriptions" : "payments";
+    const { error } = await supabaseAdmin
+      .from(table)
+      .update({ trans_id: transId })
+      .eq("id", fallback.record.id)
+      .is("trans_id", null);
+    if (error) throw new Error("Impossible de rattacher le paiement.");
+  }
+
+  return fallback.kind === "subscription"
+    ? settleSubscriptionRecord(fallback.record, tx)
+    : settlePackPaymentRecord(fallback.record, tx);
+}
+
+type PaymentLookup =
+  { kind: "subscription"; record: SubscriptionRecord } | { kind: "payment"; record: PaymentRecord };
+
+async function findByTransactionId(
+  transId: string,
+  expectedUserId?: string,
+): Promise<PaymentLookup | null> {
   const subQuery = supabaseAdmin
     .from("subscriptions")
-    .select("id, user_id, plan_id, amount_xaf, status")
+    .select("id, user_id, trans_id, external_id, plan_id, amount_xaf, status")
     .eq("trans_id", transId);
   if (expectedUserId) subQuery.eq("user_id", expectedUserId);
   const { data: sub, error: subError } = await subQuery.maybeSingle();
   if (subError) throw new Error("Impossible de lire la souscription.");
-
-  if (sub) return settleSubscriptionRecord(sub as SubscriptionRecord, await paymentStatus(transId));
+  if (sub) return { kind: "subscription", record: sub as SubscriptionRecord };
 
   const paymentQuery = supabaseAdmin
     .from("payments")
-    .select("id, user_id, credits, amount_xaf, status, credited_at")
+    .select("id, user_id, trans_id, external_id, credits, amount_xaf, status, credited_at")
     .eq("trans_id", transId);
   if (expectedUserId) paymentQuery.eq("user_id", expectedUserId);
   const { data: payment, error: paymentError } = await paymentQuery.maybeSingle();
   if (paymentError) throw new Error("Impossible de lire le paiement.");
+  if (payment) return { kind: "payment", record: payment as PaymentRecord };
+  return null;
+}
 
-  if (payment) return settlePackPaymentRecord(payment as PaymentRecord, await paymentStatus(transId));
+async function findByExternalId(
+  externalId: string,
+  expectedUserId?: string,
+): Promise<PaymentLookup | null> {
+  const subQuery = supabaseAdmin
+    .from("subscriptions")
+    .select("id, user_id, trans_id, external_id, plan_id, amount_xaf, status")
+    .eq("external_id", externalId);
+  if (expectedUserId) subQuery.eq("user_id", expectedUserId);
+  const { data: sub, error: subError } = await subQuery.maybeSingle();
+  if (subError) throw new Error("Impossible de lire la souscription.");
+  if (sub) return { kind: "subscription", record: sub as SubscriptionRecord };
 
-  return { status: "UNKNOWN", credited: false };
+  const paymentQuery = supabaseAdmin
+    .from("payments")
+    .select("id, user_id, trans_id, external_id, credits, amount_xaf, status, credited_at")
+    .eq("external_id", externalId);
+  if (expectedUserId) paymentQuery.eq("user_id", expectedUserId);
+  const { data: payment, error: paymentError } = await paymentQuery.maybeSingle();
+  if (paymentError) throw new Error("Impossible de lire le paiement.");
+  if (payment) return { kind: "payment", record: payment as PaymentRecord };
+  return null;
 }
 
 export async function settlePayment(transId: string): Promise<PaymentOutcome> {
   return settlePaymentOrSubscription(transId);
 }
 
-async function settleSubscriptionRecord(sub: SubscriptionRecord, tx: FapshiTransaction): Promise<PaymentOutcome> {
+async function settleSubscriptionRecord(
+  sub: SubscriptionRecord,
+  tx: FapshiTransaction,
+): Promise<PaymentOutcome> {
   if (tx.status !== "SUCCESSFUL") {
     if (sub.status !== tx.status) {
-      const { error } = await supabaseAdmin.from("subscriptions").update({ status: tx.status }).eq("id", sub.id);
+      const { error } = await supabaseAdmin
+        .from("subscriptions")
+        .update({ status: tx.status })
+        .eq("id", sub.id);
       if (error) throw new Error("Impossible de mettre à jour la souscription.");
     }
     return { status: tx.status, credited: false };
   }
 
   if (Number(tx.amount) < sub.amount_xaf) {
-    const { error } = await supabaseAdmin.from("subscriptions").update({ status: "UNDERPAID" }).eq("id", sub.id);
+    const { error } = await supabaseAdmin
+      .from("subscriptions")
+      .update({ status: "UNDERPAID" })
+      .eq("id", sub.id);
     if (error) throw new Error("Impossible de signaler le paiement sous-payé.");
     return { status: "UNDERPAID", credited: false };
   }
@@ -99,17 +174,26 @@ async function settleSubscriptionRecord(sub: SubscriptionRecord, tx: FapshiTrans
   };
 }
 
-async function settlePackPaymentRecord(payment: PaymentRecord, tx: FapshiTransaction): Promise<PaymentOutcome> {
+async function settlePackPaymentRecord(
+  payment: PaymentRecord,
+  tx: FapshiTransaction,
+): Promise<PaymentOutcome> {
   if (tx.status !== "SUCCESSFUL") {
     if (payment.status !== tx.status) {
-      const { error } = await supabaseAdmin.from("payments").update({ status: tx.status }).eq("id", payment.id);
+      const { error } = await supabaseAdmin
+        .from("payments")
+        .update({ status: tx.status })
+        .eq("id", payment.id);
       if (error) throw new Error("Impossible de mettre à jour le paiement.");
     }
     return { status: tx.status, credited: false };
   }
 
   if (Number(tx.amount) < payment.amount_xaf) {
-    const { error } = await supabaseAdmin.from("payments").update({ status: "UNDERPAID" }).eq("id", payment.id);
+    const { error } = await supabaseAdmin
+      .from("payments")
+      .update({ status: "UNDERPAID" })
+      .eq("id", payment.id);
     if (error) throw new Error("Impossible de signaler le paiement sous-payé.");
     return { status: "UNDERPAID", credited: false };
   }
