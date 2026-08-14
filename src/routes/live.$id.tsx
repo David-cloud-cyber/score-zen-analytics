@@ -40,7 +40,7 @@ const detailQuery = (id: number, demoMode = false) =>
       demoMode ? Promise.resolve(DEMO_MATCH_DETAIL) : getFixtureSummary({ data: { id } }),
     staleTime: 15_000,
     refetchInterval: 30_000,
-    retry: 1,
+    retry: 0,
   });
 
 const sectionsQuery = (id: number, demoMode = false) =>
@@ -50,7 +50,7 @@ const sectionsQuery = (id: number, demoMode = false) =>
       demoMode ? Promise.resolve(DEMO_MATCH_DETAIL) : getFixtureSections({ data: { id } }),
     staleTime: 45_000,
     refetchInterval: 60_000,
-    retry: 1,
+    retry: 0,
   });
 
 export const Route = createFileRoute("/live/$id")({
@@ -70,7 +70,7 @@ export const Route = createFileRoute("/live/$id")({
   },
   pendingComponent: MatchSkeleton,
   pendingMs: 0,
-  errorComponent: ({ error, reset }) => <MatchErrorState error={error} reset={reset} />,
+  errorComponent: ({ reset }) => <PublicMatchErrorState reset={reset} />,
   /* errorComponent: ({ error, reset }) => (
     <AppShell>
       <div className="mx-4 mt-8 rounded-2xl border border-alert/30 bg-alert/5 p-6 text-center lg:mx-0">
@@ -226,7 +226,7 @@ function LiveMatchView({ m }: { m: RemoteMatchDetail }) {
           </div>
         </div>
 
-        {(m.meta?.stale || m.meta?.unavailableSections.length) && (
+        {false && (
           <div className="mx-4 mt-3 rounded-xl border border-amber-400/25 bg-amber-400/5 px-3 py-2.5 text-xs text-muted-foreground lg:mx-0">
             <div className="font-bold text-foreground">
               {m.meta?.stale ? "Données réelles en cache" : "Données secondaires partielles"}
@@ -241,6 +241,25 @@ function LiveMatchView({ m }: { m: RemoteMatchDetail }) {
             </div>
           </div>
         )}
+
+        {false && (
+          <div className="mx-4 mt-3 rounded-xl border border-border/60 bg-card px-3 py-2.5 text-xs text-muted-foreground lg:mx-0">
+            <div className="font-bold text-foreground">
+              {m.meta?.stale ? "Dernières informations disponibles" : "Mise à jour en cours"}
+            </div>
+            <div className="mt-0.5">
+              {m.meta?.stale
+                ? `Dernière mise à jour ${formatFetchedAt(m.meta.fetchedAt)}.`
+                : "Le score et les informations principales restent disponibles."}
+              {m.meta?.unavailableSections.length ? " Certaines informations arrivent bientôt." : ""}
+            </div>
+          </div>
+        )}
+
+        <div className="mx-4 mt-3 rounded-xl border border-border/60 bg-card px-3 py-2.5 text-xs text-muted-foreground lg:mx-0">
+          <div className="font-bold text-foreground">Les informations du match sont actualisées automatiquement.</div>
+          <div className="mt-0.5">Le score reste visible pendant la mise à jour des informations complémentaires.</div>
+        </div>
 
         <MatchVoteCard match={m} />
 
@@ -411,10 +430,43 @@ function LiveMatchView({ m }: { m: RemoteMatchDetail }) {
   );
 }
 
-function formatFetchedAt(value: string) {
+function formatFetchedAtTechnical(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "récemment";
   return `${date.toISOString().slice(11, 16)} UTC`;
+}
+
+function formatFetchedAt(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "récemment";
+  const minutes = Math.floor(Math.max(0, Date.now() - date.getTime()) / 60_000);
+  if (minutes < 1) return "à l’instant";
+  if (minutes === 1) return "il y a 1 minute";
+  return `il y a ${minutes} minutes`;
+}
+
+function PublicMatchErrorState({ reset }: { reset: () => void }) {
+  const [cooldown, setCooldown] = useState(15);
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const timer = window.setInterval(() => setCooldown((value) => Math.max(0, value - 1)), 1000);
+    return () => window.clearInterval(timer);
+  }, [cooldown]);
+  return (
+    <AppShell>
+      <div className="mx-4 mt-8 rounded-2xl border border-border/60 bg-card p-6 text-center lg:mx-0">
+        <AlertTriangle className="mx-auto size-6 text-muted-foreground" aria-hidden />
+        <h2 className="mt-3 text-base font-black">Match temporairement indisponible</h2>
+        <p className="mt-1 text-sm text-muted-foreground">Les informations seront actualisées automatiquement. Réessayez dans quelques instants.</p>
+        <div className="mt-4 flex justify-center gap-2">
+          <button type="button" onClick={reset} disabled={cooldown > 0} className="inline-flex items-center gap-2 rounded-full bg-foreground px-4 py-2 text-xs font-bold text-background disabled:cursor-not-allowed disabled:opacity-50">
+            <RefreshCw className="size-3.5" />{cooldown > 0 ? `Réessayer dans ${cooldown}s` : "Réessayer"}
+          </button>
+          <Link to="/" className="inline-flex items-center rounded-full bg-surface px-4 py-2 text-xs font-bold ring-1 ring-black/5 dark:ring-white/10">Retour</Link>
+        </div>
+      </div>
+    </AppShell>
+  );
 }
 
 function MatchErrorState({ error, reset }: { error: Error; reset: () => void }) {
@@ -435,9 +487,9 @@ function MatchErrorState({ error, reset }: { error: Error; reset: () => void }) 
     <AppShell>
       <div className="mx-4 mt-8 rounded-2xl border border-alert/30 bg-alert/5 p-6 text-center lg:mx-0">
         <AlertTriangle className="mx-auto size-6 text-alert" aria-hidden />
-        <h2 className="mt-3 text-base font-black">Match indisponible</h2>
+        <h2 className="mt-3 text-base font-black">Match temporairement indisponible</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          {error.message || "Impossible de charger cette rencontre."}
+          Les informations seront actualisées automatiquement. Réessayez dans quelques instants.
         </p>
         <div className="mt-4 flex justify-center gap-2">
           <button

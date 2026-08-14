@@ -210,6 +210,7 @@ const DEMO_H2H: ApiH2H[] = [
 
 export const DEMO_MATCH_DETAIL: RemoteMatchDetail = {
   ...DEMO_FIXTURES[0],
+  meta: { fetchedAt: new Date().toISOString(), stale: false, unavailableSections: [], source: "api", state: "fresh" },
   events: [
     { minute: 18, side: "home", type: "goal", player: "Bukayo Saka", detail: "But" },
     { minute: 41, side: "away", type: "yellow", player: "M. Caicedo", detail: "Carton jaune" },

@@ -12,9 +12,11 @@ const reasonSchema = z.string().trim().min(8).max(500);
 const pageSchema = z.object({ page: z.number().int().min(1).max(1000).default(1), pageSize: z.number().int().min(10).max(100).default(25), search: z.string().trim().max(120).default("") });
 
 async function adminRole(userId: string, client: any): Promise<AdminRole> {
-  const { data } = await client.from("user_roles").select("role").eq("user_id", userId).in("role", ["admin", "owner"]).limit(1).maybeSingle();
-  if (data?.role !== "admin" && data?.role !== "owner") throw new Error("ADMIN_FORBIDDEN");
-  return data.role;
+  const { data, error } = await client.from("user_roles").select("role").eq("user_id", userId).in("role", ["admin", "owner"]);
+  if (error) throw new Error("ADMIN_ROLE_LOOKUP_FAILED");
+  if ((data ?? []).some((item: { role: string }) => item.role === "owner")) return "owner";
+  if ((data ?? []).some((item: { role: string }) => item.role === "admin")) return "admin";
+  throw new Error("ADMIN_FORBIDDEN");
 }
 
 async function requireAdmin(context: any): Promise<AdminRole> {

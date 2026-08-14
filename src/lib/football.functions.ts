@@ -404,6 +404,13 @@ function summaryDetailDefaults(meta: RemoteMatchDetail["meta"]): RemoteMatchDeta
   };
 }
 
+function detailFromSummary(
+  summary: RemoteMatchSummary,
+  meta: RemoteMatchDetail["meta"],
+): RemoteMatchDetail {
+  return { ...summaryDetailDefaults(meta), ...summary };
+}
+
 function parseNumber(v: number | string | null | undefined): number | null {
   if (v === null || v === undefined) return null;
   if (typeof v === "number") return v;
@@ -651,6 +658,32 @@ export const getFixtureDetail = createServerFn({ method: "GET" })
 export const getFixtureSummary = createServerFn({ method: "GET" })
   .inputValidator((input) => z.object({ id: z.number().int().positive() }).parse(input))
   .handler(async ({ data }): Promise<RemoteMatchDetail> => {
+    const [liveSnapshot, daySnapshot] = await Promise.all([
+      readSharedFixtureSnapshot("live", todayISO()),
+      readSharedFixtureSnapshot("day", todayISO()),
+    ]);
+    for (const snapshot of [liveSnapshot, daySnapshot]) {
+      const match = snapshot?.matches.find((item) => item.id === data.id);
+      if (match && snapshot) {
+        return detailFromSummary(match, {
+          fetchedAt: snapshot.fetchedAt ?? new Date().toISOString(),
+          stale: snapshot.state === "stale",
+          state: snapshot.state,
+          source: snapshot.source,
+          retryAfterMs: snapshot.retryAfterMs,
+          unavailableSections: [
+            "événements",
+            "statistiques",
+            "compositions",
+            "confrontations",
+            "cotes",
+            "prédictions",
+            "absences",
+          ],
+        });
+      }
+    }
+
     const fixtures = await apiFootball<ApiFixture[]>("/fixtures", { id: data.id });
     const fixture = fixtures[0];
     if (!fixture) throw new Error("Match introuvable.");

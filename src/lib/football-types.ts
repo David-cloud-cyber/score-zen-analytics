@@ -119,10 +119,13 @@ export type ApiInjury = {
 };
 
 export type RemoteMatchDetail = RemoteMatchSummary & {
-  meta?: {
+  meta: {
     fetchedAt: string;
     stale: boolean;
     unavailableSections: string[];
+    source?: "live" | "api" | "cache";
+    state?: "fresh" | "stale" | "unavailable";
+    retryAfterMs?: number;
   };
   events: ApiEvent[];
   stats: ApiStats;

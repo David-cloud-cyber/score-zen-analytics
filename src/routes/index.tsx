@@ -94,7 +94,7 @@ function HomeError({ error, reset }: { error: Error; reset: () => void }) {
         <AlertTriangle className="mx-auto size-6 text-alert" aria-hidden />
         <h2 className="mt-3 text-base font-black">Données football indisponibles</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          {error.message || "Réessayez dans un instant."}
+          Les informations seront actualisées automatiquement. Réessayez dans quelques instants.
         </p>
         <button
           onClick={reset}
