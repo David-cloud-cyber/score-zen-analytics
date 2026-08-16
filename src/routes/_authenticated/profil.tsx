@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useSuspenseQuery, useQuery, queryOptions, useQueryClient } from "@tanstack/react-query";
 import {
   Crown,
@@ -30,7 +30,6 @@ import { useServerFn } from "@tanstack/react-start";
 import { useSession } from "@/hooks/use-session";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { MobileMoneyDialog, type MobileMoneyMedium, type PaymentDialogState } from "@/components/MobileMoneyDialog";
 import { formatPremiumExpiry, isPremiumActive, premiumDaysRemaining } from "@/lib/premium-status";
 import {
   DEMO_HISTORY,
@@ -136,25 +135,9 @@ function ProfilPage() {
     .toUpperCase();
 
   const [busyPack, setBusyPack] = useState<string | null>(null);
-  const [paymentPack, setPaymentPack] = useState<PricedPack | null>(null);
-  const [paymentState, setPaymentState] = useState<PaymentDialogState>("idle");
-  const [paymentMessage, setPaymentMessage] = useState("");
-  const checkoutRequestIds = useRef(new Map<string, string>());
   const checkoutFn = useServerFn(createTopupCheckout);
   const verifyFn = useServerFn(verifyTopup);
   const verifyCheckoutFn = useServerFn(verifyCheckout);
-
-  const checkoutRequestIdFor = (packId: string) => {
-    const current = checkoutRequestIds.current.get(packId);
-    if (current) return current;
-    const next = crypto.randomUUID();
-    checkoutRequestIds.current.set(packId, next);
-    return next;
-  };
-
-  const resetCheckoutRequestId = (packId: string) => {
-    checkoutRequestIds.current.delete(packId);
-  };
 
   useEffect(() => {
     if (demoMode) return;
@@ -200,51 +183,17 @@ function ProfilPage() {
       return;
     }
     setShowTopup(false);
-    setPaymentPack(pack);
-    setPaymentState("idle");
-    setPaymentMessage("");
+    void startTopupPayment(pack);
   };
 
-  const startMobileTopup = async ({ phone, medium }: { phone: string; medium: MobileMoneyMedium }) => {
-    if (!paymentPack) return;
-    setPaymentState("starting");
-    setPaymentMessage("");
-    setBusyPack(paymentPack.id);
+  const startTopupPayment = async (pack: PricedPack) => {
+    setBusyPack(pack.id);
     try {
-      const res = await checkoutFn({ data: { packId: paymentPack.id, checkoutRequestId: checkoutRequestIdFor(paymentPack.id), phone, medium } });
-      if (res.mode === "hosted" && res.link) {
-        window.location.href = res.link;
-        return;
-      }
-      setPaymentState("waiting");
-      setPaymentMessage("Demande envoyée sur votre téléphone. Confirmez avec votre code Mobile Money.");
-      for (let attempt = 0; attempt < 30; attempt += 1) {
-        try {
-          const result = await verifyFn({ data: { transId: res.transId } });
-          if (result.status === "SUCCESSFUL") {
-            setPaymentState("success");
-            setPaymentMessage(`${paymentPack.credits} crédits ont été ajoutés à votre solde.`);
-            toast.success("Paiement confirmé : crédits ajoutés.");
-            await queryClient.invalidateQueries({ queryKey: ["me"] });
-            return;
-          }
-          if (["FAILED", "EXPIRED", "UNDERPAID"].includes(result.status)) {
-            resetCheckoutRequestId(paymentPack.id);
-            setPaymentState("failed");
-            setPaymentMessage("Le paiement n'a pas abouti. Vérifiez votre portefeuille et réessayez.");
-            return;
-          }
-        } catch {
-          // The webhook can confirm the transaction while a status check is unavailable.
-        }
-        await new Promise((resolve) => setTimeout(resolve, 4000));
-      }
-      setPaymentState("failed");
-      resetCheckoutRequestId(paymentPack.id);
-      setPaymentMessage("La confirmation prend plus de temps que prévu. Consultez votre historique avant de relancer.");
+      const res = await checkoutFn({ data: { packId: pack.id, checkoutRequestId: crypto.randomUUID() } });
+      if (!res.link) throw new Error("La page de paiement n'a pas pu être ouverte.");
+      window.location.assign(res.link);
     } catch (err) {
-      setPaymentState("failed");
-      setPaymentMessage(err instanceof Error ? err.message : "Le paiement n'a pas pu être lancé.");
+      toast.error(err instanceof Error ? err.message : "La page de paiement n'a pas pu être ouverte.");
     } finally {
       setBusyPack(null);
     }
@@ -740,22 +689,6 @@ function ProfilPage() {
           onBuy={handleTopup}
           busyPack={busyPack}
           isPremium={isPremium}
-        />
-      )}
-      {paymentPack && (
-        <MobileMoneyDialog
-          title={`Acheter ${paymentPack.credits} crédits`}
-          description="Une demande de paiement va être envoyée sur votre portefeuille mobile."
-          amountLabel={formatXaf(paymentPack.priceXaf)}
-          state={paymentState}
-          message={paymentMessage}
-          onClose={() => {
-            if (paymentState !== "starting" && paymentState !== "waiting") {
-              setPaymentPack(null);
-              setPaymentState("idle");
-            }
-          }}
-          onConfirm={startMobileTopup}
         />
       )}
     </AppShell>

@@ -5,15 +5,11 @@ import { z } from "zod";
 const packCheckoutInput = z.object({
   packId: z.string().min(1).max(40),
   checkoutRequestId: z.string().uuid(),
-  phone: z.string().regex(/^6\d{8}$/, "Numéro Mobile Money camerounais invalide."),
-  medium: z.enum(["mobile money", "orange money"]),
 });
 
 const subCheckoutInput = z.object({
   planId: z.enum(["premium_monthly", "premium_yearly"]),
   checkoutRequestId: z.string().uuid(),
-  phone: z.string().regex(/^6\d{8}$/, "Numéro Mobile Money camerounais invalide."),
-  medium: z.enum(["mobile money", "orange money"]),
 });
 
 function appOrigin() {
@@ -33,45 +29,30 @@ function duplicateCheckoutMessage() {
   return new Error("Ce paiement est déjà en préparation. Réessayez dans quelques instants.");
 }
 
-function isDirectPayUnavailable(error: unknown) {
-  if (!(error instanceof Error) || !("status" in error)) return false;
-  const status = Number((error as { status?: number }).status);
-  const providerMessage = String((error as { providerMessage?: string }).providerMessage ?? "").toLowerCase();
-  return status === 403 || status === 404 || /direct.?pay|disabled|not enabled|activate/.test(providerMessage);
-}
-
 function publicPaymentError() {
-  return new Error("Le paiement n'a pas pu être lancé. Vérifiez le numéro et réessayez.");
+  return new Error("La page de paiement n'a pas pu être ouverte. Réessayez dans quelques instants.");
 }
 
 async function startFapshiCheckout(params: {
   amount: number;
-  phone: string;
-  medium: "mobile money" | "orange money";
   email?: string;
   userId: string;
   externalId: string;
   message: string;
 }) {
-  const { directPay, initiatePay } = await import("./fapshi.server");
+  const { initiatePay } = await import("./fapshi.server");
   try {
-    const direct = await directPay(params);
-    return { mode: "direct" as const, link: null, transId: direct.transId };
-  } catch (error) {
-    if (!isDirectPayUnavailable(error)) throw publicPaymentError();
-    try {
-      const hosted = await initiatePay({
-        amount: params.amount,
-        email: params.email,
-        userId: params.userId,
-        externalId: params.externalId,
-        message: params.message,
-        redirectUrl: `${appOrigin()}/profil?payment=${encodeURIComponent(params.externalId)}`,
-      });
-      return { mode: "hosted" as const, link: hosted.link, transId: hosted.transId };
-    } catch {
-      throw publicPaymentError();
-    }
+    const hosted = await initiatePay({
+      amount: params.amount,
+      email: params.email,
+      userId: params.userId,
+      externalId: params.externalId,
+      message: params.message,
+      redirectUrl: `${appOrigin()}/profil?payment=${encodeURIComponent(params.externalId)}`,
+    });
+    return { mode: "hosted" as const, link: hosted.link, transId: hosted.transId };
+  } catch {
+    throw publicPaymentError();
   }
 }
 
@@ -118,8 +99,7 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
       external_id: externalId,
       checkout_request_id: data.checkoutRequestId,
       checkout_link: null,
-      checkout_mode: "direct",
-      medium: data.medium,
+      checkout_mode: "hosted",
       plan_id: plan.id,
       amount_xaf: plan.priceXaf,
       status: "PENDING",
@@ -132,8 +112,6 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
     try {
       const res = await startFapshiCheckout({
         amount: plan.priceXaf,
-        phone: data.phone,
-        medium: data.medium,
         email: context.claims?.email as string | undefined,
         userId: context.userId.replace(/-/g, ""),
         externalId,
@@ -220,8 +198,7 @@ export const createTopupCheckout = createServerFn({ method: "POST" })
       external_id: externalId,
       checkout_request_id: data.checkoutRequestId,
       checkout_link: null,
-      checkout_mode: "direct",
-      medium: data.medium,
+      checkout_mode: "hosted",
       pack_id: pack.id,
       credits: pack.credits,
       amount_xaf: pack.priceXaf,
@@ -236,8 +213,6 @@ export const createTopupCheckout = createServerFn({ method: "POST" })
     try {
       const res = await startFapshiCheckout({
         amount: pack.priceXaf,
-        phone: data.phone,
-        medium: data.medium,
         email: context.claims?.email as string | undefined,
         userId: context.userId.replace(/-/g, ""),
         externalId,
