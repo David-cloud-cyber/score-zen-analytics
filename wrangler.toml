@@ -32,6 +32,9 @@ class_name = "LiveFootballCoordinator"
 tag = "v1"
 new_sqlite_classes = ["LiveFootballCoordinator"]
 
+[triggers]
+crons = ["0 * * * *"]
+
 # Secrets (set via: wrangler secret put SECRET_NAME)
 # APIFOOTBALL_KEY  ← wrangler secret put APIFOOTBALL_KEY
 

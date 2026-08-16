@@ -1,0 +1,70 @@
+export type EditorialCategory =
+  | "actualites"
+  | "competitions"
+  | "forme"
+  | "analyse"
+  | "guides";
+
+export type EditorialStatus =
+  | "draft"
+  | "validated"
+  | "scheduled"
+  | "published"
+  | "rejected"
+  | "failed";
+
+export type EditorialSection = {
+  heading: string;
+  paragraphs: string[];
+  bullets?: string[];
+};
+
+export type EditorialFaq = { question: string; answer: string };
+
+export type EditorialContent = {
+  summary: string;
+  sections: EditorialSection[];
+  faq: EditorialFaq[];
+};
+
+export type EditorialLink = {
+  label: string;
+  path: string;
+  reason: string;
+};
+
+export type EditorialSource = {
+  id?: string;
+  title: string;
+  url: string;
+  publisher: string;
+  excerpt?: string | null;
+  publishedAt?: string | null;
+  verified: boolean;
+};
+
+export type PublicEditorialArticle = {
+  id: string;
+  slug: string;
+  category: EditorialCategory;
+  title: string;
+  seoTitle: string;
+  seoDescription: string;
+  excerpt: string;
+  directAnswer: string;
+  content: EditorialContent;
+  internalLinks: EditorialLink[];
+  qualityScore: number | null;
+  wordCount: number;
+  authorName: string;
+  coverImage: string | null;
+  disclosure: string | null;
+  publishedAt: string;
+  updatedAt: string;
+  sources: EditorialSource[];
+};
+
+export type EditorialListItem = Pick<
+  PublicEditorialArticle,
+  "id" | "slug" | "category" | "title" | "seoDescription" | "excerpt" | "wordCount" | "coverImage" | "publishedAt" | "updatedAt"
+>;

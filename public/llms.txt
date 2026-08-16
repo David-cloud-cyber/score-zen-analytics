@@ -10,6 +10,12 @@ LiveFoot AI (https://www.livefoot.fun) est une application web française qui co
 - Monnaie : FCFA (XAF/XOF)
 - Licence de citation : contenu librement citable avec attribution et lien vers la page source.
 
+## Blog football
+
+LiveFoot publie des articles football vérifiés sur les compétitions, la forme des équipes, les analyses statistiques et les guides utiles en France et en Afrique francophone.
+
+- [Blog football](/blog): articles récents, sources et analyses.
+
 ## Réponses rapides (AEO)
 
 - **Comment obtenir une prédiction IA sur un match ?** Sur /analyse, saisir l'équipe à domicile et l'équipe à l'extérieur, puis lancer l'analyse. L'IA croise forme récente, confrontations directes, blessures et classement, puis renvoie probabilités 1X2, score probable et marchés recommandés avec indice de confiance. Une analyse coûte 3 crédits.

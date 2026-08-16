@@ -2,6 +2,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import {
   ArrowRight,
   Coins,
+  FileText,
   Menu,
   PanelLeftClose,
   PanelLeftOpen,
@@ -46,6 +47,7 @@ const NAV = [
     icon: Users,
     match: (p: string) => p.startsWith("/communaute"),
   },
+  { to: "/blog", label: "Blog football", icon: FileText, match: (p: string) => p.startsWith("/blog") },
   { to: "/favoris", label: "Favoris", icon: Star, match: (p: string) => p.startsWith("/favoris") },
   { to: "/profil", label: "Profil", icon: User, match: (p: string) => p.startsWith("/profil") },
 ] as const;
@@ -57,7 +59,7 @@ const SIDEBAR_GROUPS = [
   },
   {
     label: "Mon espace",
-    items: [NAV[3], NAV[2], NAV[4]],
+    items: [NAV[4], NAV[2], NAV[3], NAV[5]],
   },
   {
     label: "Partenaires",

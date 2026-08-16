@@ -52,6 +52,7 @@ export async function requestOpenRouterJson(params: {
   systemPrompt: string;
   userPrompt: string;
   timeoutMs: number;
+  maxTokens?: number;
 }): Promise<unknown> {
   const response = await fetchJsonWithTimeout(
     "https://openrouter.ai/api/v1/chat/completions",
@@ -71,7 +72,7 @@ export async function requestOpenRouterJson(params: {
           { role: "user", content: params.userPrompt },
         ],
         temperature: 0.15,
-        max_tokens: 1600,
+        max_tokens: params.maxTokens ?? 1600,
         ...(params.model.startsWith("deepseek/") ? { reasoning: { enabled: true } } : {}),
       }),
     },

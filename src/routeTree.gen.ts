@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AnalyseRouteImport } from './routes/analyse'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as BlogRouteImport } from './routes/blog'
 import { Route as CodesPromoRouteImport } from './routes/codes-promo'
 import { Route as CommunauteRouteImport } from './routes/communaute'
 import { Route as MentionsLegalesRouteImport } from './routes/mentions-legales'
@@ -32,6 +33,10 @@ import { Route as AdminPaiementsRouteImport } from './routes/admin.paiements'
 import { Route as AdminParametresRouteImport } from './routes/admin.parametres'
 import { Route as AdminUtilisateursRouteImport } from './routes/admin.utilisateurs'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
+import { Route as BlogIndexRouteImport } from './routes/blog.index'
+import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
+import { Route as BlogFootballRouteImport } from './routes/blog.football'
+import { Route as BlogRssDotxmlRouteImport } from './routes/blog.rss[.]xml'
 import { Route as CodesPromoIndexRouteImport } from './routes/codes-promo.index'
 import { Route as CodesPromoSlugRouteImport } from './routes/codes-promo.$slug'
 import { Route as CodesPromoCamerounRouteImport } from './routes/codes-promo.cameroun'
@@ -44,6 +49,7 @@ import { Route as PremiumTableauDeBordRouteImport } from './routes/premium.table
 import { Route as ApiPublicConversionEventRouteImport } from './routes/api/public/conversion-event'
 import { Route as ApiPublicFapshiWebhookRouteImport } from './routes/api/public/fapshi-webhook'
 import { Route as ApiPublicFixtureDiagnosticRouteImport } from './routes/api/public/fixture-diagnostic'
+import { Route as BlogCategorieCategorieRouteImport } from './routes/blog.categorie.$categorie'
 import { Route as CodesPromoSlugCountryRouteImport } from './routes/codes-promo.$slug.$country'
 
 const IndexRoute = IndexRouteImport.update({
@@ -68,6 +74,11 @@ const AnalyseRoute = AnalyseRouteImport.update({
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BlogRoute = BlogRouteImport.update({
+  id: '/blog',
+  path: '/blog',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CodesPromoRoute = CodesPromoRouteImport.update({
@@ -160,6 +171,26 @@ const AuthCallbackRoute = AuthCallbackRouteImport.update({
   path: '/callback',
   getParentRoute: () => AuthRoute,
 } as any)
+const BlogIndexRoute = BlogIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => BlogRoute,
+} as any)
+const BlogSlugRoute = BlogSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => BlogRoute,
+} as any)
+const BlogFootballRoute = BlogFootballRouteImport.update({
+  id: '/football',
+  path: '/football',
+  getParentRoute: () => BlogRoute,
+} as any)
+const BlogRssDotxmlRoute = BlogRssDotxmlRouteImport.update({
+  id: '/rss.xml',
+  path: '/rss.xml',
+  getParentRoute: () => BlogRoute,
+} as any)
 const CodesPromoIndexRoute = CodesPromoIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -222,6 +253,11 @@ const ApiPublicFixtureDiagnosticRoute =
     path: '/api/public/fixture-diagnostic',
     getParentRoute: () => rootRouteImport,
   } as any)
+const BlogCategorieCategorieRoute = BlogCategorieCategorieRouteImport.update({
+  id: '/categorie/$categorie',
+  path: '/categorie/$categorie',
+  getParentRoute: () => BlogRoute,
+} as any)
 const CodesPromoSlugCountryRoute = CodesPromoSlugCountryRouteImport.update({
   id: '/$country',
   path: '/$country',
@@ -233,6 +269,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRouteWithChildren
   '/analyse': typeof AnalyseRoute
   '/auth': typeof AuthRouteWithChildren
+  '/blog': typeof BlogRouteWithChildren
   '/codes-promo': typeof CodesPromoRouteWithChildren
   '/communaute': typeof CommunauteRoute
   '/mentions-legales': typeof MentionsLegalesRoute
@@ -250,6 +287,9 @@ export interface FileRoutesByFullPath {
   '/admin/parametres': typeof AdminParametresRoute
   '/admin/utilisateurs': typeof AdminUtilisateursRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/blog/$slug': typeof BlogSlugRoute
+  '/blog/football': typeof BlogFootballRoute
+  '/blog/rss.xml': typeof BlogRssDotxmlRoute
   '/codes-promo/$slug': typeof CodesPromoSlugRouteWithChildren
   '/codes-promo/cameroun': typeof CodesPromoCamerounRoute
   '/codes-promo/cote-ivoire': typeof CodesPromoCoteIvoireRoute
@@ -259,10 +299,12 @@ export interface FileRoutesByFullPath {
   '/premium/historique': typeof PremiumHistoriqueRoute
   '/premium/tableau-de-bord': typeof PremiumTableauDeBordRoute
   '/admin/': typeof AdminIndexRoute
+  '/blog/': typeof BlogIndexRoute
   '/codes-promo/': typeof CodesPromoIndexRoute
   '/api/public/conversion-event': typeof ApiPublicConversionEventRoute
   '/api/public/fapshi-webhook': typeof ApiPublicFapshiWebhookRoute
   '/api/public/fixture-diagnostic': typeof ApiPublicFixtureDiagnosticRoute
+  '/blog/categorie/$categorie': typeof BlogCategorieCategorieRoute
   '/codes-promo/$slug/$country': typeof CodesPromoSlugCountryRoute
 }
 export interface FileRoutesByTo {
@@ -285,6 +327,9 @@ export interface FileRoutesByTo {
   '/admin/parametres': typeof AdminParametresRoute
   '/admin/utilisateurs': typeof AdminUtilisateursRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/blog/$slug': typeof BlogSlugRoute
+  '/blog/football': typeof BlogFootballRoute
+  '/blog/rss.xml': typeof BlogRssDotxmlRoute
   '/codes-promo/$slug': typeof CodesPromoSlugRouteWithChildren
   '/codes-promo/cameroun': typeof CodesPromoCamerounRoute
   '/codes-promo/cote-ivoire': typeof CodesPromoCoteIvoireRoute
@@ -294,10 +339,12 @@ export interface FileRoutesByTo {
   '/premium/historique': typeof PremiumHistoriqueRoute
   '/premium/tableau-de-bord': typeof PremiumTableauDeBordRoute
   '/admin': typeof AdminIndexRoute
+  '/blog': typeof BlogIndexRoute
   '/codes-promo': typeof CodesPromoIndexRoute
   '/api/public/conversion-event': typeof ApiPublicConversionEventRoute
   '/api/public/fapshi-webhook': typeof ApiPublicFapshiWebhookRoute
   '/api/public/fixture-diagnostic': typeof ApiPublicFixtureDiagnosticRoute
+  '/blog/categorie/$categorie': typeof BlogCategorieCategorieRoute
   '/codes-promo/$slug/$country': typeof CodesPromoSlugCountryRoute
 }
 export interface FileRoutesById {
@@ -307,6 +354,7 @@ export interface FileRoutesById {
   '/admin': typeof AdminRouteWithChildren
   '/analyse': typeof AnalyseRoute
   '/auth': typeof AuthRouteWithChildren
+  '/blog': typeof BlogRouteWithChildren
   '/codes-promo': typeof CodesPromoRouteWithChildren
   '/communaute': typeof CommunauteRoute
   '/mentions-legales': typeof MentionsLegalesRoute
@@ -324,6 +372,9 @@ export interface FileRoutesById {
   '/admin/parametres': typeof AdminParametresRoute
   '/admin/utilisateurs': typeof AdminUtilisateursRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/blog/$slug': typeof BlogSlugRoute
+  '/blog/football': typeof BlogFootballRoute
+  '/blog/rss.xml': typeof BlogRssDotxmlRoute
   '/codes-promo/$slug': typeof CodesPromoSlugRouteWithChildren
   '/codes-promo/cameroun': typeof CodesPromoCamerounRoute
   '/codes-promo/cote-ivoire': typeof CodesPromoCoteIvoireRoute
@@ -333,10 +384,12 @@ export interface FileRoutesById {
   '/premium/historique': typeof PremiumHistoriqueRoute
   '/premium/tableau-de-bord': typeof PremiumTableauDeBordRoute
   '/admin/': typeof AdminIndexRoute
+  '/blog/': typeof BlogIndexRoute
   '/codes-promo/': typeof CodesPromoIndexRoute
   '/api/public/conversion-event': typeof ApiPublicConversionEventRoute
   '/api/public/fapshi-webhook': typeof ApiPublicFapshiWebhookRoute
   '/api/public/fixture-diagnostic': typeof ApiPublicFixtureDiagnosticRoute
+  '/blog/categorie/$categorie': typeof BlogCategorieCategorieRoute
   '/codes-promo/$slug/$country': typeof CodesPromoSlugCountryRoute
 }
 export interface FileRouteTypes {
@@ -346,6 +399,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/analyse'
     | '/auth'
+    | '/blog'
     | '/codes-promo'
     | '/communaute'
     | '/mentions-legales'
@@ -363,6 +417,9 @@ export interface FileRouteTypes {
     | '/admin/parametres'
     | '/admin/utilisateurs'
     | '/auth/callback'
+    | '/blog/$slug'
+    | '/blog/football'
+    | '/blog/rss.xml'
     | '/codes-promo/$slug'
     | '/codes-promo/cameroun'
     | '/codes-promo/cote-ivoire'
@@ -372,10 +429,12 @@ export interface FileRouteTypes {
     | '/premium/historique'
     | '/premium/tableau-de-bord'
     | '/admin/'
+    | '/blog/'
     | '/codes-promo/'
     | '/api/public/conversion-event'
     | '/api/public/fapshi-webhook'
     | '/api/public/fixture-diagnostic'
+    | '/blog/categorie/$categorie'
     | '/codes-promo/$slug/$country'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -398,6 +457,9 @@ export interface FileRouteTypes {
     | '/admin/parametres'
     | '/admin/utilisateurs'
     | '/auth/callback'
+    | '/blog/$slug'
+    | '/blog/football'
+    | '/blog/rss.xml'
     | '/codes-promo/$slug'
     | '/codes-promo/cameroun'
     | '/codes-promo/cote-ivoire'
@@ -407,10 +469,12 @@ export interface FileRouteTypes {
     | '/premium/historique'
     | '/premium/tableau-de-bord'
     | '/admin'
+    | '/blog'
     | '/codes-promo'
     | '/api/public/conversion-event'
     | '/api/public/fapshi-webhook'
     | '/api/public/fixture-diagnostic'
+    | '/blog/categorie/$categorie'
     | '/codes-promo/$slug/$country'
   id:
     | '__root__'
@@ -419,6 +483,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/analyse'
     | '/auth'
+    | '/blog'
     | '/codes-promo'
     | '/communaute'
     | '/mentions-legales'
@@ -436,6 +501,9 @@ export interface FileRouteTypes {
     | '/admin/parametres'
     | '/admin/utilisateurs'
     | '/auth/callback'
+    | '/blog/$slug'
+    | '/blog/football'
+    | '/blog/rss.xml'
     | '/codes-promo/$slug'
     | '/codes-promo/cameroun'
     | '/codes-promo/cote-ivoire'
@@ -445,10 +513,12 @@ export interface FileRouteTypes {
     | '/premium/historique'
     | '/premium/tableau-de-bord'
     | '/admin/'
+    | '/blog/'
     | '/codes-promo/'
     | '/api/public/conversion-event'
     | '/api/public/fapshi-webhook'
     | '/api/public/fixture-diagnostic'
+    | '/blog/categorie/$categorie'
     | '/codes-promo/$slug/$country'
   fileRoutesById: FileRoutesById
 }
@@ -458,6 +528,7 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRouteWithChildren
   AnalyseRoute: typeof AnalyseRoute
   AuthRoute: typeof AuthRouteWithChildren
+  BlogRoute: typeof BlogRouteWithChildren
   CodesPromoRoute: typeof CodesPromoRouteWithChildren
   CommunauteRoute: typeof CommunauteRoute
   MentionsLegalesRoute: typeof MentionsLegalesRoute
@@ -505,6 +576,13 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/blog': {
+      id: '/blog'
+      path: '/blog'
+      fullPath: '/blog'
+      preLoaderRoute: typeof BlogRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/codes-promo': {
@@ -633,6 +711,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthCallbackRouteImport
       parentRoute: typeof AuthRoute
     }
+    '/blog/': {
+      id: '/blog/'
+      path: '/'
+      fullPath: '/blog/'
+      preLoaderRoute: typeof BlogIndexRouteImport
+      parentRoute: typeof BlogRoute
+    }
+    '/blog/$slug': {
+      id: '/blog/$slug'
+      path: '/$slug'
+      fullPath: '/blog/$slug'
+      preLoaderRoute: typeof BlogSlugRouteImport
+      parentRoute: typeof BlogRoute
+    }
+    '/blog/football': {
+      id: '/blog/football'
+      path: '/football'
+      fullPath: '/blog/football'
+      preLoaderRoute: typeof BlogFootballRouteImport
+      parentRoute: typeof BlogRoute
+    }
+    '/blog/rss.xml': {
+      id: '/blog/rss.xml'
+      path: '/rss.xml'
+      fullPath: '/blog/rss.xml'
+      preLoaderRoute: typeof BlogRssDotxmlRouteImport
+      parentRoute: typeof BlogRoute
+    }
     '/codes-promo/': {
       id: '/codes-promo/'
       path: '/'
@@ -717,6 +823,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicFixtureDiagnosticRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/blog/categorie/$categorie': {
+      id: '/blog/categorie/$categorie'
+      path: '/categorie/$categorie'
+      fullPath: '/blog/categorie/$categorie'
+      preLoaderRoute: typeof BlogCategorieCategorieRouteImport
+      parentRoute: typeof BlogRoute
+    }
     '/codes-promo/$slug/$country': {
       id: '/codes-promo/$slug/$country'
       path: '/$country'
@@ -778,6 +891,24 @@ const AuthRouteChildren: AuthRouteChildren = {
 
 const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
 
+interface BlogRouteChildren {
+  BlogSlugRoute: typeof BlogSlugRoute
+  BlogFootballRoute: typeof BlogFootballRoute
+  BlogRssDotxmlRoute: typeof BlogRssDotxmlRoute
+  BlogIndexRoute: typeof BlogIndexRoute
+  BlogCategorieCategorieRoute: typeof BlogCategorieCategorieRoute
+}
+
+const BlogRouteChildren: BlogRouteChildren = {
+  BlogSlugRoute: BlogSlugRoute,
+  BlogFootballRoute: BlogFootballRoute,
+  BlogRssDotxmlRoute: BlogRssDotxmlRoute,
+  BlogIndexRoute: BlogIndexRoute,
+  BlogCategorieCategorieRoute: BlogCategorieCategorieRoute,
+}
+
+const BlogRouteWithChildren = BlogRoute._addFileChildren(BlogRouteChildren)
+
 interface CodesPromoSlugRouteChildren {
   CodesPromoSlugCountryRoute: typeof CodesPromoSlugCountryRoute
 }
@@ -829,6 +960,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRouteWithChildren,
   AnalyseRoute: AnalyseRoute,
   AuthRoute: AuthRouteWithChildren,
+  BlogRoute: BlogRouteWithChildren,
   CodesPromoRoute: CodesPromoRouteWithChildren,
   CommunauteRoute: CommunauteRoute,
   MentionsLegalesRoute: MentionsLegalesRoute,

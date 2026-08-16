@@ -16,6 +16,8 @@ export const Route = createFileRoute("/sitemap.xml")({
   server: {
     handlers: {
       GET: async () => {
+        const { getEditorialSitemapEntries } = await import("@/lib/editorial.server");
+        const editorialEntries = await getEditorialSitemapEntries();
         // On liste uniquement les routes publiques stables. Les fiches match
         // (/live/$id) ne sont pas listées car leurs IDs API-Football changent
         // en permanence : l'indexation se fait via les liens internes.
@@ -31,6 +33,13 @@ export const Route = createFileRoute("/sitemap.xml")({
           { path: "/mentions-legales", changefreq: "yearly", priority: "0.3" },
           { path: "/premium", changefreq: "monthly", priority: "0.7" },
           { path: "/codes-promo", lastmod: latestBookmakerUpdate, changefreq: "weekly", priority: "0.9" },
+          { path: "/blog", changefreq: "daily", priority: "0.9" },
+          ...editorialEntries.map((article) => ({
+            path: `/blog/${article.slug}`,
+            lastmod: article.updated_at,
+            changefreq: "daily" as const,
+            priority: "0.8",
+          })),
           ...BOOKMAKERS.map((b) => ({
             path: `/codes-promo/${b.slug}`,
             lastmod: b.updatedAt,

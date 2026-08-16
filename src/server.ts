@@ -11,6 +11,7 @@ if (typeof globalThis.WebSocket === "undefined") {
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
 import { getFixtureSections, getFixtureSummary } from "./lib/football.functions";
+import { runEditorialCycle } from "./lib/editorial.pipeline.server";
 
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
@@ -140,3 +141,12 @@ export default {
     }
   },
 };
+
+export async function scheduled(
+  _controller: { cron?: string; scheduledTime?: number },
+  env: unknown,
+  ctx: { waitUntil: (promise: Promise<unknown>) => void },
+) {
+  (globalThis as typeof globalThis & { __env__?: unknown }).__env__ = env;
+  ctx.waitUntil(runEditorialCycle());
+}
