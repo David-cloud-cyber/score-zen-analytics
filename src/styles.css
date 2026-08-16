@@ -437,6 +437,13 @@
     color: #f7f7f7;
   }
 
+  /* Keep the foreground/background token pair readable in every theme. */
+  .score-shell button[class*="bg-foreground"][class*="text-background"],
+  .score-shell [role="button"][class*="bg-foreground"][class*="text-background"] {
+    background-color: var(--foreground) !important;
+    color: var(--background) !important;
+  }
+
   button:disabled,
   [role="button"][aria-disabled="true"] {
     color: color-mix(in srgb, currentColor 82%, var(--muted-foreground));
