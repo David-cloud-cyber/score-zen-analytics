@@ -17,6 +17,7 @@ type FeedItem = {
   publisher: string;
   excerpt: string;
   publishedAt: string | null;
+  coverImage: string | null;
 };
 
 const draftSchema = z.object({
@@ -68,6 +69,12 @@ function tag(block: string, name: string) {
   return match ? decodeXml(match[1]) : "";
 }
 
+function feedImage(block: string) {
+  const match = block.match(/<(?:media:content|media:thumbnail|enclosure)\b[^>]*(?:url|href)=["']([^"']+)["'][^>]*\/?\s*>/i);
+  const value = match?.[1]?.trim();
+  return value?.startsWith("https://") ? value : null;
+}
+
 function parseFeed(xml: string, feedUrl: string): FeedItem[] {
   const blocks = [...xml.matchAll(/<(?:item|entry)\b[\s\S]*?<\/(?:item|entry)>/gi)].map((match) => match[0]);
   return blocks
@@ -78,9 +85,25 @@ function parseFeed(xml: string, feedUrl: string): FeedItem[] {
       const source = textFromXml(tag(block, "source")) || new URL(feedUrl).hostname.replace(/^www\./, "");
       const date = tag(block, "pubDate") || tag(block, "published") || tag(block, "updated");
       if (!title || !link) return null;
-      return { title, url: link, publisher: source, excerpt: description, publishedAt: date || null };
+      return { title, url: link, publisher: source, excerpt: description, publishedAt: date || null, coverImage: feedImage(block) };
     })
     .filter((item): item is FeedItem => Boolean(item));
+}
+
+function allowedCoverImage(value: string | null) {
+  if (!value) return null;
+  try {
+    const url = new URL(value);
+    if (url.protocol !== "https:") return null;
+    const allowed = getRuntimeEnv("EDITORIAL_ALLOWED_IMAGE_HOSTS")
+      ?.split(",")
+      .map((host) => host.trim().toLowerCase())
+      .filter(Boolean) ?? [];
+    if (!allowed.length || !allowed.some((host) => url.hostname === host || url.hostname.endsWith(`.${host}`))) return null;
+    return url.toString();
+  } catch {
+    return null;
+  }
 }
 
 async function fetchFeed(url: string): Promise<FeedItem[]> {
@@ -171,6 +194,20 @@ async function collectSources() {
   return [...unique.values()].filter((item) => !item.publishedAt || Date.now() - new Date(item.publishedAt).getTime() < 72 * 60 * 60_000);
 }
 
+function topicInterestScore(items: FeedItem[]) {
+  const now = Date.now();
+  const freshness = items.reduce((score, item) => {
+    if (!item.publishedAt) return score;
+    const age = now - Date.parse(item.publishedAt);
+    if (!Number.isFinite(age)) return score;
+    return score + (age < 12 * 60 * 60_000 ? 8 : age < 36 * 60 * 60_000 ? 4 : 1);
+  }, 0);
+  const signals = items.reduce((score, item) => {
+    return score + (/transfert|composition|blessure|derby|finale|qualification|classement|champions|premier league|liga|can|mondial|entra.neur|retour/.test(item.title.toLowerCase()) ? 3 : 0);
+  }, 0);
+  return items.length * 10 + freshness + signals;
+}
+
 async function generateDraft(topic: { title: string; category: EditorialCategory; sources: FeedItem[] }) {
   const apiKey = await getOpenRouterKey();
   if (!apiKey) throw new Error("EDITORIAL_AI_NOT_CONFIGURED");
@@ -183,8 +220,8 @@ async function generateDraft(topic: { title: string; category: EditorialCategory
     model: models.premium,
     timeoutMs: 35_000,
     maxTokens: 5_000,
-    systemPrompt: `Tu es la rédaction football francophone de LiveFoot. Rédige un article original, factuel et utile pour la France et l'Afrique francophone. Utilise uniquement les faits présents dans les sources fournies. Si une information n'est pas confirmée, ne l'affirme pas. Ne copie aucune phrase source. N'invente ni score, ni blessure, ni cote, ni date, ni déclaration. Réponds uniquement en JSON avec les clés category, title, seoTitle, seoDescription, excerpt, directAnswer, summary, sections et faq. L'article doit expliquer, contextualiser et apporter une lecture data, pas seulement résumer les sources.`,
-    userPrompt: `Sujet : ${topic.title}\nCatégorie : ${topic.category}\n\nSources autorisées :\n${sourceText}\n\nRédige un article de 1200 à 1800 mots. Les sections doivent contenir plusieurs paragraphes substantiels.`,
+    systemPrompt: `Tu es la rédaction football francophone de LiveFoot. Rédige un article original, factuel et réellement intéressant pour la France et l'Afrique francophone. Pars d'une question ou d'un besoin concret que le lecteur cherche aujourd'hui : ce qui change, ce qu'il faut comprendre, les conséquences pour les équipes et les points à surveiller. Utilise uniquement les faits présents dans les sources fournies. Si une information n'est pas confirmée, ne l'affirme pas. Ne copie aucune phrase source. N'invente ni score, ni blessure, ni cote, ni date, ni déclaration. Réponds uniquement en JSON avec les clés category, title, seoTitle, seoDescription, excerpt, directAnswer, summary, sections et faq. L'article doit expliquer, contextualiser et apporter une lecture data, des repères concrets et des limites claires, pas seulement résumer les sources. Évite les titres génériques et les introductions creuses.`,
+    userPrompt: `Sujet : ${topic.title}\nCatégorie : ${topic.category}\n\nSources autorisées :\n${sourceText}\n\nRédige un article de 1200 à 1800 mots avec une promesse éditoriale claire dès le début. Les sections doivent contenir plusieurs paragraphes substantiels, des exemples uniquement lorsqu'ils sont confirmés par les sources et une conclusion qui aide le lecteur à agir ou à approfondir le sujet sur LiveFoot.`,
   });
   return draftSchema.parse(raw);
 }
@@ -238,6 +275,7 @@ async function createArticle(topic: { title: string; category: EditorialCategory
       word_count: wordCount,
       author_name: "Rédaction LiveFoot",
       disclosure: "Article préparé à partir de sources publiques citées et vérifié avant publication.",
+      cover_image: allowedCoverImage(topic.sources.find((source) => source.coverImage)?.coverImage ?? null),
       published_at: shouldPublish ? new Date().toISOString() : null,
       updated_at: new Date().toISOString(),
     })
@@ -291,7 +329,7 @@ export async function runEditorialCycle(options: { force?: boolean; runType?: "s
     }
     const candidates = [...grouped.entries()]
       .filter(([, items]) => items.length >= 2)
-      .sort(([, a], [, b]) => b.length - a.length)
+      .sort(([, a], [, b]) => topicInterestScore(b) - topicInterestScore(a))
       .slice(0, Math.min(1, remainingDailySlots));
     let articlesCreated = 0;
     for (const [normalizedKey, topicSources] of candidates) {
@@ -299,7 +337,7 @@ export async function runEditorialCycle(options: { force?: boolean; runType?: "s
       const topicCategory = categoryFor(title);
       const { data: topic, error: topicError } = await db
         .from("editorial_topics")
-        .upsert({ title, normalized_key: normalizedKey, category: topicCategory, trend_score: topicSources.length, status: "selected", updated_at: new Date().toISOString() }, { onConflict: "normalized_key" })
+        .upsert({ title, normalized_key: normalizedKey, category: topicCategory, trend_score: topicInterestScore(topicSources), status: "selected", updated_at: new Date().toISOString() }, { onConflict: "normalized_key" })
         .select("id, status")
         .single();
       if (topicError || !topic || topic.status === "used") continue;

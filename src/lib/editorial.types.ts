@@ -62,6 +62,7 @@ export type PublicEditorialArticle = {
   publishedAt: string;
   updatedAt: string;
   sources: EditorialSource[];
+  relatedArticles?: EditorialListItem[];
 };
 
 export type EditorialListItem = Pick<

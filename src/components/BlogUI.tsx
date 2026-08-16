@@ -20,6 +20,16 @@ function formatDate(value: string) {
 export function BlogCard({ article }: { article: EditorialListItem }) {
   return (
     <article className="flex h-full flex-col rounded-2xl border border-border/70 bg-card p-5 transition-transform hover:-translate-y-0.5">
+      {article.coverImage ? (
+        <img
+          src={article.coverImage}
+          alt={article.title}
+          loading="lazy"
+          decoding="async"
+          referrerPolicy="no-referrer"
+          className="mb-4 aspect-[16/9] w-full rounded-xl object-cover"
+        />
+      ) : null}
       <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-brand">
         <FileText className="size-3.5" aria-hidden />
         {BLOG_CATEGORY_LABELS[article.category]}
@@ -68,6 +78,16 @@ export function BlogArticleView({ article }: { article: PublicEditorialArticle }
           </div>
           <h1 className="text-3xl font-black leading-tight tracking-tight sm:text-4xl">{article.title}</h1>
           <p className="text-base leading-relaxed text-muted-foreground">{article.excerpt}</p>
+          {article.coverImage ? (
+            <img
+              src={article.coverImage}
+              alt={article.title}
+              loading="eager"
+              decoding="async"
+              referrerPolicy="no-referrer"
+              className="aspect-[16/7] w-full rounded-2xl border border-border/70 object-cover"
+            />
+          ) : null}
           <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
             <span>{article.authorName}</span>
             <span>·</span>
@@ -146,6 +166,21 @@ export function BlogArticleView({ article }: { article: PublicEditorialArticle }
             ))}
           </section>
         )}
+
+        {article.relatedArticles?.length ? (
+          <section aria-labelledby="related-articles" className="space-y-4 border-t border-border/70 pt-8">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-widest text-brand">Pour continuer</p>
+              <h2 id="related-articles" className="mt-1 text-2xl font-black tracking-tight">À lire aussi</h2>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                Retrouvez d’autres articles utiles pour mieux comprendre les matchs, les équipes et les données football.
+              </p>
+            </div>
+            <div className="grid gap-4 md:grid-cols-3">
+              {article.relatedArticles.map((related) => <BlogCard key={related.id} article={related} />)}
+            </div>
+          </section>
+        ) : null}
 
         <section className="space-y-3 rounded-2xl border border-border/70 bg-surface p-5">
           <h2 className="text-lg font-black">Sources et transparence</h2>

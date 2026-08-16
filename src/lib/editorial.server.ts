@@ -89,6 +89,21 @@ function mapArticle(row: Record<string, unknown>, sourceRows: unknown[] = []): P
   };
 }
 
+function mapListItem(row: Record<string, unknown>): EditorialListItem {
+  return {
+    id: String(row.id),
+    slug: String(row.slug),
+    category: category(row.category),
+    title: String(row.title),
+    seoDescription: String(row.seo_description ?? ""),
+    excerpt: String(row.excerpt ?? ""),
+    wordCount: Number(row.word_count ?? 0),
+    coverImage: typeof row.cover_image === "string" ? row.cover_image : null,
+    publishedAt: String(row.published_at ?? row.created_at),
+    updatedAt: String(row.updated_at ?? row.created_at),
+  };
+}
+
 const PUBLIC_COLUMNS =
   "id, slug, category, title, seo_title, seo_description, excerpt, direct_answer, content, internal_links, quality_score, word_count, author_name, cover_image, disclosure, published_at, updated_at";
 
@@ -136,7 +151,24 @@ export async function getPublishedEditorialArticle(slug: string) {
     .eq("article_id", row.id)
     .order("published_at", { ascending: false });
   if (sourceError) throw new Error("EDITORIAL_SOURCES_UNAVAILABLE");
-  return mapArticle(row as Record<string, unknown>, sourceRows ?? []);
+  const article = mapArticle(row as Record<string, unknown>, sourceRows ?? []);
+  const { data: relatedRows } = await db
+    .from("editorial_articles")
+    .select(PUBLIC_COLUMNS)
+    .eq("status", "published")
+    .neq("id", row.id)
+    .not("published_at", "is", null)
+    .lte("published_at", new Date().toISOString())
+    .order("published_at", { ascending: false })
+    .limit(12);
+
+  const relatedArticles = (relatedRows ?? [])
+    .map((related: Record<string, unknown>) => ({ article: mapListItem(related), sameCategory: category(related.category) === article.category }))
+    .sort((left, right) => Number(right.sameCategory) - Number(left.sameCategory))
+    .slice(0, 3)
+    .map(({ article: related }) => related);
+
+  return { ...article, relatedArticles };
 }
 
 export async function getEditorialSitemapEntries() {
