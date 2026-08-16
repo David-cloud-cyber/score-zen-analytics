@@ -372,6 +372,97 @@
 }
 
 @layer components {
+  /* Every action keeps an explicit readable label, even when an inherited
+     theme color conflicts with an ad-hoc background utility. */
+  button,
+  [role="button"] {
+    color: var(--foreground);
+  }
+
+  button[class*="bg-brand"],
+  [role="button"][class*="bg-brand"] {
+    color: var(--brand-foreground);
+  }
+
+  button[class*="bg-foreground"],
+  [role="button"][class*="bg-foreground"] {
+    color: var(--background);
+  }
+
+  button[class*="bg-alert"],
+  button[class*="bg-destructive"],
+  [role="button"][class*="bg-alert"],
+  [role="button"][class*="bg-destructive"] {
+    color: #fff;
+  }
+
+  button[class*="bg-background"],
+  button[class*="bg-card"],
+  button[class*="bg-surface"],
+  button[class*="bg-secondary"],
+  [role="button"][class*="bg-background"],
+  [role="button"][class*="bg-card"],
+  [role="button"][class*="bg-surface"],
+  [role="button"][class*="bg-secondary"] {
+    color: var(--foreground);
+  }
+
+  button[class*="text-brand"],
+  [role="button"][class*="text-brand"] {
+    color: var(--brand);
+  }
+
+  button[class*="text-muted-foreground"],
+  [role="button"][class*="text-muted-foreground"] {
+    color: var(--muted-foreground);
+  }
+
+  button[class*="text-background"],
+  [role="button"][class*="text-background"] {
+    color: var(--background);
+  }
+
+  button[class*="text-white"],
+  [role="button"][class*="text-white"] {
+    color: #fff;
+  }
+
+  .score-shell button[class*="bg-foreground"],
+  .score-shell [role="button"][class*="bg-foreground"] {
+    color: #f7f7f7;
+  }
+
+  .score-shell button[class*="bg-foreground"][class*="text-background"],
+  .score-shell [role="button"][class*="bg-foreground"][class*="text-background"] {
+    color: #f7f7f7;
+  }
+
+  button:disabled,
+  [role="button"][aria-disabled="true"] {
+    color: color-mix(in srgb, currentColor 82%, var(--muted-foreground));
+  }
+
+  .lf-loading-skeleton {
+    position: relative;
+    overflow: hidden;
+    background: color-mix(in srgb, var(--surface) 78%, var(--card));
+  }
+
+  .lf-loading-skeleton::after {
+    position: absolute;
+    inset: 0;
+    content: "";
+    background: linear-gradient(110deg, transparent 25%, rgb(255 255 255 / 12%) 50%, transparent 75%);
+    background-size: 220% 100%;
+    animation: score-shimmer 1.8s ease-in-out infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .lf-loading-skeleton::after {
+      animation: none;
+    }
+  }
+
   /* Le thème sombre reprend exactement les contrastes de la sidebar. */
   .dark .score-shell {
     --background: #090b0e;

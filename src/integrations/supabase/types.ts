@@ -1,615 +1,627 @@
-export type Json =
-  | string
-  | number
-  | boolean
-  | null
-  | { [key: string]: Json | undefined }
-  | Json[]
+export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
 export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
-  }
+    PostgrestVersion: "14.5";
+  };
   public: {
     Tables: {
+      user_presence: {
+        Row: {
+          user_id: string;
+          last_seen_at: string;
+          route: string;
+          device_family: "mobile" | "tablet" | "desktop";
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          last_seen_at?: string;
+          route?: string;
+          device_family?: "mobile" | "tablet" | "desktop";
+          updated_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          last_seen_at?: string;
+          route?: string;
+          device_family?: "mobile" | "tablet" | "desktop";
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       ai_analyses: {
         Row: {
-          away_team: string
-          created_at: string
-          home_team: string
-          id: string
-          match_id: string | null
-          prediction_confidence: number | null
-          prediction_market: string | null
-          prediction_odd: number | null
-          prediction_pick: string | null
-          result: Json
-          settlement_outcome: string | null
-          settlement_status: "pending" | "won" | "lost" | "unresolvable"
-          final_score: string | null
-          settled_at: string | null
-          user_id: string
-        }
+          away_team: string;
+          created_at: string;
+          home_team: string;
+          id: string;
+          match_id: string | null;
+          prediction_confidence: number | null;
+          prediction_market: string | null;
+          prediction_odd: number | null;
+          prediction_pick: string | null;
+          result: Json;
+          settlement_outcome: string | null;
+          settlement_status: "pending" | "won" | "lost" | "unresolvable";
+          final_score: string | null;
+          settled_at: string | null;
+          user_id: string;
+        };
         Insert: {
-          away_team: string
-          created_at?: string
-          home_team: string
-          id?: string
-          match_id?: string | null
-          prediction_confidence?: number | null
-          prediction_market?: string | null
-          prediction_odd?: number | null
-          prediction_pick?: string | null
-          result: Json
-          settlement_outcome?: string | null
-          settlement_status?: "pending" | "won" | "lost" | "unresolvable"
-          final_score?: string | null
-          settled_at?: string | null
-          user_id: string
-        }
+          away_team: string;
+          created_at?: string;
+          home_team: string;
+          id?: string;
+          match_id?: string | null;
+          prediction_confidence?: number | null;
+          prediction_market?: string | null;
+          prediction_odd?: number | null;
+          prediction_pick?: string | null;
+          result: Json;
+          settlement_outcome?: string | null;
+          settlement_status?: "pending" | "won" | "lost" | "unresolvable";
+          final_score?: string | null;
+          settled_at?: string | null;
+          user_id: string;
+        };
         Update: {
-          away_team?: string
-          created_at?: string
-          home_team?: string
-          id?: string
-          match_id?: string | null
-          prediction_confidence?: number | null
-          prediction_market?: string | null
-          prediction_odd?: number | null
-          prediction_pick?: string | null
-          result?: Json
-          settlement_outcome?: string | null
-          settlement_status?: "pending" | "won" | "lost" | "unresolvable"
-          final_score?: string | null
-          settled_at?: string | null
-          user_id?: string
-        }
-        Relationships: []
-      }
+          away_team?: string;
+          created_at?: string;
+          home_team?: string;
+          id?: string;
+          match_id?: string | null;
+          prediction_confidence?: number | null;
+          prediction_market?: string | null;
+          prediction_odd?: number | null;
+          prediction_pick?: string | null;
+          result?: Json;
+          settlement_outcome?: string | null;
+          settlement_status?: "pending" | "won" | "lost" | "unresolvable";
+          final_score?: string | null;
+          settled_at?: string | null;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
       admin_audit_log: {
         Row: {
-          id: string
-          actor_id: string
-          action: string
-          target_type: string
-          target_id: string | null
-          reason: string | null
-          before_state: Json | null
-          after_state: Json | null
-          request_id: string | null
-          metadata: Json | null
-          created_at: string
-        }
+          id: string;
+          actor_id: string;
+          action: string;
+          target_type: string;
+          target_id: string | null;
+          reason: string | null;
+          before_state: Json | null;
+          after_state: Json | null;
+          request_id: string | null;
+          metadata: Json | null;
+          created_at: string;
+        };
         Insert: {
-          id?: string
-          actor_id: string
-          action: string
-          target_type: string
-          target_id?: string | null
-          reason?: string | null
-          before_state?: Json | null
-          after_state?: Json | null
-          request_id?: string | null
-          metadata?: Json | null
-          created_at?: string
-        }
-        Update: never
-        Relationships: []
-      }
+          id?: string;
+          actor_id: string;
+          action: string;
+          target_type: string;
+          target_id?: string | null;
+          reason?: string | null;
+          before_state?: Json | null;
+          after_state?: Json | null;
+          request_id?: string | null;
+          metadata?: Json | null;
+          created_at?: string;
+        };
+        Update: never;
+        Relationships: [];
+      };
       admin_action_requests: {
         Row: {
-          id: string
-          action_type: string
-          target_type: string
-          target_id: string | null
-          requested_by: string
-          approved_by: string | null
-          reason: string
-          payload: Json
-          status: string
-          created_at: string
-          approved_at: string | null
-          executed_at: string | null
-          result: Json | null
-        }
+          id: string;
+          action_type: string;
+          target_type: string;
+          target_id: string | null;
+          requested_by: string;
+          approved_by: string | null;
+          reason: string;
+          payload: Json;
+          status: string;
+          created_at: string;
+          approved_at: string | null;
+          executed_at: string | null;
+          result: Json | null;
+        };
         Insert: {
-          id?: string
-          action_type: string
-          target_type: string
-          target_id?: string | null
-          requested_by: string
-          approved_by?: string | null
-          reason: string
-          payload?: Json
-          status?: string
-          created_at?: string
-          approved_at?: string | null
-          executed_at?: string | null
-          result?: Json | null
-        }
+          id?: string;
+          action_type: string;
+          target_type: string;
+          target_id?: string | null;
+          requested_by: string;
+          approved_by?: string | null;
+          reason: string;
+          payload?: Json;
+          status?: string;
+          created_at?: string;
+          approved_at?: string | null;
+          executed_at?: string | null;
+          result?: Json | null;
+        };
         Update: {
-          approved_by?: string | null
-          approved_at?: string | null
-          executed_at?: string | null
-          payload?: Json
-          reason?: string
-          result?: Json | null
-          status?: string
-        }
-        Relationships: []
-      }
+          approved_by?: string | null;
+          approved_at?: string | null;
+          executed_at?: string | null;
+          payload?: Json;
+          reason?: string;
+          result?: Json | null;
+          status?: string;
+        };
+        Relationships: [];
+      };
       community_predictions: {
         Row: {
-          id: string
-          user_id: string | null
-          user_name: string
-          fixture_id: number
-          home_team: string
-          away_team: string
-          prediction: "home" | "draw" | "away"
-          created_at: string
-        }
+          id: string;
+          user_id: string | null;
+          user_name: string;
+          fixture_id: number;
+          home_team: string;
+          away_team: string;
+          prediction: "home" | "draw" | "away";
+          created_at: string;
+        };
         Insert: {
-          id?: string
-          user_id?: string | null
-          user_name?: string
-          fixture_id: number
-          home_team: string
-          away_team: string
-          prediction: "home" | "draw" | "away"
-          created_at?: string
-        }
+          id?: string;
+          user_id?: string | null;
+          user_name?: string;
+          fixture_id: number;
+          home_team: string;
+          away_team: string;
+          prediction: "home" | "draw" | "away";
+          created_at?: string;
+        };
         Update: {
-          id?: string
-          user_id?: string | null
-          user_name?: string
-          fixture_id?: number
-          home_team?: string
-          away_team?: string
-          prediction?: "home" | "draw" | "away"
-          created_at?: string
-        }
-        Relationships: []
-      }
+          id?: string;
+          user_id?: string | null;
+          user_name?: string;
+          fixture_id?: number;
+          home_team?: string;
+          away_team?: string;
+          prediction?: "home" | "draw" | "away";
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       app_config: {
         Row: {
-          description: string | null
-          key: string
-          updated_at: string
-          value: string
-        }
+          description: string | null;
+          key: string;
+          updated_at: string;
+          value: string;
+        };
         Insert: {
-          description?: string | null
-          key: string
-          updated_at?: string
-          value: string
-        }
+          description?: string | null;
+          key: string;
+          updated_at?: string;
+          value: string;
+        };
         Update: {
-          description?: string | null
-          key?: string
-          updated_at?: string
-          value?: string
-        }
-        Relationships: []
-      }
+          description?: string | null;
+          key?: string;
+          updated_at?: string;
+          value?: string;
+        };
+        Relationships: [];
+      };
       credits_ledger: {
         Row: {
-          amount: number
-          balance_after: number
-          created_at: string
-          id: string
-          kind: Database["public"]["Enums"]["credit_kind"]
-          label: string
-          meta: Json | null
-          user_id: string
-        }
+          amount: number;
+          balance_after: number;
+          created_at: string;
+          id: string;
+          kind: Database["public"]["Enums"]["credit_kind"];
+          label: string;
+          meta: Json | null;
+          user_id: string;
+        };
         Insert: {
-          amount: number
-          balance_after: number
-          created_at?: string
-          id?: string
-          kind: Database["public"]["Enums"]["credit_kind"]
-          label: string
-          meta?: Json | null
-          user_id: string
-        }
+          amount: number;
+          balance_after: number;
+          created_at?: string;
+          id?: string;
+          kind: Database["public"]["Enums"]["credit_kind"];
+          label: string;
+          meta?: Json | null;
+          user_id: string;
+        };
         Update: {
-          amount?: number
-          balance_after?: number
-          created_at?: string
-          id?: string
-          kind?: Database["public"]["Enums"]["credit_kind"]
-          label?: string
-          meta?: Json | null
-          user_id?: string
-        }
-        Relationships: []
-      }
+          amount?: number;
+          balance_after?: number;
+          created_at?: string;
+          id?: string;
+          kind?: Database["public"]["Enums"]["credit_kind"];
+          label?: string;
+          meta?: Json | null;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
       favorites: {
         Row: {
-          created_at: string
-          id: string
-          kind: Database["public"]["Enums"]["favorite_kind"]
-          label: string | null
-          notify: boolean
-          ref_id: string
-          user_id: string
-        }
+          created_at: string;
+          id: string;
+          kind: Database["public"]["Enums"]["favorite_kind"];
+          label: string | null;
+          notify: boolean;
+          ref_id: string;
+          user_id: string;
+        };
         Insert: {
-          created_at?: string
-          id?: string
-          kind: Database["public"]["Enums"]["favorite_kind"]
-          label?: string | null
-          notify?: boolean
-          ref_id: string
-          user_id: string
-        }
+          created_at?: string;
+          id?: string;
+          kind: Database["public"]["Enums"]["favorite_kind"];
+          label?: string | null;
+          notify?: boolean;
+          ref_id: string;
+          user_id: string;
+        };
         Update: {
-          created_at?: string
-          id?: string
-          kind?: Database["public"]["Enums"]["favorite_kind"]
-          label?: string | null
-          notify?: boolean
-          ref_id?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
+          created_at?: string;
+          id?: string;
+          kind?: Database["public"]["Enums"]["favorite_kind"];
+          label?: string | null;
+          notify?: boolean;
+          ref_id?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
       payments: {
         Row: {
-          amount_xaf: number
-          created_at: string
-          credited_at: string | null
-          credits: number
-          external_id: string
-          id: string
-          link: string | null
-          pack_id: string
-          provider: string
-          status: string
-          trans_id: string | null
-          updated_at: string
-          user_id: string
-        }
+          amount_xaf: number;
+          created_at: string;
+          credited_at: string | null;
+          credits: number;
+          external_id: string;
+          id: string;
+          link: string | null;
+          pack_id: string;
+          provider: string;
+          status: string;
+          trans_id: string | null;
+          updated_at: string;
+          user_id: string;
+        };
         Insert: {
-          amount_xaf: number
-          created_at?: string
-          credited_at?: string | null
-          credits: number
-          external_id: string
-          id?: string
-          link?: string | null
-          pack_id: string
-          provider?: string
-          status?: string
-          trans_id?: string | null
-          updated_at?: string
-          user_id: string
-        }
+          amount_xaf: number;
+          created_at?: string;
+          credited_at?: string | null;
+          credits: number;
+          external_id: string;
+          id?: string;
+          link?: string | null;
+          pack_id: string;
+          provider?: string;
+          status?: string;
+          trans_id?: string | null;
+          updated_at?: string;
+          user_id: string;
+        };
         Update: {
-          amount_xaf?: number
-          created_at?: string
-          credited_at?: string | null
-          credits?: number
-          external_id?: string
-          id?: string
-          link?: string | null
-          pack_id?: string
-          provider?: string
-          status?: string
-          trans_id?: string | null
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
+          amount_xaf?: number;
+          created_at?: string;
+          credited_at?: string | null;
+          credits?: number;
+          external_id?: string;
+          id?: string;
+          link?: string | null;
+          pack_id?: string;
+          provider?: string;
+          status?: string;
+          trans_id?: string | null;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
       profiles: {
         Row: {
-          account_status: "active" | "suspended"
-          avatar_url: string | null
-          created_at: string
-          credits: number
-          display_name: string | null
-          id: string
-          plan: Database["public"]["Enums"]["plan_tier"]
-          premium_until: string | null
-          referral_code: string | null
-          referred_by: string | null
-          updated_at: string
-          suspended_at: string | null
-          suspended_by: string | null
-          suspension_reason: string | null
-        }
+          account_status: "active" | "suspended";
+          avatar_url: string | null;
+          created_at: string;
+          credits: number;
+          display_name: string | null;
+          id: string;
+          plan: Database["public"]["Enums"]["plan_tier"];
+          premium_until: string | null;
+          referral_code: string | null;
+          referred_by: string | null;
+          updated_at: string;
+          suspended_at: string | null;
+          suspended_by: string | null;
+          suspension_reason: string | null;
+        };
         Insert: {
-          account_status?: "active" | "suspended"
-          avatar_url?: string | null
-          created_at?: string
-          credits?: number
-          display_name?: string | null
-          id: string
-          plan?: Database["public"]["Enums"]["plan_tier"]
-          premium_until?: string | null
-          referral_code?: string | null
-          referred_by?: string | null
-          updated_at?: string
-          suspended_at?: string | null
-          suspended_by?: string | null
-          suspension_reason?: string | null
-        }
+          account_status?: "active" | "suspended";
+          avatar_url?: string | null;
+          created_at?: string;
+          credits?: number;
+          display_name?: string | null;
+          id: string;
+          plan?: Database["public"]["Enums"]["plan_tier"];
+          premium_until?: string | null;
+          referral_code?: string | null;
+          referred_by?: string | null;
+          updated_at?: string;
+          suspended_at?: string | null;
+          suspended_by?: string | null;
+          suspension_reason?: string | null;
+        };
         Update: {
-          account_status?: "active" | "suspended"
-          avatar_url?: string | null
-          created_at?: string
-          credits?: number
-          display_name?: string | null
-          id?: string
-          plan?: Database["public"]["Enums"]["plan_tier"]
-          premium_until?: string | null
-          referral_code?: string | null
-          referred_by?: string | null
-          updated_at?: string
-          suspended_at?: string | null
-          suspended_by?: string | null
-          suspension_reason?: string | null
-        }
+          account_status?: "active" | "suspended";
+          avatar_url?: string | null;
+          created_at?: string;
+          credits?: number;
+          display_name?: string | null;
+          id?: string;
+          plan?: Database["public"]["Enums"]["plan_tier"];
+          premium_until?: string | null;
+          referral_code?: string | null;
+          referred_by?: string | null;
+          updated_at?: string;
+          suspended_at?: string | null;
+          suspended_by?: string | null;
+          suspension_reason?: string | null;
+        };
         Relationships: [
           {
-            foreignKeyName: "profiles_referred_by_fkey"
-            columns: ["referred_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            foreignKeyName: "profiles_referred_by_fkey";
+            columns: ["referred_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       subscriptions: {
         Row: {
-          amount_xaf: number
-          created_at: string
-          current_period_end: string | null
-          current_period_start: string | null
-          external_id: string
-          id: string
-          plan_id: string
-          provider: string
-          status: string
-          trans_id: string | null
-          updated_at: string
-          user_id: string
-        }
+          amount_xaf: number;
+          created_at: string;
+          current_period_end: string | null;
+          current_period_start: string | null;
+          external_id: string;
+          id: string;
+          plan_id: string;
+          provider: string;
+          status: string;
+          trans_id: string | null;
+          updated_at: string;
+          user_id: string;
+        };
         Insert: {
-          amount_xaf: number
-          created_at?: string
-          current_period_end?: string | null
-          current_period_start?: string | null
-          external_id: string
-          id?: string
-          plan_id: string
-          provider?: string
-          status?: string
-          trans_id?: string | null
-          updated_at?: string
-          user_id: string
-        }
+          amount_xaf: number;
+          created_at?: string;
+          current_period_end?: string | null;
+          current_period_start?: string | null;
+          external_id: string;
+          id?: string;
+          plan_id: string;
+          provider?: string;
+          status?: string;
+          trans_id?: string | null;
+          updated_at?: string;
+          user_id: string;
+        };
         Update: {
-          amount_xaf?: number
-          created_at?: string
-          current_period_end?: string | null
-          current_period_start?: string | null
-          external_id?: string
-          id?: string
-          plan_id?: string
-          provider?: string
-          status?: string
-          trans_id?: string | null
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
+          amount_xaf?: number;
+          created_at?: string;
+          current_period_end?: string | null;
+          current_period_start?: string | null;
+          external_id?: string;
+          id?: string;
+          plan_id?: string;
+          provider?: string;
+          status?: string;
+          trans_id?: string | null;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
       user_roles: {
         Row: {
-          created_at: string
-          id: string
-          role: Database["public"]["Enums"]["app_role"]
-          user_id: string
-        }
+          created_at: string;
+          id: string;
+          role: Database["public"]["Enums"]["app_role"];
+          user_id: string;
+        };
         Insert: {
-          created_at?: string
-          id?: string
-          role: Database["public"]["Enums"]["app_role"]
-          user_id: string
-        }
+          created_at?: string;
+          id?: string;
+          role: Database["public"]["Enums"]["app_role"];
+          user_id: string;
+        };
         Update: {
-          created_at?: string
-          id?: string
-          role?: Database["public"]["Enums"]["app_role"]
-          user_id?: string
-        }
-        Relationships: []
-      }
-    }
+          created_at?: string;
+          id?: string;
+          role?: Database["public"]["Enums"]["app_role"];
+          user_id?: string;
+        };
+        Relationships: [];
+      };
+    };
     Views: {
-      [_ in never]: never
-    }
+      [_ in never]: never;
+    };
     Functions: {
       has_role: {
         Args: {
-          _role: Database["public"]["Enums"]["app_role"]
-          _user_id: string
-        }
-        Returns: boolean
-      }
+          _role: Database["public"]["Enums"]["app_role"];
+          _user_id: string;
+        };
+        Returns: boolean;
+      };
       consume_analysis_credit: {
         Args: {
-          p_user_id: string
-          p_cost: number
-          p_home_team: string
-          p_away_team: string
-          p_match_id: string | null
-          p_result: Json
-        }
+          p_user_id: string;
+          p_cost: number;
+          p_home_team: string;
+          p_away_team: string;
+          p_match_id: string | null;
+          p_result: Json;
+        };
         Returns: {
-          analysis_id: string
-          new_balance: number
-        }[]
-      }
+          analysis_id: string;
+          new_balance: number;
+        }[];
+      };
       credit_payment: {
         Args: {
-          p_payment_id: string
-          p_user_id: string
-          p_credits: number
-        }
+          p_payment_id: string;
+          p_user_id: string;
+          p_credits: number;
+        };
         Returns: {
-          credited: boolean
-          new_balance: number
-        }[]
-      }
+          credited: boolean;
+          new_balance: number;
+        }[];
+      };
       activate_subscription: {
         Args: {
-          p_subscription_id: string
-          p_user_id: string
-          p_period_start: string
-          p_period_end: string
-          p_plan_id: string
-        }
+          p_subscription_id: string;
+          p_user_id: string;
+          p_period_start: string;
+          p_period_end: string;
+          p_plan_id: string;
+        };
         Returns: {
-          activated: boolean
-          new_balance: number
-        }[]
-      }
-    }
+          activated: boolean;
+          new_balance: number;
+        }[];
+      };
+    };
     Enums: {
-      app_role: "admin" | "owner" | "user"
-      credit_kind: "analysis" | "topup" | "bonus" | "refund" | "subscription"
-      favorite_kind: "team" | "competition" | "match"
-      plan_tier: "free" | "premium"
-      prediction_choice: "home" | "draw" | "away"
-    }
+      app_role: "admin" | "owner" | "user";
+      credit_kind: "analysis" | "topup" | "bonus" | "refund" | "subscription";
+      favorite_kind: "team" | "competition" | "match";
+      plan_tier: "free" | "premium";
+      prediction_choice: "home" | "draw" | "away";
+    };
     CompositeTypes: {
-      [_ in never]: never
-    }
-  }
-}
+      [_ in never]: never;
+    };
+  };
+};
 
-type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">;
 
-type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">];
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals;
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
+  schema: keyof DatabaseWithoutInternals;
 }
   ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
       DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
-      Row: infer R
+      Row: infer R;
     }
     ? R
     : never
-  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])
-    ? (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
-        Row: infer R
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] & DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R;
       }
       ? R
       : never
-    : never
+    : never;
 
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
+    keyof DefaultSchema["Tables"] | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals;
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
+  schema: keyof DatabaseWithoutInternals;
 }
   ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Insert: infer I
+      Insert: infer I;
     }
     ? I
     : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
     ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Insert: infer I
+        Insert: infer I;
       }
       ? I
       : never
-    : never
+    : never;
 
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
+    keyof DefaultSchema["Tables"] | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals;
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
+  schema: keyof DatabaseWithoutInternals;
 }
   ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Update: infer U
+      Update: infer U;
     }
     ? U
     : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
     ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Update: infer U
+        Update: infer U;
       }
       ? U
       : never
-    : never
+    : never;
 
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
-    | keyof DefaultSchema["Enums"]
-    | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
+    keyof DefaultSchema["Enums"] | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals;
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
+  schema: keyof DatabaseWithoutInternals;
 }
   ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
     ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
-    : never
+    : never;
 
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
-    | keyof DefaultSchema["CompositeTypes"]
-    | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
+    keyof DefaultSchema["CompositeTypes"] | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals;
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
+  schema: keyof DatabaseWithoutInternals;
 }
   ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
     ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
-    : never
+    : never;
 
 export const Constants = {
   public: {
@@ -621,4 +633,4 @@ export const Constants = {
       prediction_choice: ["home", "draw", "away"],
     },
   },
-} as const
+} as const;

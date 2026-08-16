@@ -7,6 +7,8 @@ import {
   clearCookie,
 } from "@/integrations/supabase/session-storage";
 import { clearLocalDemo, DEMO_SESSION, isLocalDemo } from "@/lib/local-demo";
+import { recordUserPresence } from "@/lib/presence.functions";
+import { useServerFn } from "@tanstack/react-start";
 
 type SessionCtx = {
   session: Session | null;
@@ -25,6 +27,40 @@ const Ctx = createContext<SessionCtx>({
 export function SessionProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const recordPresence = useServerFn(recordUserPresence);
+
+  useEffect(() => {
+    if (!session || isLocalDemo()) return;
+
+    let disposed = false;
+    const deviceFamily = window.matchMedia("(max-width: 639px)").matches
+      ? "mobile"
+      : window.matchMedia("(max-width: 1023px)").matches
+        ? "tablet"
+        : "desktop";
+
+    const sendPresence = () => {
+      if (disposed || document.hidden) return;
+      void recordPresence({
+        data: { route: window.location.pathname, deviceFamily },
+      }).catch(() => {
+        // Presence is best effort and must never interrupt navigation or auth.
+      });
+    };
+
+    sendPresence();
+    const timer = window.setInterval(sendPresence, 30_000);
+    const onVisibilityChange = () => {
+      if (!document.hidden) sendPresence();
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+
+    return () => {
+      disposed = true;
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, [recordPresence, session]);
 
   useEffect(() => {
     let mounted = true;
