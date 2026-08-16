@@ -18,6 +18,18 @@ export type FapshiTransaction = {
   dateConfirmed?: string;
 };
 
+export class FapshiRequestError extends Error {
+  readonly status: number;
+  readonly providerMessage: string;
+
+  constructor(status: number, providerMessage: string) {
+    super(`Fapshi request failed with status ${status}`);
+    this.name = "FapshiRequestError";
+    this.status = status;
+    this.providerMessage = providerMessage;
+  }
+}
+
 function config() {
   const apiUser = getRuntimeEnv("FAPSHI_API_USER");
   const apiKey = getRuntimeEnv("FAPSHI_API_KEY");
@@ -47,7 +59,14 @@ async function call<T>(path: string, init?: { method?: string; body?: unknown })
   const text = await res.text();
   if (!res.ok) {
     console.error(`Fapshi ${path} failed [${res.status}]`);
-    throw new Error(`Fapshi a refusé la requête [${res.status}].`);
+    let providerMessage = text;
+    try {
+      const body = JSON.parse(text) as { message?: string };
+      providerMessage = body.message ?? text;
+    } catch {
+      // Keep the raw response only in the server-side error object.
+    }
+    throw new FapshiRequestError(res.status, providerMessage.slice(0, 240));
   }
   try {
     return JSON.parse(text) as T;
@@ -66,6 +85,21 @@ export function initiatePay(params: {
 }) {
   return call<{ message: string; link: string; transId: string; dateInitiated: string }>(
     "/initiate-pay",
+    { method: "POST", body: params },
+  );
+}
+
+export function directPay(params: {
+  amount: number;
+  phone: string;
+  medium: "mobile money" | "orange money";
+  email?: string;
+  userId?: string;
+  externalId?: string;
+  message?: string;
+}) {
+  return call<{ message: string; transId: string; dateInitiated: string }>(
+    "/direct-pay",
     { method: "POST", body: params },
   );
 }

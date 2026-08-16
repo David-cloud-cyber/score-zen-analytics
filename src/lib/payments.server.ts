@@ -37,6 +37,7 @@ export async function settlePaymentOrSubscription(
   const direct = await findByTransactionId(transId, expectedUserId);
   if (direct) {
     const tx = await paymentStatus(transId);
+    if (!matchesReservation(direct.record, tx)) return { status: "UNKNOWN", credited: false };
     return direct.kind === "subscription"
       ? settleSubscriptionRecord(direct.record, tx)
       : settlePackPaymentRecord(direct.record, tx);
@@ -49,6 +50,7 @@ export async function settlePaymentOrSubscription(
 
   const fallback = await findByExternalId(tx.externalId, expectedUserId);
   if (!fallback) return { status: "UNKNOWN", credited: false };
+  if (!matchesReservation(fallback.record, tx)) return { status: "UNKNOWN", credited: false };
 
   if (!fallback.record.trans_id) {
     const table = fallback.kind === "subscription" ? "subscriptions" : "payments";
@@ -67,6 +69,14 @@ export async function settlePaymentOrSubscription(
 
 type PaymentLookup =
   { kind: "subscription"; record: SubscriptionRecord } | { kind: "payment"; record: PaymentRecord };
+
+function matchesReservation(record: PaymentRecord | SubscriptionRecord, tx: FapshiTransaction) {
+  const externalMatches = !tx.externalId || tx.externalId === record.external_id;
+  const normalizedProviderUser = tx.userId?.replace(/-/g, "");
+  const normalizedRecordUser = record.user_id.replace(/-/g, "");
+  const userMatches = !normalizedProviderUser || normalizedProviderUser === normalizedRecordUser;
+  return externalMatches && userMatches;
+}
 
 async function findByTransactionId(
   transId: string,
@@ -118,6 +128,16 @@ async function findByExternalId(
 
 export async function settlePayment(transId: string): Promise<PaymentOutcome> {
   return settlePaymentOrSubscription(transId);
+}
+
+export async function settleByExternalId(
+  externalId: string,
+  expectedUserId: string,
+): Promise<PaymentOutcome> {
+  const record = await findByExternalId(externalId, expectedUserId);
+  if (!record) return { status: "UNKNOWN", credited: false };
+  if (!record.record.trans_id) return { status: record.record.status, credited: false };
+  return settlePaymentOrSubscription(record.record.trans_id, expectedUserId);
 }
 
 async function settleSubscriptionRecord(

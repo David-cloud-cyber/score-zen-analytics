@@ -278,12 +278,16 @@ export type Database = {
       payments: {
         Row: {
           amount_xaf: number;
+          checkout_mode: "direct" | "hosted";
+          checkout_request_id: string | null;
+          checkout_link: string | null;
           created_at: string;
           credited_at: string | null;
           credits: number;
           external_id: string;
           id: string;
           link: string | null;
+          medium: "mobile money" | "orange money" | null;
           pack_id: string;
           provider: string;
           status: string;
@@ -293,12 +297,16 @@ export type Database = {
         };
         Insert: {
           amount_xaf: number;
+          checkout_mode?: "direct" | "hosted";
+          checkout_request_id?: string | null;
+          checkout_link?: string | null;
           created_at?: string;
           credited_at?: string | null;
           credits: number;
           external_id: string;
           id?: string;
           link?: string | null;
+          medium?: "mobile money" | "orange money" | null;
           pack_id: string;
           provider?: string;
           status?: string;
@@ -308,12 +316,16 @@ export type Database = {
         };
         Update: {
           amount_xaf?: number;
+          checkout_mode?: "direct" | "hosted";
+          checkout_request_id?: string | null;
+          checkout_link?: string | null;
           created_at?: string;
           credited_at?: string | null;
           credits?: number;
           external_id?: string;
           id?: string;
           link?: string | null;
+          medium?: "mobile money" | "orange money" | null;
           pack_id?: string;
           provider?: string;
           status?: string;
@@ -385,11 +397,15 @@ export type Database = {
       subscriptions: {
         Row: {
           amount_xaf: number;
+          checkout_mode: "direct" | "hosted";
+          checkout_request_id: string | null;
+          checkout_link: string | null;
           created_at: string;
           current_period_end: string | null;
           current_period_start: string | null;
           external_id: string;
           id: string;
+          medium: "mobile money" | "orange money" | null;
           plan_id: string;
           provider: string;
           status: string;
@@ -399,11 +415,15 @@ export type Database = {
         };
         Insert: {
           amount_xaf: number;
+          checkout_mode?: "direct" | "hosted";
+          checkout_request_id?: string | null;
+          checkout_link?: string | null;
           created_at?: string;
           current_period_end?: string | null;
           current_period_start?: string | null;
           external_id: string;
           id?: string;
+          medium?: "mobile money" | "orange money" | null;
           plan_id: string;
           provider?: string;
           status?: string;
@@ -413,11 +433,15 @@ export type Database = {
         };
         Update: {
           amount_xaf?: number;
+          checkout_mode?: "direct" | "hosted";
+          checkout_request_id?: string | null;
+          checkout_link?: string | null;
           created_at?: string;
           current_period_end?: string | null;
           current_period_start?: string | null;
           external_id?: string;
           id?: string;
+          medium?: "mobile money" | "orange money" | null;
           plan_id?: string;
           provider?: string;
           status?: string;

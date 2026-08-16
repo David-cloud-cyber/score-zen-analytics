@@ -20,8 +20,8 @@ import {
 } from "lucide-react";
 import { AppShell, PageTitle } from "@/components/AppShell";
 import { breadcrumbSchema, buildRouteMeta } from "@/lib/seo";
-import { PREMIUM_PLANS, PRICED_PACKS, formatXaf, type PremiumPlan } from "@/lib/pricing";
-import { createSubscriptionCheckout, createTopupCheckout } from "@/lib/payments.functions";
+import { PREMIUM_PLANS, PRICED_PACKS, formatXaf, type PremiumPlan, type PricedPack } from "@/lib/pricing";
+import { createSubscriptionCheckout, createTopupCheckout, verifyTopup } from "@/lib/payments.functions";
 import { getMyBalance } from "@/lib/analyses.functions";
 import { useServerFn } from "@tanstack/react-start";
 import { useSession } from "@/hooks/use-session";
@@ -30,6 +30,7 @@ import { cn } from "@/lib/utils";
 import { formatPremiumExpiry, isPremiumActive, premiumDaysRemaining } from "@/lib/premium-status";
 import { DEMO_PROFILE, isLocalDemo } from "@/lib/local-demo";
 import { track } from "@/lib/analytics";
+import { MobileMoneyDialog, type MobileMoneyMedium, type PaymentDialogState } from "@/components/MobileMoneyDialog";
 
 export const Route = createFileRoute("/premium")({
   validateSearch: (search) => ({
@@ -86,9 +87,14 @@ function PremiumSubscriptionPage() {
   // rendu dans l'Outlet, sinon le parent recouvre l'interface enfant.
   const [busyPlan, setBusyPlan] = useState<string | null>(null);
   const [busyPack, setBusyPack] = useState<string | null>(null);
+  const [paymentPlan, setPaymentPlan] = useState<PremiumPlan | null>(null);
+  const [paymentPack, setPaymentPack] = useState<PricedPack | null>(null);
+  const [paymentState, setPaymentState] = useState<PaymentDialogState>("idle");
+  const [paymentMessage, setPaymentMessage] = useState("");
   const checkoutRequestIds = useRef(new Map<string, string>());
   const subCheckoutFn = useServerFn(createSubscriptionCheckout);
   const topupCheckoutFn = useServerFn(createTopupCheckout);
+  const verifyFn = useServerFn(verifyTopup);
 
   const checkoutRequestIdFor = (key: string) => {
     const current = checkoutRequestIds.current.get(key);
@@ -98,6 +104,10 @@ function PremiumSubscriptionPage() {
     return next;
   };
 
+  const resetCheckoutRequestId = (key: string) => {
+    checkoutRequestIds.current.delete(key);
+  };
+
   useEffect(() => {
     track("premium_view", {
       source: selectedPlan ? "auth_return" : "direct",
@@ -105,7 +115,7 @@ function PremiumSubscriptionPage() {
     });
   }, [selectedPlan]);
 
-  const handleSubscribe = async (plan: PremiumPlan) => {
+  const handleSubscribe = (plan: PremiumPlan) => {
     if (demoMode) {
       toast.info("Aperçu local : le paiement est désactivé et aucune donnée n'est envoyée.");
       navigate({ to: "/premium/tableau-de-bord" });
@@ -130,24 +140,64 @@ function PremiumSubscriptionPage() {
       return;
     }
 
-    setBusyPlan(plan.id);
+    setPaymentPlan(plan);
+    setPaymentState("idle");
+    setPaymentMessage("");
+  };
+
+  const waitForPayment = async (transId: string, plan: PremiumPlan) => {
+    for (let attempt = 0; attempt < 30; attempt += 1) {
+      try {
+        const result = await verifyFn({ data: { transId } });
+        if (result.status === "SUCCESSFUL") {
+          setPaymentState("success");
+          setPaymentMessage("Paiement confirmé. Votre accès Premium est maintenant actif.");
+          toast.success("Paiement confirmé : Premium activé.");
+          track("premium_payment_confirmed", { plan: plan.id });
+          return;
+        }
+        if (["FAILED", "EXPIRED", "UNDERPAID"].includes(result.status)) {
+          resetCheckoutRequestId(`sub:${plan.id}`);
+          setPaymentState("failed");
+          setPaymentMessage("Le paiement n'a pas abouti. Vérifiez votre portefeuille et réessayez.");
+          return;
+        }
+      } catch {
+        // The webhook can confirm the transaction while the status endpoint is temporarily unavailable.
+      }
+      await new Promise((resolve) => setTimeout(resolve, 4000));
+    }
+    setPaymentState("failed");
+    resetCheckoutRequestId(`sub:${plan.id}`);
+    setPaymentMessage("La confirmation prend plus de temps que prévu. Consultez votre profil avant de relancer.");
+  };
+
+  const startSubscriptionPayment = async ({ phone, medium }: { phone: string; medium: MobileMoneyMedium }) => {
+    if (!paymentPlan) return;
+    setPaymentState("starting");
+    setPaymentMessage("");
+    setBusyPlan(paymentPlan.id);
     const startedAt = Date.now();
     try {
-      track("premium_checkout_started", { plan: plan.id, location: "premium_plan_card" });
-      const res = await subCheckoutFn({
-        data: { planId: plan.id, checkoutRequestId: checkoutRequestIdFor(`sub:${plan.id}`) },
-      });
-      toast.success(`Souscription à ${plan.name} initiée !`);
-      track("premium_checkout_redirected", { plan: plan.id, durationMs: Date.now() - startedAt });
-      window.location.href = res.link;
+      track("premium_checkout_started", { plan: paymentPlan.id, location: "premium_plan_card", medium });
+      const res = await subCheckoutFn({ data: { planId: paymentPlan.id, checkoutRequestId: checkoutRequestIdFor(`sub:${paymentPlan.id}`), phone, medium } });
+      if (res.mode === "hosted" && res.link) {
+        track("premium_checkout_redirected", { plan: paymentPlan.id, durationMs: Date.now() - startedAt, mode: "hosted" });
+        window.location.href = res.link;
+        return;
+      }
+      setPaymentState("waiting");
+      setPaymentMessage("Demande envoyée sur votre téléphone. Confirmez avec votre code Mobile Money.");
+      await waitForPayment(res.transId, paymentPlan);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erreur d'initiation du paiement.");
+      setPaymentState("failed");
+      setPaymentMessage(err instanceof Error ? err.message : "Le paiement n'a pas pu être lancé.");
     } finally {
       setBusyPlan(null);
     }
   };
 
-  const handleBuyPack = async (packId: string) => {
+  const handleBuyPack = (packId: string) => {
     if (demoMode) {
       toast.info("Aperçu local : les paiements sont désactivés dans ce mode.");
       return;
@@ -165,16 +215,59 @@ function PremiumSubscriptionPage() {
       return;
     }
 
-    setBusyPack(packId);
+    const pack = PRICED_PACKS.find((item) => item.id === packId);
+    if (!pack) return;
+    setPaymentPack(pack);
+    setPaymentState("idle");
+    setPaymentMessage("");
+  };
+
+  const waitForTopupPayment = async (transId: string, pack: PricedPack) => {
+    for (let attempt = 0; attempt < 30; attempt += 1) {
+      try {
+        const result = await verifyFn({ data: { transId } });
+        if (result.status === "SUCCESSFUL") {
+          setPaymentState("success");
+          setPaymentMessage(`${pack.credits} crédits ont été ajoutés à votre solde.`);
+          toast.success("Paiement confirmé : crédits ajoutés.");
+          track("topup_payment_confirmed", { pack: pack.id });
+          return;
+        }
+        if (["FAILED", "EXPIRED", "UNDERPAID"].includes(result.status)) {
+          resetCheckoutRequestId(`pack:${pack.id}`);
+          setPaymentState("failed");
+          setPaymentMessage("Le paiement n'a pas abouti. Vérifiez votre portefeuille et réessayez.");
+          return;
+        }
+      } catch {
+        // The webhook remains authoritative if a status check is momentarily unavailable.
+      }
+      await new Promise((resolve) => setTimeout(resolve, 4000));
+    }
+    setPaymentState("failed");
+    resetCheckoutRequestId(`pack:${pack.id}`);
+    setPaymentMessage("La confirmation prend plus de temps que prévu. Consultez votre profil avant de relancer.");
+  };
+
+  const startTopupPayment = async ({ phone, medium }: { phone: string; medium: MobileMoneyMedium }) => {
+    if (!paymentPack) return;
+    setPaymentState("starting");
+    setPaymentMessage("");
+    setBusyPack(paymentPack.id);
     const startedAt = Date.now();
     try {
-      const res = await topupCheckoutFn({
-        data: { packId, checkoutRequestId: checkoutRequestIdFor(`pack:${packId}`) },
-      });
-      track("topup_checkout_redirected", { pack: packId, durationMs: Date.now() - startedAt });
-      window.location.href = res.link;
+      const res = await topupCheckoutFn({ data: { packId: paymentPack.id, checkoutRequestId: checkoutRequestIdFor(`pack:${paymentPack.id}`), phone, medium } });
+      if (res.mode === "hosted" && res.link) {
+        track("topup_checkout_redirected", { pack: paymentPack.id, durationMs: Date.now() - startedAt, mode: "hosted" });
+        window.location.href = res.link;
+        return;
+      }
+      setPaymentState("waiting");
+      setPaymentMessage("Demande envoyée sur votre téléphone. Confirmez avec votre code Mobile Money.");
+      await waitForTopupPayment(res.transId, paymentPack);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erreur de recharge.");
+      setPaymentState("failed");
+      setPaymentMessage(err instanceof Error ? err.message : "Le paiement n'a pas pu être lancé.");
     } finally {
       setBusyPack(null);
     }
@@ -453,6 +546,24 @@ function PremiumSubscriptionPage() {
           />
         </div>
       </section>
+
+      {(paymentPlan || paymentPack) && (
+        <MobileMoneyDialog
+          title={paymentPlan ? `Souscrire à ${paymentPlan.name}` : `Acheter ${paymentPack?.credits ?? 0} crédits`}
+          description="Une demande de paiement va être envoyée sur votre portefeuille mobile."
+          amountLabel={formatXaf(paymentPlan?.priceXaf ?? paymentPack?.priceXaf ?? 0)}
+          state={paymentState}
+          message={paymentMessage}
+          onClose={() => {
+            if (paymentState !== "starting" && paymentState !== "waiting") {
+              setPaymentPlan(null);
+              setPaymentPack(null);
+              setPaymentState("idle");
+            }
+          }}
+          onConfirm={paymentPlan ? startSubscriptionPayment : startTopupPayment}
+        />
+      )}
     </AppShell>
   );
 }
