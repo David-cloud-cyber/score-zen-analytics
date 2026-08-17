@@ -17,7 +17,7 @@ import {
   LifeBuoy,
   X,
 } from "lucide-react";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import { SearchProvider, SmartSearchTrigger, useSearchDialog } from "@/components/SmartSearch";
@@ -28,7 +28,11 @@ import { ReferralPopup } from "@/components/ReferralPopup";
 import { useReferralPopup } from "@/hooks/use-referral-popup";
 import { getMyBalance } from "@/lib/analyses.functions";
 import { PremiumStatusBadge } from "@/components/PremiumStatusBadge";
+import { PremiumPrompt } from "@/components/PremiumPrompt";
+import { PremiumCta } from "@/components/PremiumCta";
 import { DEMO_PROFILE, isLocalDemo } from "@/lib/local-demo";
+import { isPremiumActive } from "@/lib/premium-status";
+import { requestPremiumPrompt, resetPremiumPrompt, usePremiumPrompt } from "@/hooks/use-premium-prompt";
 
 const NAV = [
   {
@@ -69,6 +73,12 @@ const SIDEBAR_GROUPS = [
     label: "Partenaires",
     items: [
       {
+        to: "/premium",
+        label: "Premium",
+        icon: Crown,
+        match: (p: string) => p === "/premium" || p.startsWith("/premium/"),
+      },
+      {
         to: "/codes-promo",
         label: "Codes promo",
         icon: Ticket,
@@ -87,6 +97,20 @@ const SIDEBAR_GROUPS = [
 function GlobalReferralPopup() {
   const { variant, dismiss } = useReferralPopup();
   return <ReferralPopup variant={variant} onDismiss={dismiss} />;
+}
+
+function GlobalPremiumPrompt() {
+  const { user } = useSession();
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const { stage, dismiss } = usePremiumPrompt(user?.id);
+  const blocked = ["/auth", "/premium", "/support", "/admin"].some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)) || pathname.startsWith("/live/") || pathname.startsWith("/match/");
+
+  useEffect(() => {
+    if (blocked && stage) dismiss();
+  }, [blocked, dismiss, stage]);
+
+  if (!user || !stage || blocked || isLocalDemo()) return null;
+  return <PremiumPrompt stage={stage} onDismiss={dismiss} />;
 }
 
 function LiveFootMark({ collapsed = false }: { collapsed?: boolean }) {
@@ -173,6 +197,7 @@ export function AppShell({
         </div>
 
         <GlobalReferralPopup />
+        <GlobalPremiumPrompt />
       </div>
     </SearchProvider>
   );
@@ -479,12 +504,37 @@ function MobileBottomNav({ pathname }: { pathname: string }) {
 export function TopBar({ onMenuOpen }: { onMenuOpen?: () => void }) {
   const { setOpen } = useSearchDialog();
   const { user } = useSession();
-  const { data: profile } = useQuery({
+  const { data: profile, refetch: refetchProfile } = useQuery({
     queryKey: ["me", "balance"],
     queryFn: () => (isLocalDemo() ? Promise.resolve(DEMO_PROFILE) : getMyBalance()),
     enabled: !!user,
     staleTime: 30_000,
   });
+  const previousCredits = useRef<number | null>(null);
+  useEffect(() => {
+    if (!user) {
+      previousCredits.current = null;
+      return;
+    }
+    if (!profile || isLocalDemo()) return;
+    if (isPremiumActive(profile)) {
+      previousCredits.current = null;
+      return;
+    }
+    const credits = Number(profile.credits ?? 0);
+    const previous = previousCredits.current;
+    if (credits > 2) resetPremiumPrompt("low_credits", user.id);
+    if (previous !== null && previous > 2 && credits <= 2) requestPremiumPrompt("low_credits");
+    previousCredits.current = credits;
+  }, [profile, user]);
+  useEffect(() => {
+    const handleAnalysisCompleted = () => {
+      void refetchProfile();
+    };
+    window.addEventListener("livefoot:analysis-completed", handleAnalysisCompleted);
+    return () => window.removeEventListener("livefoot:analysis-completed", handleAnalysisCompleted);
+  }, [refetchProfile]);
+  const premiumActive = isPremiumActive(profile);
 
   return (
     <header className="sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-border/60 bg-background/90 px-3 py-3 backdrop-blur-xl lg:px-8 lg:py-3">
@@ -522,6 +572,7 @@ export function TopBar({ onMenuOpen }: { onMenuOpen?: () => void }) {
             Démo locale
           </span>
         )}
+        {!premiumActive && <PremiumCta location="header" compact label={user ? "Premium" : "Voir Premium"} />}
         <PremiumStatusBadge profile={profile} compact className="hidden sm:inline-flex" />
         <button
           onClick={() => setOpen(true)}

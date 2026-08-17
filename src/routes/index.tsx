@@ -12,6 +12,7 @@ import {
   Flame,
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
+import { PremiumCta } from "@/components/PremiumCta";
 import { RemoteMatchCard } from "@/components/RemoteMatchCard";
 import { getFixtures } from "@/lib/football.functions";
 import type { FixturesPayload, RemoteMatchSummary } from "@/lib/football-types";
@@ -418,6 +419,7 @@ function HomePage() {
               Créer mon compte <ChevronRight className="ml-1 size-3.5" />
             </Link>
           )}
+          <PremiumCta location="home_value_strip_premium" compact label="Voir Premium" />
         </div>
       )}
 

@@ -16,6 +16,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { AppShell, PageTitle } from "@/components/AppShell";
+import { PremiumCta } from "@/components/PremiumCta";
 import { Disclaimer } from "@/components/Disclaimer";
 import { WinProbabilityDonut, WinProbabilityLegend } from "@/components/WinProbabilityDonut";
 import { MarketCard } from "@/components/MarketCard";
@@ -27,6 +28,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { buildRouteMeta, breadcrumbSchema, qaSchema, faqSchema, SPEAKABLE, ORG } from "@/lib/seo";
 import { track, lastCtaSource } from "@/lib/analytics";
+import { requestPremiumPrompt } from "@/hooks/use-premium-prompt";
 import { DEMO_ANALYSIS, isLocalDemo } from "@/lib/local-demo";
 
 const ANALYSE_ANSWER =
@@ -301,6 +303,8 @@ function AnalysePage() {
         source: lastCtaSource() ?? "direct",
         matchId: matchIdParam ?? "",
       });
+      window.dispatchEvent(new Event("livefoot:analysis-completed"));
+      requestPremiumPrompt("first_analysis");
       toast.success("Analyse IA générée — 3 crédits débités.");
     } catch (err) {
       const rawMessage = err instanceof Error ? err.message : "";
@@ -424,6 +428,7 @@ function AnalysePage() {
           Estimation statistique LiveFoot basée sur la forme, les absences, les confrontations
           directes et les données de marché disponibles.
         </p>
+        {!demoMode && <div className="mt-3 flex items-center justify-between gap-3 rounded-xl border border-brand/20 bg-brand/5 px-3 py-2.5"><p className="text-[11px] text-muted-foreground">100 crédits mensuels pour analyser plus de matchs.</p><PremiumCta location="analysis_form" compact label="Voir Premium" /></div>}
         {analysisError && (
           <div className="mt-4 flex flex-col gap-3 rounded-2xl border border-warn/30 bg-warn/5 p-4 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
             <div>

@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
+import { PremiumCta } from "@/components/PremiumCta";
 import { BlogCard, BlogIndexEmpty, BLOG_CATEGORY_LABELS } from "@/components/BlogUI";
 import { getBlogIndex } from "@/lib/editorial.functions";
 import { blogIndexHead } from "@/lib/editorial-seo";
@@ -23,6 +24,7 @@ function BlogIndexPage() {
           <p className="text-base leading-relaxed text-muted-foreground">
             Actualités confirmées, données de forme, compétitions et analyses accessibles pour mieux comprendre le football du jour.
           </p>
+          <PremiumCta location="blog_intro" compact label="Voir Premium" />
         </header>
         <nav aria-label="Catégories du blog" className="flex gap-2 overflow-x-auto pb-1">
           <a href="/blog" className="shrink-0 rounded-xl bg-foreground px-3 py-2 text-xs font-black text-background">Tous les articles</a>

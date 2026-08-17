@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell, PageTitle } from "@/components/AppShell";
+import { PremiumCta } from "@/components/PremiumCta";
 import { useSession } from "@/hooks/use-session";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -312,6 +313,11 @@ function CommunautePage() {
               Consultez les matchs réels, partagez votre avis et comparez les tendances de la communauté.
             </p>
           </div>
+        </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand/20 bg-brand/5 px-4 py-3">
+          <p className="text-xs text-muted-foreground">Approfondissez les matchs suivis par la communauté avec les analyses Premium.</p>
+          <PremiumCta location="community_intro" compact label="Voir Premium" />
         </div>
 
         <div className="space-y-3" aria-live="polite">

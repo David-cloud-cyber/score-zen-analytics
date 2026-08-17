@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { AppShell, PageTitle } from "@/components/AppShell";
+import { PremiumCta } from "@/components/PremiumCta";
 import { BOOKMAKERS, availableBonusTypes, type BonusType } from "@/data/bookmakers";
 import { SEO_COUNTRIES } from "@/data/country-seo";
 import {
@@ -218,6 +219,11 @@ function PromoHub() {
         </div>
 
         <PageTitle eyebrow="Partenaires" title="Codes promo bookmakers" />
+
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand/20 bg-brand/5 px-4 py-3">
+          <p className="text-xs text-muted-foreground">Comparez les offres partenaires, puis analysez vos matchs avec 100 crédits mensuels Premium.</p>
+          <PremiumCta location="codes_promo_intro" compact label="Voir Premium" />
+        </div>
 
         <AnswerBox
           question="Quels sont les meilleurs codes promo bookmakers en 2026 ?"
