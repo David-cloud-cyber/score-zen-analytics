@@ -54,6 +54,8 @@ const NAV = [
   { to: "/profil", label: "Profil", icon: User, match: (p: string) => p.startsWith("/profil") },
 ] as const;
 
+const MOBILE_NAV = [NAV[0], NAV[1], NAV[2], NAV[5]] as const;
+
 const SIDEBAR_GROUPS = [
   {
     label: "LiveFoot",
@@ -442,8 +444,8 @@ function MobileBottomNav({ pathname }: { pathname: string }) {
       className="fixed bottom-0 left-1/2 z-40 w-full max-w-[440px] -translate-x-1/2 border-t border-border/60 bg-background/95 pb-6 pt-2 backdrop-blur-xl lg:hidden"
       aria-label="Navigation principale"
     >
-      <ul className="grid grid-cols-5">
-        {NAV.map((item) => {
+      <ul className="grid grid-cols-4">
+        {MOBILE_NAV.map((item) => {
           const active = item.match(pathname);
           const Icon = item.icon;
           return (
