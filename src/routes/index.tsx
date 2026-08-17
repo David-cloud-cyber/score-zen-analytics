@@ -17,7 +17,9 @@ import { RemoteMatchCard } from "@/components/RemoteMatchCard";
 import { getFixtures } from "@/lib/football.functions";
 import type { FixturesPayload, RemoteMatchSummary } from "@/lib/football-types";
 import { getMyPremiumFavorites } from "@/lib/premium-hub.functions";
+import { getMyBalance } from "@/lib/analyses.functions";
 import { rankMatches, selectTrendingMatch } from "@/lib/match-ranking";
+import { isPremiumActive } from "@/lib/premium-status";
 import { buildRouteMeta, faqSchema, ORG, SPEAKABLE } from "@/lib/seo";
 import { cn } from "@/lib/utils";
 import { PageSkeleton } from "@/components/PageSkeleton";
@@ -209,6 +211,14 @@ function HomePage() {
     enabled: demoMode || !!user,
     staleTime: 30_000,
   });
+  const profileQuery = useQuery({
+    queryKey: ["me", "balance"],
+    queryFn: getMyBalance,
+    enabled: !demoMode && !!user,
+    staleTime: 30_000,
+  });
+  const showMatchListPremiumStrip =
+    !demoMode && (!user || (profileQuery.data ? !isPremiumActive(profileQuery.data) : false));
   const favoriteMatchIds = useMemo(
     () =>
       new Set(
@@ -392,37 +402,6 @@ function HomePage() {
         />
       )}
 
-      {!demoMode && (
-        <div className="mx-4 mb-4 flex flex-col gap-3 rounded-xl border border-brand/20 bg-brand/5 px-4 py-3 sm:flex-row sm:items-center sm:justify-between lg:mx-0">
-          <div>
-            <p className="text-sm font-black">Votre première analyse commence ici.</p>
-            <p className="mt-0.5 text-xs text-muted-foreground">
-              5 crédits offerts à l'inscription · une analyse coûte 3 crédits.
-            </p>
-          </div>
-          {user ? (
-            <Link
-              to="/analyse"
-              search={{ home: "", away: "" }}
-              onClick={() => track("cta_click", { location: "home_value_strip" })}
-              className="inline-flex shrink-0 items-center justify-center rounded-xl bg-brand px-3.5 py-2 text-xs font-black text-brand-foreground transition-transform active:scale-95"
-            >
-              Lancer une analyse <ChevronRight className="ml-1 size-3.5" />
-            </Link>
-          ) : (
-            <Link
-              to="/auth"
-              search={{ mode: "signup", redirect: "/analyse", source: "home_value_strip" }}
-              onClick={() => track("cta_click", { location: "home_value_strip" })}
-              className="inline-flex shrink-0 items-center justify-center rounded-xl bg-brand px-3.5 py-2 text-xs font-black text-brand-foreground transition-transform active:scale-95"
-            >
-              Créer mon compte <ChevronRight className="ml-1 size-3.5" />
-            </Link>
-          )}
-          <PremiumCta location="home_value_strip_premium" compact label="Voir Premium" />
-        </div>
-      )}
-
       {/* Hero banner */}
       {topMatch && (
         <div className="grid items-start gap-4 px-4 lg:grid-cols-3 lg:gap-5 lg:px-0">
@@ -534,8 +513,9 @@ function HomePage() {
                 : "Aucun match terminé aujourd'hui."}
           </div>
         ) : null}
-        {grouped.map((g) => (
-          <section key={g.name}>
+        {grouped.map((g, index) => (
+          <div key={g.name}>
+            <section>
             <div className="mb-3 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <img src={g.logo} alt={`Logo ${g.name}`} className="size-4 object-contain" />
@@ -548,7 +528,45 @@ function HomePage() {
                 <RemoteMatchCard key={m.id} match={m} />
               ))}
             </div>
-          </section>
+            </section>
+
+            {showMatchListPremiumStrip && index === 0 && grouped.length > 1 && (
+              <div className="my-5 rounded-xl border border-brand/20 bg-brand/5 px-3 py-3 sm:px-4 lg:my-6">
+                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                  <div className="min-w-0">
+                    <p className="text-sm font-black">Votre première analyse commence ici.</p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      5 crédits offerts à l'inscription · une analyse coûte 3 crédits.
+                    </p>
+                  </div>
+                  <div className="grid w-full gap-2 sm:grid-cols-2 md:w-auto md:min-w-[330px]">
+                    {user ? (
+                      <Link
+                        to="/analyse"
+                        search={{ home: "", away: "" }}
+                        onClick={() => track("cta_click", { location: "match_list_between_competitions" })}
+                        className="inline-flex w-full items-center justify-center rounded-xl bg-brand px-3.5 py-2 text-xs font-black text-brand-foreground transition-transform active:scale-95"
+                      >
+                        Lancer une analyse <ChevronRight className="ml-1 size-3.5" />
+                      </Link>
+                    ) : (
+                      <Link
+                        to="/auth"
+                        search={{ mode: "signup", redirect: "/analyse", source: "match_list_between_competitions" }}
+                        onClick={() => track("cta_click", { location: "match_list_between_competitions" })}
+                        className="inline-flex w-full items-center justify-center rounded-xl bg-brand px-3.5 py-2 text-xs font-black text-brand-foreground transition-transform active:scale-95"
+                      >
+                        Créer mon compte <ChevronRight className="ml-1 size-3.5" />
+                      </Link>
+                    )}
+                    <div className="flex w-full [&>a]:w-full [&>a]:justify-center">
+                      <PremiumCta location="match_list_between_competitions" compact label="Voir Premium" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         ))}
       </div>
 
