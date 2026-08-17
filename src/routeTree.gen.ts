@@ -20,6 +20,8 @@ import { Route as CommunauteRouteImport } from './routes/communaute'
 import { Route as MentionsLegalesRouteImport } from './routes/mentions-legales'
 import { Route as PremiumRouteImport } from './routes/premium'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as SupportRouteImport } from './routes/support'
+import { Route as VipRouteImport } from './routes/vip'
 import { Route as AuthenticatedFavorisRouteImport } from './routes/_authenticated/favoris'
 import { Route as AuthenticatedProfilRouteImport } from './routes/_authenticated/profil'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
@@ -31,7 +33,9 @@ import { Route as AdminContenusRouteImport } from './routes/admin.contenus'
 import { Route as AdminExportsRouteImport } from './routes/admin.exports'
 import { Route as AdminPaiementsRouteImport } from './routes/admin.paiements'
 import { Route as AdminParametresRouteImport } from './routes/admin.parametres'
+import { Route as AdminSupportRouteImport } from './routes/admin.support'
 import { Route as AdminUtilisateursRouteImport } from './routes/admin.utilisateurs'
+import { Route as AdminVipRouteImport } from './routes/admin.vip'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as BlogIndexRouteImport } from './routes/blog.index'
 import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
@@ -106,6 +110,16 @@ const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   path: '/sitemap.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SupportRoute = SupportRouteImport.update({
+  id: '/support',
+  path: '/support',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const VipRoute = VipRouteImport.update({
+  id: '/vip',
+  path: '/vip',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedFavorisRoute = AuthenticatedFavorisRouteImport.update({
   id: '/favoris',
   path: '/favoris',
@@ -161,9 +175,19 @@ const AdminParametresRoute = AdminParametresRouteImport.update({
   path: '/parametres',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminSupportRoute = AdminSupportRouteImport.update({
+  id: '/support',
+  path: '/support',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminUtilisateursRoute = AdminUtilisateursRouteImport.update({
   id: '/utilisateurs',
   path: '/utilisateurs',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminVipRoute = AdminVipRouteImport.update({
+  id: '/vip',
+  path: '/vip',
   getParentRoute: () => AdminRoute,
 } as any)
 const AuthCallbackRoute = AuthCallbackRouteImport.update({
@@ -275,6 +299,8 @@ export interface FileRoutesByFullPath {
   '/mentions-legales': typeof MentionsLegalesRoute
   '/premium': typeof PremiumRouteWithChildren
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/support': typeof SupportRoute
+  '/vip': typeof VipRoute
   '/favoris': typeof AuthenticatedFavorisRoute
   '/profil': typeof AuthenticatedProfilRoute
   '/admin/analyses': typeof AdminAnalysesRoute
@@ -285,7 +311,9 @@ export interface FileRoutesByFullPath {
   '/admin/exports': typeof AdminExportsRoute
   '/admin/paiements': typeof AdminPaiementsRoute
   '/admin/parametres': typeof AdminParametresRoute
+  '/admin/support': typeof AdminSupportRoute
   '/admin/utilisateurs': typeof AdminUtilisateursRoute
+  '/admin/vip': typeof AdminVipRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/blog/football': typeof BlogFootballRoute
@@ -315,6 +343,8 @@ export interface FileRoutesByTo {
   '/mentions-legales': typeof MentionsLegalesRoute
   '/premium': typeof PremiumRouteWithChildren
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/support': typeof SupportRoute
+  '/vip': typeof VipRoute
   '/favoris': typeof AuthenticatedFavorisRoute
   '/profil': typeof AuthenticatedProfilRoute
   '/admin/analyses': typeof AdminAnalysesRoute
@@ -325,7 +355,9 @@ export interface FileRoutesByTo {
   '/admin/exports': typeof AdminExportsRoute
   '/admin/paiements': typeof AdminPaiementsRoute
   '/admin/parametres': typeof AdminParametresRoute
+  '/admin/support': typeof AdminSupportRoute
   '/admin/utilisateurs': typeof AdminUtilisateursRoute
+  '/admin/vip': typeof AdminVipRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/blog/football': typeof BlogFootballRoute
@@ -360,6 +392,8 @@ export interface FileRoutesById {
   '/mentions-legales': typeof MentionsLegalesRoute
   '/premium': typeof PremiumRouteWithChildren
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/support': typeof SupportRoute
+  '/vip': typeof VipRoute
   '/_authenticated/favoris': typeof AuthenticatedFavorisRoute
   '/_authenticated/profil': typeof AuthenticatedProfilRoute
   '/admin/analyses': typeof AdminAnalysesRoute
@@ -370,7 +404,9 @@ export interface FileRoutesById {
   '/admin/exports': typeof AdminExportsRoute
   '/admin/paiements': typeof AdminPaiementsRoute
   '/admin/parametres': typeof AdminParametresRoute
+  '/admin/support': typeof AdminSupportRoute
   '/admin/utilisateurs': typeof AdminUtilisateursRoute
+  '/admin/vip': typeof AdminVipRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/blog/football': typeof BlogFootballRoute
@@ -405,6 +441,8 @@ export interface FileRouteTypes {
     | '/mentions-legales'
     | '/premium'
     | '/sitemap.xml'
+    | '/support'
+    | '/vip'
     | '/favoris'
     | '/profil'
     | '/admin/analyses'
@@ -415,7 +453,9 @@ export interface FileRouteTypes {
     | '/admin/exports'
     | '/admin/paiements'
     | '/admin/parametres'
+    | '/admin/support'
     | '/admin/utilisateurs'
+    | '/admin/vip'
     | '/auth/callback'
     | '/blog/$slug'
     | '/blog/football'
@@ -445,6 +485,8 @@ export interface FileRouteTypes {
     | '/mentions-legales'
     | '/premium'
     | '/sitemap.xml'
+    | '/support'
+    | '/vip'
     | '/favoris'
     | '/profil'
     | '/admin/analyses'
@@ -455,7 +497,9 @@ export interface FileRouteTypes {
     | '/admin/exports'
     | '/admin/paiements'
     | '/admin/parametres'
+    | '/admin/support'
     | '/admin/utilisateurs'
+    | '/admin/vip'
     | '/auth/callback'
     | '/blog/$slug'
     | '/blog/football'
@@ -489,6 +533,8 @@ export interface FileRouteTypes {
     | '/mentions-legales'
     | '/premium'
     | '/sitemap.xml'
+    | '/support'
+    | '/vip'
     | '/_authenticated/favoris'
     | '/_authenticated/profil'
     | '/admin/analyses'
@@ -499,7 +545,9 @@ export interface FileRouteTypes {
     | '/admin/exports'
     | '/admin/paiements'
     | '/admin/parametres'
+    | '/admin/support'
     | '/admin/utilisateurs'
+    | '/admin/vip'
     | '/auth/callback'
     | '/blog/$slug'
     | '/blog/football'
@@ -534,6 +582,8 @@ export interface RootRouteChildren {
   MentionsLegalesRoute: typeof MentionsLegalesRoute
   PremiumRoute: typeof PremiumRouteWithChildren
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  SupportRoute: typeof SupportRoute
+  VipRoute: typeof VipRoute
   LiveIdRoute: typeof LiveIdRoute
   MatchIdRoute: typeof MatchIdRoute
   ApiPublicConversionEventRoute: typeof ApiPublicConversionEventRoute
@@ -620,6 +670,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SitemapDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/support': {
+      id: '/support'
+      path: '/support'
+      fullPath: '/support'
+      preLoaderRoute: typeof SupportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/vip': {
+      id: '/vip'
+      path: '/vip'
+      fullPath: '/vip'
+      preLoaderRoute: typeof VipRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/favoris': {
       id: '/_authenticated/favoris'
       path: '/favoris'
@@ -697,11 +761,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminParametresRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/support': {
+      id: '/admin/support'
+      path: '/support'
+      fullPath: '/admin/support'
+      preLoaderRoute: typeof AdminSupportRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/utilisateurs': {
       id: '/admin/utilisateurs'
       path: '/utilisateurs'
       fullPath: '/admin/utilisateurs'
       preLoaderRoute: typeof AdminUtilisateursRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/vip': {
+      id: '/admin/vip'
+      path: '/vip'
+      fullPath: '/admin/vip'
+      preLoaderRoute: typeof AdminVipRouteImport
       parentRoute: typeof AdminRoute
     }
     '/auth/callback': {
@@ -862,7 +940,9 @@ interface AdminRouteChildren {
   AdminExportsRoute: typeof AdminExportsRoute
   AdminPaiementsRoute: typeof AdminPaiementsRoute
   AdminParametresRoute: typeof AdminParametresRoute
+  AdminSupportRoute: typeof AdminSupportRoute
   AdminUtilisateursRoute: typeof AdminUtilisateursRoute
+  AdminVipRoute: typeof AdminVipRoute
   AdminIndexRoute: typeof AdminIndexRoute
 }
 
@@ -875,7 +955,9 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminExportsRoute: AdminExportsRoute,
   AdminPaiementsRoute: AdminPaiementsRoute,
   AdminParametresRoute: AdminParametresRoute,
+  AdminSupportRoute: AdminSupportRoute,
   AdminUtilisateursRoute: AdminUtilisateursRoute,
+  AdminVipRoute: AdminVipRoute,
   AdminIndexRoute: AdminIndexRoute,
 }
 
@@ -966,6 +1048,8 @@ const rootRouteChildren: RootRouteChildren = {
   MentionsLegalesRoute: MentionsLegalesRoute,
   PremiumRoute: PremiumRouteWithChildren,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  SupportRoute: SupportRoute,
+  VipRoute: VipRoute,
   LiveIdRoute: LiveIdRoute,
   MatchIdRoute: MatchIdRoute,
   ApiPublicConversionEventRoute: ApiPublicConversionEventRoute,

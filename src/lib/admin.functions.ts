@@ -131,7 +131,7 @@ export const restoreAdminUser = createServerFn({ method: "POST" }).middleware([r
   return { ok: true };
 });
 
-const requestSchema = z.object({ actionType: z.enum(["premium_grant", "credits_adjust", "role_change", "refund_request", "account_anonymize"]), targetType: z.enum(["user", "payment", "subscription"]), targetId: z.string().min(1).max(120), reason: reasonSchema, payload: z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()])).default({}), operationId: z.string().uuid().optional() });
+const requestSchema = z.object({ actionType: z.enum(["premium_grant", "vip_grant", "credits_adjust", "role_change", "refund_request", "account_anonymize"]), targetType: z.enum(["user", "payment", "subscription", "vip_application"]), targetId: z.string().min(1).max(120), reason: reasonSchema, payload: z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()])).default({}), operationId: z.string().uuid().optional() });
 export const requestAdminCriticalAction = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).inputValidator((data) => requestSchema.parse(data)).handler(async ({ data, context }) => {
   const role = await requireAdmin(context);
   if (role !== "admin") throw new Error("CRITICAL_ACTION_MUST_BE_REQUESTED_BY_ADMIN");
@@ -157,6 +157,27 @@ export const approveAdminCriticalAction = createServerFn({ method: "POST" }).mid
     if (!until || !request.target_id) throw new Error("PREMIUM_DATE_REQUIRED");
     const { error } = await supabaseAdmin.from("profiles").update({ plan: "premium", premium_until: until }).eq("id", request.target_id);
     if (error) throw new Error("PREMIUM_GRANT_FAILED");
+  } else if (request.action_type === "vip_grant") {
+    if (!request.target_id) throw new Error("VIP_APPLICATION_REQUIRED");
+    const { data: application } = await (supabaseAdmin as any).from("vip_applications").select("id, user_id, tier, status").eq("id", request.target_id).maybeSingle();
+    if (!application || !["submitted", "under_review", "needs_info"].includes(application.status)) throw new Error("VIP_APPLICATION_NOT_ELIGIBLE");
+    const { data: existingGrant } = await (supabaseAdmin as any).from("vip_grants").select("id").eq("user_id", application.user_id).maybeSingle();
+    if (existingGrant) throw new Error("VIP_ALREADY_GRANTED");
+    const months = application.tier === "pro" ? 6 : 3;
+    const startsAt = new Date();
+    const endsAt = new Date(startsAt);
+    endsAt.setMonth(endsAt.getMonth() + months);
+    const { data: grant, error: grantError } = await (supabaseAdmin as any).from("vip_grants").insert({ application_id: application.id, user_id: application.user_id, tier: application.tier, starts_at: startsAt.toISOString(), ends_at: endsAt.toISOString(), monthly_credits: 100, created_by: context.userId }).select("id, starts_at, ends_at").single();
+    if (grantError || !grant) throw new Error("VIP_GRANT_FAILED");
+    const { data: currentProfile } = await (supabaseAdmin as any).from("profiles").select("premium_until").eq("id", application.user_id).maybeSingle();
+    const currentPremiumUntil = currentProfile?.premium_until ? new Date(currentProfile.premium_until).getTime() : 0;
+    const effectivePremiumUntil = currentPremiumUntil > endsAt.getTime() ? new Date(currentPremiumUntil).toISOString() : endsAt.toISOString();
+    const { error: profileError } = await (supabaseAdmin as any).from("profiles").update({ plan: "premium", premium_until: effectivePremiumUntil, premium_source: "vip", vip_tier: application.tier }).eq("id", application.user_id);
+    if (profileError) throw new Error("VIP_PROFILE_UPDATE_FAILED");
+    await (supabaseAdmin as any).from("vip_applications").update({ status: "approved", reviewer_id: context.userId, reviewed_at: new Date().toISOString(), review_reason: request.reason }).eq("id", application.id);
+    await (supabaseAdmin as any).rpc("ensure_vip_monthly_credits", { p_user_id: application.user_id });
+    await (supabaseAdmin as any).from("user_notifications").insert({ user_id: application.user_id, type: "vip_status", title: "Accès Premium gratuit activé", message: `Votre accès VIP ${application.tier === "pro" ? "Pro" : "Starter"} est actif pendant ${months} mois.`, link: "/premium/tableau-de-bord", entity_id: application.id });
+    result = { ...result, vipGrantId: grant.id, premiumUntil: grant.ends_at } as typeof result & { vipGrantId: string; premiumUntil: string };
   } else if (request.action_type === "credits_adjust") {
     const amount = typeof payload.amount === "number" ? Math.trunc(payload.amount) : 0;
     if (!amount || !request.target_id) throw new Error("CREDIT_AMOUNT_REQUIRED");

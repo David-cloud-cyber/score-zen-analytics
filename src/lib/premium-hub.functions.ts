@@ -290,6 +290,12 @@ function buildAlerts(radar: RadarOpportunity[], favorites: HubFavorite[]): HubAl
 export const getPremiumDashboard = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<PremiumHubData> => {
+    try {
+      const { ensureVipMonthlyCredits } = await import("@/lib/vip.functions");
+      await ensureVipMonthlyCredits(context.userId);
+    } catch {
+      // A credit-cycle refresh must never prevent the Premium dashboard from opening.
+    }
     const { data: profile } = await context.supabase
       .from("profiles")
       .select("credits, plan, premium_until")

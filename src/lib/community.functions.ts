@@ -20,6 +20,8 @@ export type CommunityMessage = {
   message: string;
   created_at: string;
   match_id: number | null;
+  parent_id: string | null;
+  reactions?: Record<string, number>;
 };
 
 export type CommunityPoll = {
@@ -82,6 +84,8 @@ function readSafeMessage(row: any): CommunityMessage {
     message: String(row.message || "").slice(0, 500),
     created_at: String(row.created_at),
     match_id: typeof row.match_id === "number" ? row.match_id : null,
+    parent_id: row.parent_id ? String(row.parent_id) : null,
+    reactions: row.reactions && typeof row.reactions === "object" ? row.reactions : {},
   };
 }
 
@@ -89,11 +93,22 @@ async function readMessages(limit = 50): Promise<CommunityMessage[]> {
   const db = await getDb();
   const { data, error } = await db
     .from("community_messages")
-    .select("id, user_name, user_avatar, message, created_at, match_id")
+    .select("id, user_name, user_avatar, message, created_at, match_id, parent_id")
     .order("created_at", { ascending: false })
     .limit(Math.min(Math.max(limit, 1), 100));
   if (error) throw new Error("Impossible de charger les messages pour le moment.");
-  return (data ?? []).map(readSafeMessage).reverse();
+  const rows = data ?? [];
+  const ids = rows.map((row: any) => row.id);
+  const { data: reactionRows } = ids.length
+    ? await db.from("community_message_reactions").select("message_id, emoji").in("message_id", ids)
+    : { data: [] };
+  const reactions = new Map<string, Record<string, number>>();
+  for (const reaction of reactionRows ?? []) {
+    const counts = reactions.get(String(reaction.message_id)) ?? {};
+    counts[String(reaction.emoji)] = (counts[String(reaction.emoji)] ?? 0) + 1;
+    reactions.set(String(reaction.message_id), counts);
+  }
+  return rows.map((row: any) => ({ ...readSafeMessage(row), reactions: reactions.get(String(row.id)) ?? {} })).reverse();
 }
 
 async function readMatchVotes(fixtureId: number): Promise<MatchCommunityVotes> {
@@ -316,10 +331,46 @@ export const postCommunityMessage = createServerFn({ method: "POST" })
         message: message.slice(0, 500),
         match_id: data.matchId ?? null,
       })
-      .select("id, user_name, user_avatar, message, created_at, match_id")
+      .select("id, user_name, user_avatar, message, created_at, match_id, parent_id")
       .single();
     if (error || !row) throw new Error("Votre message n'a pas pu être publié.");
     return readSafeMessage(row);
+  });
+
+const replyInput = z.object({ parentId: z.string().uuid(), message: z.string().trim().min(1).max(500) });
+const reactionInput = z.object({ messageId: z.string().uuid(), emoji: z.enum(["👍", "❤️", "🔥", "😂", "⚽", "👀"]) });
+
+export const replyCommunityMessage = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => replyInput.parse(input))
+  .handler(async ({ data, context }) => {
+    const message = data.message.replace(/<[^>]*>/g, "").replace(/[\u0000-\u001F]/g, " ").trim();
+    const client = await getDb();
+    const { data: parent } = await client.from("community_messages").select("id, user_id").eq("id", data.parentId).maybeSingle();
+    if (!parent) throw new Error("Ce message n'est plus disponible.");
+    const since = new Date(Date.now() - 5000).toISOString();
+    const { count } = await client.from("community_messages").select("id", { count: "exact", head: true }).eq("user_id", context.userId).gte("created_at", since);
+    if ((count ?? 0) > 0) throw new Error("Attendez quelques secondes avant de répondre.");
+    const { data: profile } = await client.from("profiles").select("display_name, avatar_url").eq("id", context.userId).maybeSingle();
+    const { data: row, error } = await client.from("community_messages").insert({ user_id: context.userId, user_name: String(profile?.display_name || "Membre LiveFoot").slice(0, 80), user_avatar: profile?.avatar_url ? String(profile.avatar_url) : null, message: message.slice(0, 500), match_id: null, parent_id: data.parentId }).select("id, user_name, user_avatar, message, created_at, match_id, parent_id").single();
+    if (error || !row) throw new Error("Votre réponse n'a pas pu être publiée.");
+    if (String(parent.user_id) !== context.userId) {
+      await client.from("user_notifications").insert({ user_id: parent.user_id, type: "community_reply", title: "Nouvelle réponse", message: `${String(profile?.display_name || "Un membre").slice(0, 80)} a répondu à votre message.`, link: "/communaute", entity_id: data.parentId });
+    }
+    return readSafeMessage(row);
+  });
+
+export const toggleCommunityReaction = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => reactionInput.parse(input))
+  .handler(async ({ data, context }) => {
+    const client = await getDb();
+    const { data: existing } = await client.from("community_message_reactions").select("id").eq("message_id", data.messageId).eq("user_id", context.userId).eq("emoji", data.emoji).maybeSingle();
+    if (existing) await client.from("community_message_reactions").delete().eq("id", existing.id);
+    else await client.from("community_message_reactions").insert({ message_id: data.messageId, user_id: context.userId, emoji: data.emoji });
+    const { data: rows, error } = await client.from("community_message_reactions").select("emoji").eq("message_id", data.messageId);
+    if (error) throw new Error("La réaction n'a pas pu être mise à jour.");
+    return (rows ?? []).reduce((result: Record<string, number>, row: any) => { result[row.emoji] = (result[row.emoji] ?? 0) + 1; return result; }, {});
   });
 
 // Used by the match detail page. It keeps its existing update behavior.

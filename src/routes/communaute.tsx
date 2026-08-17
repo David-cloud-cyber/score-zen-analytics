@@ -6,6 +6,7 @@ import {
   Flame,
   MessageCircle,
   Radio,
+  Reply,
   Send,
   Trophy,
   User,
@@ -19,6 +20,8 @@ import {
   getCommunityOverview,
   getMyCommunityVotes,
   postCommunityMessage,
+  replyCommunityMessage,
+  toggleCommunityReaction,
   type CommunityMessage,
   type CommunityOverview,
   type CommunityPoll,
@@ -69,6 +72,8 @@ const DEMO_MESSAGES: CommunityMessage[] = [
     message: "Arsenal semble mieux armé dans les transitions ce soir.",
     created_at: new Date().toISOString(),
     match_id: null,
+    parent_id: null,
+    reactions: {},
   },
   {
     id: "demo-msg-2",
@@ -77,6 +82,8 @@ const DEMO_MESSAGES: CommunityMessage[] = [
     message: "Le scénario 1X reste le plus cohérent avec les données du jour.",
     created_at: new Date().toISOString(),
     match_id: null,
+    parent_id: null,
+    reactions: {},
   },
 ];
 
@@ -105,6 +112,8 @@ function CommunautePage() {
   const myVotesFn = useServerFn(getMyCommunityVotes);
   const voteFn = useServerFn(castCommunityVote);
   const messageFn = useServerFn(postCommunityMessage);
+  const replyFn = useServerFn(replyCommunityMessage);
+  const reactionFn = useServerFn(toggleCommunityReaction);
   const overviewQuery = useQuery({
     queryKey: ["community", "overview"],
     queryFn: () => overviewFn(),
@@ -129,6 +138,8 @@ function CommunautePage() {
   const [userVotes, setUserVotes] = useState<Record<number, CommunityVoteOption>>({});
   const [pendingVote, setPendingVote] = useState<number | null>(null);
   const [sending, setSending] = useState(false);
+  const [replyingTo, setReplyingTo] = useState<string | null>(null);
+  const [replyText, setReplyText] = useState("");
   const chatScrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -228,6 +239,8 @@ function CommunautePage() {
         message: value,
         created_at: new Date().toISOString(),
         match_id: null,
+        parent_id: null,
+        reactions: {},
       }));
       setNewMessage("");
       return;
@@ -241,6 +254,44 @@ function CommunautePage() {
       toast.error(error instanceof Error ? error.message : "Votre message n'a pas pu être publié.");
     } finally {
       setSending(false);
+    }
+  };
+
+  const handleReply = async (event: FormEvent, parentId: string) => {
+    event.preventDefault();
+    const value = replyText.trim().slice(0, 500);
+    if (!value) return;
+    if (!session && !demoMode) {
+      navigate({ to: "/auth", search: { redirect: "/communaute" } });
+      return;
+    }
+    if (demoMode) {
+      setMessages((current) => mergeMessages(current, { id: `demo-reply-${Date.now()}`, user_name: "Dodo Bien", user_avatar: null, message: value, created_at: new Date().toISOString(), match_id: null, parent_id: parentId, reactions: {} }));
+      setReplyText("");
+      setReplyingTo(null);
+      return;
+    }
+    try {
+      const created = await replyFn({ data: { parentId, message: value } });
+      setMessages((current) => mergeMessages(current, created));
+      setReplyText("");
+      setReplyingTo(null);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Votre réponse n'a pas pu être publiée.");
+    }
+  };
+
+  const handleReaction = async (messageId: string, emoji: string) => {
+    if (!session && !demoMode) {
+      navigate({ to: "/auth", search: { redirect: "/communaute" } });
+      return;
+    }
+    if (demoMode) return;
+    try {
+      const reactions = await reactionFn({ data: { messageId, emoji: emoji as "👍" | "❤️" | "🔥" | "😂" | "⚽" | "👀" } });
+      setMessages((current) => current.map((item) => item.id === messageId ? { ...item, reactions } : item));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "La réaction n'a pas pu être enregistrée.");
     }
   };
 
@@ -317,15 +368,14 @@ function CommunautePage() {
               <span className="flex items-center gap-1.5 text-[10px] font-bold text-emerald-500"><span className="size-2 rounded-full bg-emerald-500" /> En ligne</span>
             </div>
             <div ref={chatScrollRef} className="flex-1 space-y-3 overflow-y-auto p-4" aria-live="polite">
-              {messages.length ? messages.map((message) => (
-                <div key={message.id} className="flex items-start gap-3 text-xs">
-                  <div className="grid size-8 shrink-0 place-items-center rounded-full bg-surface font-black text-brand ring-1 ring-black/5 dark:ring-white/10"><User className="size-4" /></div>
-                  <div className="min-w-0 flex-1 rounded-2xl bg-surface p-3 ring-1 ring-black/5 dark:ring-white/5">
-                    <div className="mb-1 flex items-center justify-between gap-2"><span className="truncate font-bold text-foreground">{message.user_name}</span><span className="shrink-0 text-[9px] text-muted-foreground">{new Date(message.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span></div>
-                    <p className="break-words leading-relaxed text-muted-foreground">{message.message}</p>
-                  </div>
-                </div>
-              )) : <p className="py-12 text-center text-xs text-muted-foreground">Aucun message pour le moment.</p>}
+              {messages.length ? messages.filter((message) => !message.parent_id).map((message) => {
+                const replies = messages.filter((child) => child.parent_id === message.id);
+                return <div key={message.id} className="space-y-2">
+                  <MessageBubble message={message} onReply={() => { setReplyingTo(message.id); setReplyText(""); }} onReaction={(emoji) => void handleReaction(message.id, emoji)} />
+                  {replies.map((reply) => <div key={reply.id} className="ml-8"><MessageBubble message={reply} onReply={() => { setReplyingTo(message.id); setReplyText(""); }} onReaction={(emoji) => void handleReaction(reply.id, emoji)} compact /></div>)}
+                  {replyingTo === message.id && <form onSubmit={(event) => void handleReply(event, message.id)} className="ml-8 flex gap-2 rounded-xl bg-surface p-2"><input autoFocus value={replyText} maxLength={500} onChange={(event) => setReplyText(event.target.value)} placeholder="Répondre..." className="min-w-0 flex-1 bg-transparent px-2 text-xs text-foreground outline-none placeholder:text-muted-foreground" /><button type="submit" disabled={!replyText.trim()} className="grid size-8 shrink-0 place-items-center rounded-lg bg-foreground text-background disabled:opacity-40" aria-label="Publier la réponse"><Send className="size-3.5" /></button></form>}
+                </div>;
+              }) : <p className="py-12 text-center text-xs text-muted-foreground">Aucun message pour le moment.</p>}
             </div>
             <form onSubmit={(event) => void handleSendMessage(event)} className="border-t border-border/60 p-3">
               <div className="flex items-center gap-2 rounded-2xl bg-surface px-3 py-2 ring-1 ring-black/5 focus-within:ring-2 focus-within:ring-brand dark:ring-white/10">
@@ -349,4 +399,19 @@ function CommunautePage() {
 
 function VoteButton({ label, selected, disabled, onClick }: { label: string; selected?: boolean; disabled?: boolean; onClick: () => void }) {
   return <button type="button" aria-pressed={selected} disabled={disabled} onClick={onClick} className={cn("rounded-2xl bg-surface px-1 py-2 text-center text-xs font-black text-foreground transition-all ring-1 ring-black/5 hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand dark:ring-white/10 disabled:cursor-not-allowed disabled:opacity-50", selected && "bg-foreground text-background ring-foreground shadow-md")}>{label}</button>;
+}
+
+function MessageBubble({ message, onReply, onReaction, compact = false }: { message: CommunityMessage; onReply: () => void; onReaction: (emoji: string) => void; compact?: boolean }) {
+  const emojis = ["👍", "❤️", "🔥", "😂", "⚽", "👀"];
+  return <div className={cn("flex items-start gap-3 text-xs", compact && "text-[11px]")}>
+    <div className="grid size-8 shrink-0 place-items-center rounded-full bg-surface font-black text-brand ring-1 ring-black/5 dark:ring-white/10"><User className="size-4" /></div>
+    <div className="min-w-0 flex-1 rounded-2xl bg-surface p-3 ring-1 ring-black/5 dark:ring-white/5">
+      <div className="mb-1 flex items-center justify-between gap-2"><span className="truncate font-bold text-foreground">{message.user_name}</span><span className="shrink-0 text-[9px] text-muted-foreground">{new Date(message.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span></div>
+      <p className="break-words leading-relaxed text-muted-foreground">{message.message}</p>
+      <div className="mt-2 flex flex-wrap items-center gap-1.5">
+        {emojis.map((emoji) => <button key={emoji} type="button" onClick={() => onReaction(emoji)} className="rounded-full bg-card px-1.5 py-0.5 text-[11px] ring-1 ring-border/60 hover:ring-brand" aria-label={`Réagir ${emoji}`}><span>{emoji}</span>{message.reactions?.[emoji] ? <span className="ml-1 text-[10px] font-bold text-muted-foreground">{message.reactions[emoji]}</span> : null}</button>)}
+        <button type="button" onClick={onReply} className="ml-auto inline-flex items-center gap-1 rounded-full bg-card px-2 py-1 text-[10px] font-bold text-muted-foreground ring-1 ring-border/60 hover:text-foreground"><Reply className="size-3" /> Répondre</button>
+      </div>
+    </div>
+  </div>;
 }

@@ -2,6 +2,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import {
   ArrowRight,
   Coins,
+  Crown,
   FileText,
   Menu,
   PanelLeftClose,
@@ -13,6 +14,7 @@ import {
   Ticket,
   User,
   Users,
+  LifeBuoy,
   X,
 } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
@@ -59,7 +61,7 @@ const SIDEBAR_GROUPS = [
   },
   {
     label: "Mon espace",
-    items: [NAV[4], NAV[2], NAV[3], NAV[5]],
+    items: [NAV[4], NAV[2], NAV[3], NAV[5], { to: "/support", label: "Support", icon: LifeBuoy, match: (p: string) => p.startsWith("/support") }],
   },
   {
     label: "Partenaires",
@@ -69,6 +71,12 @@ const SIDEBAR_GROUPS = [
         label: "Codes promo",
         icon: Ticket,
         match: (p: string) => p.startsWith("/codes-promo"),
+      },
+      {
+        to: "/vip",
+        label: "Premium gratuit",
+        icon: Crown,
+        match: (p: string) => p.startsWith("/vip"),
       },
     ],
   },

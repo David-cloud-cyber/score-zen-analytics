@@ -1049,6 +1049,12 @@ export const runAnalysis = createServerFn({ method: "POST" })
 export const getMyBalance = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    try {
+      const { ensureVipMonthlyCredits } = await import("@/lib/vip.functions");
+      await ensureVipMonthlyCredits(context.userId);
+    } catch {
+      // La lecture du solde ne doit jamais être bloquée par le renouvellement VIP.
+    }
     const { data } = await context.supabase
       .from("profiles")
       .select("credits, plan, display_name, avatar_url, premium_until")
