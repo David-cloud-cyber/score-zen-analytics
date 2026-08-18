@@ -614,7 +614,7 @@ function MatchOverview({
             <h2 className="mt-1 text-lg font-black">{statusLabel}</h2>
           </div>
           <span className="rounded-full bg-brand/10 px-2.5 py-1 text-[10px] font-bold text-brand">
-            API actualisée automatiquement
+            Actualisation automatique
           </span>
         </div>
         <dl className="mt-4 grid gap-2 sm:grid-cols-2">

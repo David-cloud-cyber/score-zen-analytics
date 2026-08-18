@@ -60,9 +60,25 @@ async function handleFixtureSectionRequest(request: Request): Promise<Response |
       },
     });
   } catch (error) {
+    const incidentId = newIncidentId();
+    void recordServerIncident({
+      incidentId,
+      route: new URL(request.url).pathname,
+      category: "data",
+      statusCode: 503,
+    });
+    // Keep provider details private. The public API only returns a stable,
+    // user-facing state while the incident journal keeps the internal trace.
+    void error;
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Match indisponible" }),
-      { status: 503, headers: { "content-type": "application/json; charset=utf-8" } },
+      JSON.stringify({ error: "Les informations de cette rencontre arrivent bientôt." }),
+      {
+        status: 503,
+        headers: {
+          "content-type": "application/json; charset=utf-8",
+          "cache-control": "no-store",
+        },
+      },
     );
   }
 }
