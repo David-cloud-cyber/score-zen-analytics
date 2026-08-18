@@ -161,3 +161,122 @@ export function useLiveFixtureStream({ enabled, initialPayload, loadSnapshot }: 
 
   return { payload, isRefreshing, retry };
 }
+
+type LiveMatchStreamOptions = {
+  enabled: boolean;
+  fixtureId: number;
+  onUpdate: () => void;
+};
+
+/**
+ * Shares a live fixture subscription with the Worker coordinator. The hook
+ * only invalidates local queries; it never calls the sports provider directly.
+ */
+export function useLiveMatchStream({ enabled, fixtureId, onUpdate }: LiveMatchStreamOptions) {
+  const onUpdateRef = useRef(onUpdate);
+  onUpdateRef.current = onUpdate;
+
+  useEffect(() => {
+    if (!enabled || !Number.isInteger(fixtureId) || fixtureId <= 0) return;
+    let disposed = false;
+    let socket: WebSocket | undefined;
+    let fallbackTimer: number | undefined;
+    let reconnectTimer: number | undefined;
+    let connectTimer: number | undefined;
+    let refreshInFlight = false;
+
+    const clearTimers = () => {
+      if (fallbackTimer !== undefined) window.clearInterval(fallbackTimer);
+      if (reconnectTimer !== undefined) window.clearTimeout(reconnectTimer);
+      if (connectTimer !== undefined) window.clearTimeout(connectTimer);
+      fallbackTimer = undefined;
+      reconnectTimer = undefined;
+      connectTimer = undefined;
+    };
+
+    const refreshOverHttp = async () => {
+      if (disposed || refreshInFlight) return;
+      refreshInFlight = true;
+      try {
+        const response = await fetch(`/api/fixture/${fixtureId}/summary`, {
+          headers: { accept: "application/json" },
+          cache: "no-store",
+        });
+        if (response.ok) onUpdateRef.current();
+      } catch {
+        // Keep the last real match state visible until the coordinator recovers.
+      } finally {
+        refreshInFlight = false;
+      }
+    };
+
+    const startFallback = () => {
+      if (disposed || fallbackTimer !== undefined) return;
+      void refreshOverHttp();
+      fallbackTimer = window.setInterval(() => void refreshOverHttp(), 10_000);
+    };
+
+    const connect = () => {
+      if (disposed || typeof WebSocket === "undefined") {
+        startFallback();
+        return;
+      }
+      try {
+        socket = new WebSocket(websocketUrl());
+      } catch {
+        startFallback();
+        return;
+      }
+      connectTimer = window.setTimeout(() => {
+        if (socket?.readyState === WebSocket.CONNECTING) {
+          socket.close();
+          startFallback();
+        }
+      }, 4_000);
+      socket.onopen = () => {
+        if (disposed) return;
+        if (connectTimer !== undefined) window.clearTimeout(connectTimer);
+        connectTimer = undefined;
+        if (fallbackTimer !== undefined) window.clearInterval(fallbackTimer);
+        fallbackTimer = undefined;
+        socket?.send(JSON.stringify({ type: "subscribe", fixtureId }));
+      };
+      socket.onmessage = (event) => {
+        try {
+          const payload = JSON.parse(String(event.data)) as { type?: string; fixtureId?: number };
+          if (payload.type === "fixture_update" && payload.fixtureId === fixtureId) {
+            onUpdateRef.current();
+          }
+        } catch {
+          // Ignore malformed keep-alives without dropping the stream.
+        }
+      };
+      socket.onerror = () => {
+        if (!disposed) startFallback();
+      };
+      socket.onclose = () => {
+        if (disposed) return;
+        if (connectTimer !== undefined) window.clearTimeout(connectTimer);
+        connectTimer = undefined;
+        startFallback();
+        reconnectTimer = window.setTimeout(() => {
+          reconnectTimer = undefined;
+          if (!disposed) connect();
+        }, 5_000);
+      };
+    };
+
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") void refreshOverHttp();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    connect();
+
+    return () => {
+      disposed = true;
+      document.removeEventListener("visibilitychange", onVisibility);
+      clearTimers();
+      socket?.close(1000, "Page changed");
+    };
+  }, [enabled, fixtureId]);
+}

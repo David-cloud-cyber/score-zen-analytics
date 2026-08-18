@@ -12,12 +12,17 @@ import {
   type StatisticalPrediction,
   type TeamPredictionContext,
 } from "./prediction-engine";
+import {
+  predictionMetadataFor,
+  type PredictionAiStatus,
+  type PredictionMetadata,
+} from "./prediction-quality";
 
 const ANALYSIS_COST = 3;
 
 // Cache mémoire court : protège le quota API tout en conservant une fraîcheur
 // adaptée aux matchs live, aux fixtures identifiés et aux requêtes manuelles.
-type CacheEntry = { at: number; ttlMs: number; result: AnalysisResult };
+type CacheEntry = { at: number; ttlMs: number; result: AnalysisResult; metadata: PredictionMetadata };
 const analysisCache = new Map<string, CacheEntry>();
 const teamContextInflight = new Map<string, Promise<TeamContext | null>>();
 const fixtureIdentityInflight = new Map<string, Promise<FixtureIdentity | null>>();
@@ -44,7 +49,9 @@ async function consumeAnalysisCredit(params: {
   home: string;
   away: string;
   matchId?: string;
+  requestId?: string;
   result: AnalysisResult;
+  metadata: PredictionMetadata;
 }) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data, error } = await supabaseAdmin.rpc("consume_analysis_credit", {
@@ -54,6 +61,8 @@ async function consumeAnalysisCredit(params: {
     p_away_team: params.away,
     p_match_id: params.matchId ?? null,
     p_result: params.result,
+    p_request_id: params.requestId ?? null,
+    p_metadata: params.metadata,
   });
   if (error) {
     if (error.message.includes("INSUFFICIENT_CREDITS")) {
@@ -77,6 +86,7 @@ const inputSchema = z.object({
   home: z.string().min(2).max(80),
   away: z.string().min(2).max(80),
   matchId: matchIdSchema,
+  requestId: z.string().uuid().optional(),
 });
 
 const resultSchema = z
@@ -115,6 +125,14 @@ const resultSchema = z
         code: z.ZodIssueCode.custom,
         path: ["probabilities"],
         message: "Les probabilités doivent totaliser exactement 100.",
+      });
+    }
+    const publicText = [value.aiText, ...(value.keyFactors ?? []), ...value.markets.map((market) => `${market.label} ${market.pick} ${market.rationale}`)].join(" ");
+    if (/(openrouter|gemini|deepseek|qwen|llama|api[- ]?football|quota|endpoint|websocket|prompt système|clé api)/i.test(publicText)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["aiText"],
+        message: "Le texte public contient un détail interne.",
       });
     }
   });
@@ -521,6 +539,34 @@ function numericStat(value: number | string | null | undefined) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+async function fetchProviderPrediction(fixtureId?: number): Promise<MatchSignals["providerPrediction"]> {
+  if (!Number.isInteger(fixtureId) || !fixtureId || fixtureId <= 0) return null;
+  try {
+    const { apiFootball } = await import("./apifootball.server");
+    const rows = await apiFootball<
+      Array<{
+        predictions?: {
+          percent?: { home?: string; draw?: string; away?: string };
+          advice?: string;
+        };
+      }>
+    >("/predictions", { fixture: fixtureId });
+    const prediction = rows[0]?.predictions;
+    const parsePercent = (value?: string) => {
+      const parsed = Number(String(value ?? "").replace("%", "").trim());
+      return Number.isFinite(parsed) && parsed >= 0 && parsed <= 100 ? parsed : null;
+    };
+    const home = parsePercent(prediction?.percent?.home);
+    const draw = parsePercent(prediction?.percent?.draw);
+    const away = parsePercent(prediction?.percent?.away);
+    return home !== null && draw !== null && away !== null
+      ? { home, draw, away, advice: prediction?.advice ?? null }
+      : null;
+  } catch {
+    return null;
+  }
+}
+
 /** Snapshot live dédié au match demandé. Il reste optionnel pour une analyse manuelle. */
 async function fetchLiveSnapshot(matchId?: string): Promise<LiveSnapshot | null> {
   const fixtureId = Number(matchId);
@@ -601,11 +647,19 @@ async function fetchLiveSnapshot(matchId?: string): Promise<LiveSnapshot | null>
  * Les clés sont lues via getConfig() : env var Cloudflare Worker en prod, table app_config Supabase en fallback.
  * Bascule silencieusement sans que l'utilisateur le sache.
  */
+type AIRouterResult = {
+  result: AnalysisResult;
+  status: Exclude<PredictionAiStatus, "statistical_only" | "no_recommendation">;
+  latencyMs: number;
+};
+
 async function callSmartAIRouter(
   systemPrompt: string,
   userPrompt: string,
   isPremium: boolean,
-): Promise<AnalysisResult> {
+): Promise<AIRouterResult> {
+  const startedAt = Date.now();
+  let attempts = 0;
   const { getConfig } = await import("./config.server");
   const [geminiKey, openRouterKey] = await Promise.all([
     getConfig("GEMINI_API_KEY"),
@@ -623,6 +677,7 @@ async function callSmartAIRouter(
     for (const model of [...new Set(orderedModels)]) {
       const remaining = deadline - Date.now();
       if (remaining < 700) break;
+      attempts += 1;
       try {
         const raw = await requestOpenRouterJson({
           apiKey: openRouterKey,
@@ -631,7 +686,11 @@ async function callSmartAIRouter(
           userPrompt,
           timeoutMs: Math.min(4_200, remaining - 250),
         });
-        return resultSchema.parse(raw);
+        return {
+          result: resultSchema.parse(raw),
+          status: attempts === 1 ? "ai_enriched" : "ai_fallback",
+          latencyMs: Date.now() - startedAt,
+        };
       } catch (err) {
         console.warn("OpenRouter provider unavailable:", err instanceof Error ? err.message : err);
       }
@@ -641,33 +700,18 @@ async function callSmartAIRouter(
   // 1. Fournisseur principal — quota et format JSON strict.
   if (geminiKey) {
     try {
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            system_instruction: { parts: [{ text: systemPrompt }] },
-            contents: [{ parts: [{ text: userPrompt }] }],
-            generationConfig: { response_mime_type: "application/json", temperature: 0.2 },
-          }),
-        },
-      );
-
-      if (res.ok) {
-        const json = (await res.json()) as {
-          candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
-        };
-        const text = json.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (text) return resultSchema.parse(JSON.parse(text));
-      }
-
-      // Quota dépassé → on tente le prochain provider
-      const status = res.status;
-      if (status !== 429 && status !== 503) {
-        const body = await res.text().catch(() => "");
-        console.warn(`Provider principal HTTP ${status}:`, body.slice(0, 200));
-      }
+      const { requestGeminiJson } = await import("./ai-gateway.server");
+      const raw = await requestGeminiJson({
+        apiKey: geminiKey,
+        systemPrompt,
+        userPrompt,
+        timeoutMs: Math.min(3_200, Math.max(800, 6_500 - (Date.now() - startedAt))),
+      });
+      return {
+        result: resultSchema.parse(raw),
+        status: "ai_fallback",
+        latencyMs: Date.now() - startedAt,
+      };
     } catch (err) {
       console.warn("Provider principal indisponible:", err instanceof Error ? err.message : err);
     }
@@ -676,57 +720,26 @@ async function callSmartAIRouter(
   // 2. Relais OpenRouter — modèle gratuit de secours.
   if (openRouterKey) {
     try {
-      const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${openRouterKey}`,
-          "Content-Type": "application/json",
-          "HTTP-Referer": "https://www.livefoot.fun",
-          "X-Title": "Livefoot IA",
-        },
-        body: JSON.stringify({
-          model: "deepseek/deepseek-r1:free",
-          response_format: { type: "json_object" },
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: userPrompt },
-          ],
-          temperature: 0.2,
-        }),
-      });
-
-      if (res.ok) {
-        const json = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
-        const text = json.choices?.[0]?.message?.content;
-        if (text) return resultSchema.parse(JSON.parse(text));
-      }
-
-      // Quota OpenRouter dépassé → 3e tentative avec un modèle alternatif gratuit
-      const resAlt = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${openRouterKey}`,
-          "Content-Type": "application/json",
-          "HTTP-Referer": "https://www.livefoot.fun",
-          "X-Title": "Livefoot IA",
-        },
-        body: JSON.stringify({
-          model: "meta-llama/llama-3.3-70b-instruct:free",
-          response_format: { type: "json_object" },
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: userPrompt },
-          ],
-          temperature: 0.2,
-        }),
-      });
-
-      if (resAlt.ok) {
-        const json = (await resAlt.json()) as {
-          choices?: Array<{ message?: { content?: string } }>;
-        };
-        const text = json.choices?.[0]?.message?.content;
-        if (text) return resultSchema.parse(JSON.parse(text));
+      const { requestOpenRouterJson } = await import("./ai-gateway.server");
+      for (const model of ["deepseek/deepseek-r1:free", "meta-llama/llama-3.3-70b-instruct:free"]) {
+        const remaining = 6_500 - (Date.now() - startedAt);
+        if (remaining < 800) break;
+        try {
+          const raw = await requestOpenRouterJson({
+            apiKey: openRouterKey,
+            model,
+            systemPrompt,
+            userPrompt,
+            timeoutMs: Math.min(2_400, Math.max(800, remaining - 200)),
+          });
+          return {
+            result: resultSchema.parse(raw),
+            status: "ai_fallback",
+            latencyMs: Date.now() - startedAt,
+          };
+        } catch (err) {
+          console.warn("OpenRouter failover unavailable:", err instanceof Error ? err.message : err);
+        }
       }
     } catch (err) {
       console.warn("OpenRouter failover:", err instanceof Error ? err.message : err);
@@ -745,8 +758,21 @@ export const runAnalysis = createServerFn({ method: "POST" })
     // 0. Cache-hit ?
     const cacheKey = `${data.home.toLowerCase().trim()}::${data.away.toLowerCase().trim()}::${data.matchId ?? ""}`;
 
-    // 1. Crédits + profil.
+    // 1. Rejouer une demande explicitement identifiée est toujours gratuit.
+    // Cette lecture précède le contrôle de solde afin qu'un retry réseau après
+    // un débit réussi puisse récupérer son résultat même si le solde a changé.
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    if (data.requestId) {
+      const { data: existingRequest } = await supabaseAdmin
+        .from("ai_analyses")
+        .select("result")
+        .eq("user_id", context.userId)
+        .eq("request_id", data.requestId)
+        .maybeSingle();
+      if (existingRequest?.result) return resultSchema.parse(existingRequest.result);
+    }
+
+    // 2. Crédits + profil.
     const { data: profile, error: profErr } = await supabaseAdmin
       .from("profiles")
       .select("credits, plan")
@@ -795,7 +821,9 @@ export const runAnalysis = createServerFn({ method: "POST" })
         home: data.home,
         away: data.away,
         matchId: data.matchId,
+        requestId: data.requestId,
         result: cached.result,
+        metadata: cached.metadata,
       });
       return cached.result;
     }
@@ -829,9 +857,14 @@ export const runAnalysis = createServerFn({ method: "POST" })
         "Le match n’a pas pu être identifié avec suffisamment d’informations vérifiées.",
       );
     }
+    if (homeCtx.dataQuality === "identity" && awayCtx.dataQuality === "identity") {
+      throw new Error(
+        "Le match n’a pas pu être identifié avec suffisamment d’informations vérifiées.",
+      );
+    }
 
     // H2H + bookmaker odds en parallèle une fois les IDs connus
-    const [h2h, bookmakerOdds, communitySnapshot] = await Promise.all([
+    const [h2h, bookmakerOdds, communitySnapshot, requestedProviderPrediction] = await Promise.all([
       homeCtx && awayCtx ? fetchHeadToHead(homeCtx.id, awayCtx.id) : Promise.resolve([]),
       homeCtx && awayCtx
         ? fetchBookmakerOdds(
@@ -841,7 +874,10 @@ export const runAnalysis = createServerFn({ method: "POST" })
           )
         : Promise.resolve(null),
       fetchCommunitySnapshot(data.matchId),
+      fetchProviderPrediction(Number.isInteger(Number(data.matchId)) ? Number(data.matchId) : undefined),
     ]);
+    const providerPrediction =
+      requestedProviderPrediction ?? (bookmakerOdds?.fixtureId ? await fetchProviderPrediction(bookmakerOdds.fixtureId) : null);
     // Lors d'une saisie manuelle, les cotes permettent souvent d'identifier le
     // fixture : on complète alors le snapshot par statistiques et compositions.
     const analysisLiveSnapshot =
@@ -878,6 +914,26 @@ export const runAnalysis = createServerFn({ method: "POST" })
       level: isPartial || coverage < 0.8 ? ("partial" as const) : ("complete" as const),
       score: Math.round(coverage * 100),
     };
+    const unavailableSections = [
+      ...homeCtx.unavailableSections,
+      ...awayCtx.unavailableSections,
+      ...(h2h.length < 3 ? ["confrontations"] : []),
+      ...(!bookmakerOdds ? ["cotes"] : []),
+      ...(!analysisLiveSnapshot ? ["match_live"] : []),
+    ];
+    const availableSections = [
+      "identite_match",
+      ...(homeCtx.dataQuality === "complete" ? ["forme_domicile"] : []),
+      ...(awayCtx.dataQuality === "complete" ? ["forme_exterieur"] : []),
+      ...(h2h.length >= 3 ? ["confrontations"] : []),
+      ...(bookmakerOdds ? ["cotes"] : []),
+      ...(analysisLiveSnapshot ? ["statistiques_live", "evenements"] : []),
+      ...(analysisLiveSnapshot?.homeLineupConfirmed && analysisLiveSnapshot.awayLineupConfirmed
+        ? ["compositions"]
+        : []),
+      ...(communitySnapshot ? ["votes_communautaires"] : []),
+      ...(providerPrediction ? ["projection_fournisseur"] : []),
+    ];
     const signals: MatchSignals = {
       community: communitySnapshot,
       competition: analysisLiveSnapshot
@@ -894,6 +950,7 @@ export const runAnalysis = createServerFn({ method: "POST" })
             volumeAvailable: false,
           }
         : null,
+      providerPrediction,
       coverage,
     };
 
@@ -905,6 +962,9 @@ export const runAnalysis = createServerFn({ method: "POST" })
         ? `## Compétition et arbitrage\nCompétition : ${analysisLiveSnapshot.competitionName ?? "n/d"}. Arbitre déclaré : ${analysisLiveSnapshot.referee}. Les habitudes historiques de l'arbitre ne sont pas disponibles dans le snapshot courant.`
         : "## Compétition et arbitrage\nArbitre ou compétition détaillée indisponible.",
       `## Couverture des données\nScore interne de couverture : ${Math.round(coverage * 100)}%. Les signaux absents ne doivent pas être inventés.`,
+      providerPrediction
+        ? `## Projection fournisseur\nProbabilités publiées : domicile ${providerPrediction.home}% · nul ${providerPrediction.draw}% · extérieur ${providerPrediction.away}%. Conseil fourni : ${providerPrediction.advice ?? "non communiqué"}. Ce signal reste secondaire.`
+        : "## Projection fournisseur\nAucune projection fournisseur disponible pour cette rencontre.",
     ].join("\n\n");
 
     const contextBlock = [
@@ -972,6 +1032,7 @@ export const runAnalysis = createServerFn({ method: "POST" })
       odds: bookmakerOdds,
       live: analysisLiveSnapshot,
       signals,
+      providerPrediction,
       dataQuality,
       statisticalProjection: basePrediction,
     };
@@ -998,20 +1059,28 @@ export const runAnalysis = createServerFn({ method: "POST" })
     // 3. Routeur hybride : l'IA améliore le calcul si elle répond à temps ; le
     // moteur statistique conserve seul la continuité de service en cas d'échec.
     let enriched: StatisticalPrediction | null = null;
+    let aiStatus: PredictionAiStatus = "statistical_only";
+    let aiLatencyMs: number | null = null;
     try {
-      const aiResult = await withTimeout(
+      const aiRun = await withTimeout(
         callSmartAIRouter(systemPrompt, userPrompt, isPremium),
         7_000,
         "Le délai d'enrichissement IA est dépassé.",
       );
-      enriched = { ...aiResult, keyFactors: aiResult.keyFactors ?? [] };
+      enriched = { ...aiRun.result, keyFactors: aiRun.result.keyFactors ?? [] };
+      aiStatus = aiRun.status;
+      aiLatencyMs = aiRun.latencyMs;
     } catch (error) {
       console.warn(
         "AI enrichment unavailable; serving deterministic prediction:",
         error instanceof Error ? error.message : error,
       );
     }
-    const blended = blendPredictions(basePrediction, enriched);
+    const blended = blendPredictions(
+      basePrediction,
+      enriched,
+      aiStatus === "ai_fallback" ? "ai_fallback" : "ai_enriched",
+    );
     const result = resultSchema.parse({
       ...blended,
       dataQuality,
@@ -1026,13 +1095,28 @@ export const runAnalysis = createServerFn({ method: "POST" })
           : blended.aiText,
     });
 
+    const metadata = predictionMetadataFor({
+      aiStatus,
+      dataQualityLevel:
+        homeCtx.dataQuality === "identity" && awayCtx.dataQuality === "identity"
+          ? "identity"
+          : dataQuality.level,
+      dataQualityScore: dataQuality.score,
+      aiLatencyMs,
+      availableSections,
+      unavailableSections,
+      marketCount: result.markets.length,
+    });
+
     // 4. Débit + log.
     await consumeAnalysisCredit({
       userId: context.userId,
       home: data.home,
       away: data.away,
       matchId: data.matchId,
+      requestId: data.requestId,
       result,
+      metadata,
     });
 
     // 5. Cache.
@@ -1041,7 +1125,7 @@ export const runAnalysis = createServerFn({ method: "POST" })
       : data.matchId
         ? FIXTURE_CACHE_TTL_MS
         : MANUAL_CACHE_TTL_MS;
-    analysisCache.set(cacheKey, { at: Date.now(), ttlMs: cacheTtlMs, result });
+    analysisCache.set(cacheKey, { at: Date.now(), ttlMs: cacheTtlMs, result, metadata });
 
     return result;
   });

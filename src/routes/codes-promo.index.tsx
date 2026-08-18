@@ -13,7 +13,7 @@ import {
   AnswerBox,
 } from "@/components/promo/PromoUI";
 import { cn } from "@/lib/utils";
-import { buildRouteMeta, qaSchema, SPEAKABLE, ORG } from "@/lib/seo";
+import { buildRouteMeta, SPEAKABLE, ORG } from "@/lib/seo";
 import { ArrowRight, Sparkles } from "lucide-react";
 
 const SITE = "https://www.livefoot.fun";
@@ -51,20 +51,15 @@ export const Route = createFileRoute("/codes-promo/")({
       title: "Codes promo bookmakers 2026 : 1win, Betwinner, MELBET, Linebet et 1xBet",
       description:
         "Comparez les codes promo 1win, Betwinner, MELBET, Linebet et 1xBet : codes partenaires, offres selon le pays, conditions, dépôt minimum, Mobile Money et avis détaillés.",
+      alternates: [
+        { language: "fr", path: "/codes-promo" },
+        { language: "en", path: "/en/promo-codes" },
+        { language: "x-default", path: "/codes-promo" },
+      ],
     });
     return {
       ...base,
       scripts: [
-        {
-          type: "application/ld+json",
-          children: JSON.stringify(
-            qaSchema({
-              path: "/codes-promo",
-              question: "Quels sont les meilleurs codes promo bookmakers en 2026 ?",
-              answer: HUB_ANSWER,
-            }),
-          ),
-        },
         {
           type: "application/ld+json",
           children: JSON.stringify({

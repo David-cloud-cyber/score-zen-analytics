@@ -9,6 +9,11 @@ export function blogIndexHead() {
     title: "Blog football : actualités, analyses et données vérifiées",
     description:
       "Actualités football confirmées, analyses statistiques, forme des équipes et guides utiles pour suivre les compétitions en France et en Afrique francophone.",
+    alternates: [
+      { language: "fr", path: "/blog" },
+      { language: "en", path: "/en/blog" },
+      { language: "x-default", path: "/blog" },
+    ],
   });
   return {
     ...base,
@@ -25,7 +30,15 @@ export function blogIndexHead() {
           speakable: SPEAKABLE,
         }),
       },
-      { type: "application/ld+json", children: JSON.stringify(breadcrumbSchema([{ name: "Accueil", path: "/" }, { name: "Blog", path: "/blog" }])) },
+      {
+        type: "application/ld+json",
+        children: JSON.stringify(
+          breadcrumbSchema([
+            { name: "Accueil", path: "/" },
+            { name: "Blog", path: "/blog" },
+          ]),
+        ),
+      },
     ],
   };
 }
@@ -61,11 +74,22 @@ export function blogArticleHead(article: PublicEditorialArticle) {
     },
     {
       type: "application/ld+json",
-      children: JSON.stringify(breadcrumbSchema([{ name: "Accueil", path: "/" }, { name: "Blog", path: "/blog" }, { name: article.title, path }])),
+      children: JSON.stringify(
+        breadcrumbSchema([
+          { name: "Accueil", path: "/" },
+          { name: "Blog", path: "/blog" },
+          { name: article.title, path },
+        ]),
+      ),
     },
   ];
   if (article.content.faq.length) {
-    scripts.push({ type: "application/ld+json", children: JSON.stringify(faqSchema(article.content.faq.map((item) => ({ q: item.question, a: item.answer })))) });
+    scripts.push({
+      type: "application/ld+json",
+      children: JSON.stringify(
+        faqSchema(article.content.faq.map((item) => ({ q: item.question, a: item.answer }))),
+      ),
+    });
   }
   return {
     ...base,

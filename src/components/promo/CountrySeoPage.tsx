@@ -309,6 +309,8 @@ export function CountryBookmakerPage({
               <img
                 src={bookmaker.bannerUrl}
                 alt={`Bonus ${bookmaker.name} avec le code ${bookmaker.code} au ${country.name}`}
+                width={1200}
+                height={630}
                 loading="lazy"
                 className="w-full object-cover"
               />

@@ -1,6 +1,13 @@
 // Route meta helper — keeps title/description/canonical/OG in sync.
-const SITE = "https://www.livefoot.fun";
-const SITE_NAME = "LiveFoot IA";
+export const SITE = "https://www.livefoot.fun";
+export const SITE_NAME = "LiveFoot IA";
+
+export type SeoLanguage = "fr" | "en";
+
+export type SeoAlternate = {
+  language: SeoLanguage | "x-default";
+  path: string;
+};
 
 export type RouteMetaInput = {
   path: string; // e.g. "/analyse" or "/live/123"
@@ -9,12 +16,21 @@ export type RouteMetaInput = {
   image?: string; // absolute URL for og:image / twitter:image (leaf routes only)
   type?: "website" | "article" | "product";
   noindex?: boolean;
+  language?: SeoLanguage;
+  alternates?: SeoAlternate[];
+  imageWidth?: number;
+  imageHeight?: number;
+  imageType?: string;
 };
 
 export function buildRouteMeta(input: RouteMetaInput) {
   const fullTitle = input.title.includes(SITE_NAME) ? input.title : `${input.title} — ${SITE_NAME}`;
   const url = `${SITE}${input.path.startsWith("/") ? input.path : `/${input.path}`}`;
   const socialImage = input.image ?? `${SITE}/logo.png`;
+  const language = input.language ?? "fr";
+  const imageWidth = input.imageWidth ?? 1200;
+  const imageHeight = input.imageHeight ?? 630;
+  const imageType = input.imageType ?? "image/png";
   const meta: Array<Record<string, string>> = [
     { title: fullTitle },
     { name: "description", content: input.description },
@@ -23,12 +39,15 @@ export function buildRouteMeta(input: RouteMetaInput) {
     { property: "og:description", content: input.description },
     { property: "og:url", content: url },
     { property: "og:type", content: input.type ?? "website" },
-    { property: "og:locale", content: "fr_FR" },
+    { property: "og:locale", content: language === "en" ? "en_US" : "fr_FR" },
     { name: "twitter:title", content: fullTitle },
     { name: "twitter:description", content: input.description },
     { name: "twitter:card", content: "summary_large_image" },
     { property: "og:image", content: socialImage },
     { property: "og:image:alt", content: fullTitle },
+    { property: "og:image:width", content: String(imageWidth) },
+    { property: "og:image:height", content: String(imageHeight) },
+    { property: "og:image:type", content: imageType },
     { name: "twitter:image", content: socialImage },
     { name: "twitter:image:alt", content: fullTitle },
     {
@@ -38,9 +57,17 @@ export function buildRouteMeta(input: RouteMetaInput) {
         : "index, follow, max-image-preview:large, max-snippet:-1",
     },
   ];
+  const links: Array<Record<string, string>> = [{ rel: "canonical", href: url }];
+  for (const alternate of input.alternates ?? []) {
+    links.push({
+      rel: "alternate",
+      hrefLang: alternate.language,
+      href: `${SITE}${alternate.path.startsWith("/") ? alternate.path : `/${alternate.path}`}`,
+    });
+  }
   return {
     meta,
-    links: [{ rel: "canonical", href: url }],
+    links,
   };
 }
 
@@ -89,38 +116,6 @@ export function breadcrumbSchema(items: { name: string; path: string }[]) {
       name: item.name,
       item: `${SITE}${item.path.startsWith("/") ? item.path : `/${item.path}`}`,
     })),
-  };
-}
-
-/**
- * QAPage — une question principale et sa réponse courte factuelle.
- * C'est le format que les moteurs génératifs citent le plus volontiers.
- */
-export function qaSchema(input: {
-  path: string;
-  question: string;
-  answer: string;
-  dateModified?: string;
-}) {
-  const url = `${SITE}${input.path.startsWith("/") ? input.path : `/${input.path}`}`;
-  return {
-    "@context": "https://schema.org",
-    "@type": "QAPage",
-    inLanguage: "fr",
-    mainEntity: {
-      "@type": "Question",
-      name: input.question,
-      text: input.question,
-      answerCount: 1,
-      dateCreated: input.dateModified,
-      author: ORG,
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: input.answer,
-        url,
-        author: ORG,
-      },
-    },
   };
 }
 

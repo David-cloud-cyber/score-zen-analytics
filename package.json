@@ -9,7 +9,10 @@
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",
+    "audit:seo": "node scripts/audit-seo.mjs",
+    "audit:live": "node scripts/audit-live-realtime.mjs",
     "audit:buttons": "node scripts/audit-button-labels.mjs",
+    "test:prediction-quality": "node --experimental-strip-types scripts/test-prediction-quality.mjs",
     "format": "prettier --write ."
   },
   "dependencies": {

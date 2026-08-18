@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate, useParams } from "@tanstack/react-router";
-import { useQuery, useSuspenseQuery, queryOptions } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useSuspenseQuery, queryOptions } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -27,19 +27,20 @@ import {
   getMatchCommunityVotes,
   type CommunityVoteOption,
 } from "@/lib/community.functions";
-import { buildRouteMeta } from "@/lib/seo";
+import { breadcrumbSchema, buildRouteMeta, ORG, SPEAKABLE } from "@/lib/seo";
 import type { ApiInjury, ApiLineup, RemoteMatchDetail } from "@/lib/football-types";
 import { cn } from "@/lib/utils";
 import { DEMO_MATCH_DETAIL, isLocalDemo } from "@/lib/local-demo";
 import { useSession } from "@/hooks/use-session";
+import { useLiveMatchStream } from "@/hooks/use-live-fixture-stream";
 
 const detailQuery = (id: number, demoMode = false) =>
   queryOptions({
     queryKey: ["fixture", id],
     queryFn: () =>
       demoMode ? Promise.resolve(DEMO_MATCH_DETAIL) : getFixtureSummary({ data: { id } }),
-    staleTime: 15_000,
-    refetchInterval: 30_000,
+    staleTime: 10_000,
+    refetchInterval: false,
     retry: 0,
   });
 
@@ -48,25 +49,97 @@ const sectionsQuery = (id: number, demoMode = false) =>
     queryKey: ["fixture-sections", id],
     queryFn: () =>
       demoMode ? Promise.resolve(DEMO_MATCH_DETAIL) : getFixtureSections({ data: { id } }),
-    staleTime: 45_000,
-    refetchInterval: 60_000,
+    staleTime: 60_000,
+    refetchInterval: false,
     retry: 0,
   });
 
 export const Route = createFileRoute("/live/$id")({
-  head: ({ params }) =>
-    buildRouteMeta({
-      path: `/live/${params.id}`,
-      title: `Match en direct #${params.id} — Livefoot IA`,
-      description:
-        "Score en direct, stats détaillées, compositions tactiques 2D et prédictions IA de la rencontre.",
-      noindex: true,
-    }),
-  loader: ({ context, params }) => {
-    if (isLocalDemo()) return;
+  head: ({ params, loaderData }) => {
+    const match = loaderData as RemoteMatchDetail | undefined;
+    const path = `/live/${params.id}`;
+    if (!match?.home?.name || !match?.away?.name || !match?.league?.name) {
+      return buildRouteMeta({
+        path,
+        title: `Match football ${params.id}`,
+        description:
+          "La fiche de cette rencontre sera disponible dès que les informations réelles seront confirmées.",
+        noindex: true,
+      });
+    }
+    const status =
+      match.status === "finished"
+        ? "Match terminé"
+        : match.status === "upcoming"
+          ? "Match à venir"
+          : "Match en direct";
+    const score =
+      match.homeScore !== null && match.awayScore !== null
+        ? ` Score : ${match.homeScore}-${match.awayScore}.`
+        : "";
+    const base = buildRouteMeta({
+      path,
+      title: `${match.home.name} - ${match.away.name} : score et statistiques`,
+      description: `${status} de ${match.home.name} contre ${match.away.name} en ${match.league.name}.${score} Consultez les événements, statistiques, compositions et confrontations disponibles.`,
+      type: "article",
+    });
+    return {
+      ...base,
+      meta: [
+        ...base.meta,
+        { name: "author", content: "LiveFoot IA" },
+        { property: "article:section", content: "Football" },
+      ],
+      scripts: [
+        {
+          type: "application/ld+json",
+          children: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "SportsEvent",
+            name: `${match.home.name} vs ${match.away.name}`,
+            description: `${status} — ${match.league.name}`,
+            startDate: match.kickoff,
+            eventStatus:
+              match.status === "upcoming"
+                ? "https://schema.org/EventScheduled"
+                : "https://schema.org/EventInProgress",
+            sport: "Football",
+            homeTeam: { "@type": "SportsTeam", name: match.home.name, logo: match.home.logo },
+            awayTeam: { "@type": "SportsTeam", name: match.away.name, logo: match.away.logo },
+            competitor: [
+              { "@type": "SportsTeam", name: match.home.name },
+              { "@type": "SportsTeam", name: match.away.name },
+            ],
+            location: match.venue ? { "@type": "Place", name: match.venue } : undefined,
+            organizer: ORG,
+            url: `https://www.livefoot.fun${path}`,
+            isAccessibleForFree: true,
+            inLanguage: "fr",
+            speakable: SPEAKABLE,
+          }),
+        },
+        {
+          type: "application/ld+json",
+          children: JSON.stringify(
+            breadcrumbSchema([
+              { name: "Accueil", path: "/" },
+              { name: "Matchs", path: "/" },
+              { name: `${match.home.name} - ${match.away.name}`, path },
+            ]),
+          ),
+        },
+      ],
+    };
+  },
+  loader: async ({ context, params }) => {
+    if (isLocalDemo()) return undefined;
     const id = Number(params.id);
-    if (!Number.isFinite(id)) return;
-    context.queryClient.ensureQueryData(detailQuery(id)).catch(() => {});
+    if (!Number.isFinite(id)) return undefined;
+    try {
+      return await context.queryClient.ensureQueryData(detailQuery(id));
+    } catch {
+      return undefined;
+    }
   },
   pendingComponent: MatchSkeleton,
   pendingMs: 0,
@@ -103,7 +176,16 @@ function LiveMatchPage() {
   const { id } = useParams({ from: "/live/$id" });
   const fixtureId = Number(id);
   const demoMode = isLocalDemo();
+  const queryClient = useQueryClient();
   const { data: summary } = useSuspenseQuery(detailQuery(fixtureId, demoMode));
+  useLiveMatchStream({
+    enabled: !demoMode && summary.status !== "finished",
+    fixtureId,
+    onUpdate: () => {
+      void queryClient.invalidateQueries({ queryKey: ["fixture", fixtureId] });
+      void queryClient.invalidateQueries({ queryKey: ["fixture-sections", fixtureId] });
+    },
+  });
   const sections = useQuery({
     ...sectionsQuery(fixtureId, demoMode),
     enabled: true,
@@ -226,39 +308,13 @@ function LiveMatchView({ m }: { m: RemoteMatchDetail }) {
           </div>
         </div>
 
-        {false && (
-          <div className="mx-4 mt-3 rounded-xl border border-amber-400/25 bg-amber-400/5 px-3 py-2.5 text-xs text-muted-foreground lg:mx-0">
-            <div className="font-bold text-foreground">
-              {m.meta?.stale ? "Données réelles en cache" : "Données secondaires partielles"}
-            </div>
-            <div className="mt-0.5">
-              {m.meta?.stale
-                ? `Dernière mise à jour : ${formatFetchedAt(m.meta.fetchedAt)}.`
-                : "Le score et les informations principales restent disponibles."}
-              {m.meta?.unavailableSections.length
-                ? ` Sections indisponibles : ${m.meta.unavailableSections.join(", ")}.`
-                : ""}
-            </div>
-          </div>
-        )}
-
-        {false && (
-          <div className="mx-4 mt-3 rounded-xl border border-border/60 bg-card px-3 py-2.5 text-xs text-muted-foreground lg:mx-0">
-            <div className="font-bold text-foreground">
-              {m.meta?.stale ? "Dernières informations disponibles" : "Mise à jour en cours"}
-            </div>
-            <div className="mt-0.5">
-              {m.meta?.stale
-                ? `Dernière mise à jour ${formatFetchedAt(m.meta.fetchedAt)}.`
-                : "Le score et les informations principales restent disponibles."}
-              {m.meta?.unavailableSections.length ? " Certaines informations arrivent bientôt." : ""}
-            </div>
-          </div>
-        )}
-
         <div className="mx-4 mt-3 rounded-xl border border-border/60 bg-card px-3 py-2.5 text-xs text-muted-foreground lg:mx-0">
-          <div className="font-bold text-foreground">Les informations du match sont actualisées automatiquement.</div>
-          <div className="mt-0.5">Le score reste visible pendant la mise à jour des informations complémentaires.</div>
+          <div className="font-bold text-foreground">
+            Les informations du match sont actualisées automatiquement.
+          </div>
+          <div className="mt-0.5">
+            Le score reste visible pendant la mise à jour des informations complémentaires.
+          </div>
         </div>
 
         <MatchVoteCard match={m} />
@@ -457,12 +513,25 @@ function PublicMatchErrorState({ reset }: { reset: () => void }) {
       <div className="mx-4 mt-8 rounded-2xl border border-border/60 bg-card p-6 text-center lg:mx-0">
         <AlertTriangle className="mx-auto size-6 text-muted-foreground" aria-hidden />
         <h2 className="mt-3 text-base font-black">Match temporairement indisponible</h2>
-        <p className="mt-1 text-sm text-muted-foreground">Les informations seront actualisées automatiquement. Réessayez dans quelques instants.</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Les informations seront actualisées automatiquement. Réessayez dans quelques instants.
+        </p>
         <div className="mt-4 flex justify-center gap-2">
-          <button type="button" onClick={reset} disabled={cooldown > 0} className="inline-flex items-center gap-2 rounded-full bg-foreground px-4 py-2 text-xs font-bold text-background disabled:cursor-not-allowed disabled:opacity-50">
-            <RefreshCw className="size-3.5" />{cooldown > 0 ? `Réessayer dans ${cooldown}s` : "Réessayer"}
+          <button
+            type="button"
+            onClick={reset}
+            disabled={cooldown > 0}
+            className="inline-flex items-center gap-2 rounded-full bg-foreground px-4 py-2 text-xs font-bold text-background disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <RefreshCw className="size-3.5" />
+            {cooldown > 0 ? `Réessayer dans ${cooldown}s` : "Réessayer"}
           </button>
-          <Link to="/" className="inline-flex items-center rounded-full bg-surface px-4 py-2 text-xs font-bold ring-1 ring-black/5 dark:ring-white/10">Retour</Link>
+          <Link
+            to="/"
+            className="inline-flex items-center rounded-full bg-surface px-4 py-2 text-xs font-bold ring-1 ring-black/5 dark:ring-white/10"
+          >
+            Retour
+          </Link>
         </div>
       </div>
     </AppShell>
@@ -734,9 +803,7 @@ function MatchVoteCard({ match }: { match: RemoteMatchDetail }) {
     staleTime: 30_000,
     refetchInterval: 60_000,
   });
-  const counts = demoMode
-    ? demoCounts
-    : (votesQuery.data?.counts ?? { home: 0, draw: 0, away: 0 });
+  const counts = demoMode ? demoCounts : (votesQuery.data?.counts ?? { home: 0, draw: 0, away: 0 });
   const total = demoMode
     ? demoCounts.home + demoCounts.draw + demoCounts.away
     : (votesQuery.data?.total ?? 0);
@@ -798,16 +865,16 @@ function MatchVoteCard({ match }: { match: RemoteMatchDetail }) {
           <span className="rounded-full bg-surface px-2 py-1 text-[10px] font-bold text-muted-foreground">
             {demoMode ? "Données réelles uniquement" : `${total} vote${total > 1 ? "s" : ""}`}
           </span>
-          </div>
-          {votesQuery.isLoading && !demoMode ? (
-            <div
-              className="mt-3 h-20 animate-pulse rounded-xl bg-surface"
-              aria-label="Chargement des votes"
-            />
-          ) : votesQuery.isError && !demoMode ? (
-            <p className="mt-3 text-xs text-muted-foreground">Votes momentanément indisponibles.</p>
-          ) : (
-            <>
+        </div>
+        {votesQuery.isLoading && !demoMode ? (
+          <div
+            className="mt-3 h-20 animate-pulse rounded-xl bg-surface"
+            aria-label="Chargement des votes"
+          />
+        ) : votesQuery.isError && !demoMode ? (
+          <p className="mt-3 text-xs text-muted-foreground">Votes momentanément indisponibles.</p>
+        ) : (
+          <>
             <div className="mt-3 grid grid-cols-3 gap-2">
               {options.map((option) => {
                 const percentage = total ? Math.round((option.value / total) * 100) : null;
@@ -847,15 +914,15 @@ function MatchVoteCard({ match }: { match: RemoteMatchDetail }) {
                 <div className="bg-data" style={{ width: `${(counts.away / total) * 100}%` }} />
               </div>
             )}
-              <p className="mt-2 text-[10px] text-muted-foreground">
-                {selected
-                  ? "Votre vote est enregistré. Vous pouvez modifier votre choix."
-                  : demoMode
-                    ? "Choisissez 1, N ou 2 pour comparer votre avis à la communauté."
-                    : user
-                      ? "Choisissez 1, N ou 2 pour voter."
-                      : "Connectez-vous pour voter et comparer votre avis à la communauté."}
-              </p>
+            <p className="mt-2 text-[10px] text-muted-foreground">
+              {selected
+                ? "Votre vote est enregistré. Vous pouvez modifier votre choix."
+                : demoMode
+                  ? "Choisissez 1, N ou 2 pour comparer votre avis à la communauté."
+                  : user
+                    ? "Choisissez 1, N ou 2 pour voter."
+                    : "Connectez-vous pour voter et comparer votre avis à la communauté."}
+            </p>
           </>
         )}
       </div>

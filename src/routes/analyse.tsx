@@ -26,7 +26,7 @@ import { getTeams, type TeamRow } from "@/lib/football.functions";
 import { useSession } from "@/hooks/use-session";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { buildRouteMeta, breadcrumbSchema, qaSchema, faqSchema, SPEAKABLE, ORG } from "@/lib/seo";
+import { buildRouteMeta, breadcrumbSchema, faqSchema, SPEAKABLE, ORG } from "@/lib/seo";
 import { track, lastCtaSource } from "@/lib/analytics";
 import { requestPremiumPrompt } from "@/hooks/use-premium-prompt";
 import { DEMO_ANALYSIS, isLocalDemo } from "@/lib/local-demo";
@@ -77,20 +77,15 @@ export const Route = createFileRoute("/analyse")({
       title: "Prédictions IA & analyse d'équipes",
       description:
         "Analysez n'importe quelle rencontre : entrez deux équipes et obtenez une prédiction IA complète (probabilités, marchés, score).",
+      alternates: [
+        { language: "fr", path: "/analyse" },
+        { language: "en", path: "/en/analyse" },
+        { language: "x-default", path: "/analyse" },
+      ],
     });
     return {
       ...base,
       scripts: [
-        {
-          type: "application/ld+json",
-          children: JSON.stringify(
-            qaSchema({
-              path: "/analyse",
-              question: "Comment obtenir une prédiction IA sur un match de football ?",
-              answer: ANALYSE_ANSWER,
-            }),
-          ),
-        },
         {
           type: "application/ld+json",
           children: JSON.stringify(faqSchema(ANALYSE_FAQ)),
@@ -296,7 +291,12 @@ function AnalysePage() {
 
     try {
       const result = await runFn({
-        data: { home: home.trim(), away: away.trim(), matchId: matchIdParam || undefined },
+        data: {
+          home: home.trim(),
+          away: away.trim(),
+          matchId: matchIdParam || undefined,
+          requestId: crypto.randomUUID(),
+        },
       });
       setLive(result);
       track("analysis_result_view", {

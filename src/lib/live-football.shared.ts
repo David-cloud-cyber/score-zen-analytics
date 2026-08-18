@@ -1,9 +1,11 @@
 import { rankMatches, selectTrendingMatch } from "./match-ranking";
 import type { FixturesPayload, RemoteMatchSummary } from "./football-types";
 
-export const LIVE_SNAPSHOT_KEY = "lf:shared:v1:fixtures:live";
+export const LIVE_SNAPSHOT_KEY = "lf:shared:v2:fixtures:live";
 export const LIVE_COORDINATOR_NAME = "global";
-export const LIVE_REFRESH_MS = 15_000;
+export const LIVE_REFRESH_MS = 10_000;
+export const LIVE_CAUTION_REFRESH_MS = 15_000;
+export const LIVE_DEGRADED_REFRESH_MS = 30_000;
 export const QUIET_REFRESH_MS = 60_000;
 export const DAY_REFRESH_MS = 60_000;
 export const SNAPSHOT_STALE_MS = 15 * 60_000;
@@ -44,15 +46,8 @@ export type ApiFixtureRecord = {
 };
 
 export type FootballKv = {
-  get: (
-    key: string,
-    options?: { type?: "text" | "json"; cacheTtl?: number },
-  ) => Promise<unknown>;
-  put: (
-    key: string,
-    value: string,
-    options?: { expirationTtl?: number },
-  ) => Promise<void>;
+  get: (key: string, options?: { type?: "text" | "json"; cacheTtl?: number }) => Promise<unknown>;
+  put: (key: string, value: string, options?: { expirationTtl?: number }) => Promise<void>;
 };
 
 export function todayUtcIso(): string {
@@ -133,9 +128,7 @@ function toSummary(fixture: ApiFixtureRecord): RemoteMatchSummary {
       season: fixture.league.season,
       round: fixture.league.round,
     },
-    venue: venue?.name
-      ? `${venue.name}${venue.city ? `, ${venue.city}` : ""}`
-      : null,
+    venue: venue?.name ? `${venue.name}${venue.city ? `, ${venue.city}` : ""}` : null,
   };
 }
 
@@ -164,11 +157,11 @@ export function isSnapshotEnvelope(value: unknown): value is SharedSnapshotEnvel
   const item = value as Partial<SharedSnapshotEnvelope>;
   return Boolean(
     item.snapshot &&
-      typeof item.storedAt === "number" &&
-      typeof item.freshUntil === "number" &&
-      typeof item.staleUntil === "number" &&
-      (item.mode === "live" || item.mode === "day") &&
-      typeof item.requestKey === "string",
+    typeof item.storedAt === "number" &&
+    typeof item.freshUntil === "number" &&
+    typeof item.staleUntil === "number" &&
+    (item.mode === "live" || item.mode === "day") &&
+    typeof item.requestKey === "string",
   );
 }
 

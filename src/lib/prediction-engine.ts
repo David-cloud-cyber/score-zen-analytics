@@ -1,3 +1,5 @@
+import { aiBlendWeight, guardProbabilities } from "./prediction-quality";
+
 /**
  * Moteur statistique déterministe utilisé pour chaque analyse.
  * Il ne dépend d'aucun fournisseur IA : l'IA peut enrichir le résultat, mais
@@ -43,6 +45,12 @@ export type CommunitySnapshot = {
 
 export type MatchSignals = {
   community?: CommunitySnapshot | null;
+  providerPrediction?: {
+    home: number | null;
+    draw: number | null;
+    away: number | null;
+    advice?: string | null;
+  } | null;
   competition?: { id: number | null; name: string | null; importance: number } | null;
   referee?: { name: string; averageYellow?: number | null; averageRed?: number | null } | null;
   market?: { anomalyScore?: number | null; volumeAvailable?: boolean } | null;
@@ -165,6 +173,18 @@ function oddsProbabilities(odds: OddsSnapshot | null) {
 function communityProbabilities(community: CommunitySnapshot | null | undefined) {
   if (!community || community.votes < 8) return null;
   return normalize({ home: community.home, draw: community.draw, away: community.away });
+}
+
+function providerProbabilities(snapshot: MatchSignals["providerPrediction"]) {
+  if (
+    snapshot?.home === null ||
+    snapshot?.home === undefined ||
+    snapshot.draw === null ||
+    snapshot.draw === undefined ||
+    snapshot.away === null ||
+    snapshot.away === undefined
+  ) return null;
+  return normalize({ home: snapshot.home, draw: snapshot.draw, away: snapshot.away });
 }
 
 function resultProbabilities(
@@ -376,8 +396,16 @@ export function buildStatisticalPrediction(context: PredictionContext): Statisti
       away: probabilities.away * (1 - communityWeight) + community.away * communityWeight,
     };
   }
-  const normalized = normalize(probabilities);
-
+  const provider = providerProbabilities(context.signals?.providerPrediction);
+  if (provider && !live) {
+    // Ce signal peut être corrélé au marché : il reste secondaire.
+    const providerWeight = context.odds ? 0.04 : 0.08;
+    probabilities = {
+      home: probabilities.home * (1 - providerWeight) + provider.home * providerWeight,
+      draw: probabilities.draw * (1 - providerWeight) + provider.draw * providerWeight,
+      away: probabilities.away * (1 - providerWeight) + provider.away * providerWeight,
+    };
+  }
   const dataQuality = clamp(
     (homeMetrics.reliability + awayMetrics.reliability) / 2 +
       (context.odds ? 0.1 : 0) +
@@ -389,6 +417,10 @@ export function buildStatisticalPrediction(context: PredictionContext): Statisti
     0.3,
     1,
   );
+  // Shrink extreme probabilities when the evidence is thin. This guard keeps
+  // the deterministic baseline conservative before the AI is allowed to
+  // enrich it.
+  const normalized = guardProbabilities(normalize(probabilities), dataQuality * 100);
   const finalHomeExpected = homeExpected + (live?.homeScore ?? 0);
   const finalAwayExpected = awayExpected + (live?.awayScore ?? 0);
   const probableScore = mostLikelyScore(
@@ -459,6 +491,11 @@ export function buildStatisticalPrediction(context: PredictionContext): Statisti
   if (community) {
     keyFactors.push(
       `Consensus communautaire : ${community.home}% domicile, ${community.draw}% nul, ${community.away}% extérieur sur ${context.signals?.community?.votes ?? 0} vote(s), avec un poids secondaire.`,
+    );
+  }
+  if (provider) {
+    keyFactors.push(
+      `Projection fournisseur intégrée comme signal secondaire${context.signals?.providerPrediction?.advice ? ` : ${context.signals.providerPrediction.advice}` : "."}`,
     );
   }
   if (live && (live.homeCorners !== undefined || live.awayCorners !== undefined)) {
@@ -549,6 +586,7 @@ export function buildStatisticalPrediction(context: PredictionContext): Statisti
 export function blendPredictions(
   base: StatisticalPrediction,
   enriched: StatisticalPrediction | null,
+  aiStatus: "ai_enriched" | "ai_fallback" = "ai_enriched",
 ): StatisticalPrediction {
   if (!enriched) return base;
   const divergence =
@@ -556,20 +594,19 @@ export function blendPredictions(
       Math.abs(base.probabilities.draw - enriched.probabilities.draw) +
       Math.abs(base.probabilities.away - enriched.probabilities.away)) /
     3;
-  // L'IA peut ajuster, mais un écart fort réduit son poids et protège la calibration.
-  const aiWeight = base.dataQuality?.level === "partial"
-    ? 0.12
-    : divergence > 18
-      ? 0.16
-      : divergence > 10
-        ? 0.24
-        : 0.34;
+  // L'IA peut ajuster, mais un écart fort réduit son poids et protège la
+  // calibration. Le poids dépend aussi du statut de secours du routeur.
+  const aiWeight = aiBlendWeight({
+    dataQuality: base.dataQuality?.level ?? "partial",
+    divergence,
+    aiStatus,
+  });
   const probabilities = normalize({
     home: base.probabilities.home * (1 - aiWeight) + enriched.probabilities.home * aiWeight,
     draw: base.probabilities.draw * (1 - aiWeight) + enriched.probabilities.draw * aiWeight,
     away: base.probabilities.away * (1 - aiWeight) + enriched.probabilities.away * aiWeight,
   });
-  const enrichedMarkets = enriched.markets.slice(0, 4).map((market, index) => {
+  const enrichedMarkets = enriched.markets.slice(0, 6).map((market, index) => {
     const baseline = base.markets[index];
     const confidence = clamp(
       round(

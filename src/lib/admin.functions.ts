@@ -229,9 +229,91 @@ export const getAdminPayments = createServerFn({ method: "GET" }).middleware([re
 
 export const getAdminAnalyses = createServerFn({ method: "GET" }).middleware([requireSupabaseAuth]).inputValidator((data) => pageSchema.parse(data)).handler(async ({ data, context }) => {
   await requireAdmin(context);
-  const { data: rows, error } = await supabaseAdmin.from("ai_analyses").select("id, user_id, home_team, away_team, match_id, prediction_market, prediction_pick, prediction_confidence, settlement_status, final_score, created_at, settled_at").order("created_at", { ascending: false }).range((data.page - 1) * data.pageSize, data.page * data.pageSize - 1);
+  const { data: rows, error } = await supabaseAdmin.from("ai_analyses").select("id, user_id, home_team, away_team, match_id, prediction_market, prediction_pick, prediction_confidence, settlement_status, final_score, created_at, settled_at, engine_version, ai_status, data_quality_score, ai_latency_ms").order("created_at", { ascending: false }).range((data.page - 1) * data.pageSize, data.page * data.pageSize - 1);
   if (error) throw new Error("ADMIN_ANALYSES_UNAVAILABLE");
   return { analyses: rows ?? [], hasMore: (rows ?? []).length === data.pageSize };
+});
+
+export type AdminPredictionQuality = {
+  total: number;
+  settled: number;
+  won: number;
+  lost: number;
+  unresolvable: number;
+  hitRate: number | null;
+  brierScore: number | null;
+  logLoss: number | null;
+  aiEnriched: number;
+  aiFallback: number;
+  statisticalOnly: number;
+  generatedAt: string;
+};
+
+function resultProbability(row: { result: unknown; settlement_outcome: string | null }) {
+  const result = row.result && typeof row.result === "object" ? (row.result as Record<string, unknown>) : null;
+  const probabilities = result?.probabilities && typeof result.probabilities === "object"
+    ? (result.probabilities as Record<string, unknown>)
+    : null;
+  const outcome = row.settlement_outcome?.toLowerCase().trim();
+  const outcomeKey = outcome === "home" || outcome === "domicile" || outcome === "1"
+    ? "home"
+    : outcome === "away" || outcome === "extérieur" || outcome === "2"
+      ? "away"
+      : outcome === "draw" || outcome === "nul" || outcome === "n"
+        ? "draw"
+        : null;
+  const probability = outcomeKey ? Number(probabilities?.[outcomeKey]) / 100 : NaN;
+  return { probability, outcomeKey };
+}
+
+export const getAdminPredictionQuality = createServerFn({ method: "GET" }).middleware([requireSupabaseAuth]).handler(async ({ context }): Promise<AdminPredictionQuality> => {
+  await requireAdmin(context);
+  const { data: rows, error } = await supabaseAdmin
+    .from("ai_analyses")
+    .select("result, settlement_status, settlement_outcome, ai_status")
+    .limit(10_000);
+  if (error) throw new Error("ADMIN_PREDICTION_QUALITY_UNAVAILABLE");
+
+  let won = 0;
+  let lost = 0;
+  let unresolvable = 0;
+  let brierTotal = 0;
+  let logLossTotal = 0;
+  let scored = 0;
+  let aiEnriched = 0;
+  let aiFallback = 0;
+  let statisticalOnly = 0;
+  for (const row of rows ?? []) {
+    if (row.settlement_status === "won") won += 1;
+    if (row.settlement_status === "lost") lost += 1;
+    if (row.settlement_status === "unresolvable") unresolvable += 1;
+    if (row.ai_status === "ai_enriched") aiEnriched += 1;
+    if (row.ai_status === "ai_fallback") aiFallback += 1;
+    if (row.ai_status === "statistical_only") statisticalOnly += 1;
+    if (row.settlement_status !== "won" && row.settlement_status !== "lost") continue;
+    const { probability, outcomeKey } = resultProbability(row);
+    if (!outcomeKey || !Number.isFinite(probability)) continue;
+    const settledOutcomeIsWon = row.settlement_status === "won";
+    const clipped = Math.max(0.001, Math.min(0.999, probability));
+    brierTotal += (clipped - (settledOutcomeIsWon ? 1 : 0)) ** 2;
+    logLossTotal += -(settledOutcomeIsWon ? Math.log(clipped) : Math.log(1 - clipped));
+    scored += 1;
+  }
+  const settled = won + lost;
+  return {
+    total: rows?.length ?? 0,
+    settled,
+    won,
+    lost,
+    unresolvable,
+    hitRate: settled ? Math.round((won / settled) * 1000) / 10 : null,
+    brierScore: scored ? Math.round((brierTotal / scored) * 10_000) / 10_000 : null,
+    logLoss: scored ? Math.round((logLossTotal / scored) * 10_000) / 10_000 : null,
+    aiEnriched,
+    aiFallback,
+    statisticalOnly,
+    generatedAt: new Date().toISOString(),
+  };
 });
 
 export const getAdminApiHealth = createServerFn({ method: "GET" }).middleware([requireSupabaseAuth]).handler(async ({ context }) => {

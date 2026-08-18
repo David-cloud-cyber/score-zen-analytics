@@ -94,6 +94,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:type", content: "website" },
       { property: "og:url", content: "https://www.livefoot.fun" },
       { property: "og:locale", content: "fr_FR" },
+      { property: "og:locale:alternate", content: "en_US" },
       { name: "twitter:card", content: "summary_large_image" },
       { property: "og:title", content: "Scores football en direct et analyses — LiveFoot IA" },
       {
@@ -112,6 +113,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { property: "og:image", content: "https://www.livefoot.fun/logo.png" },
       { property: "og:image:alt", content: "Logo LiveFoot AI" },
+      { property: "og:image:width", content: "1200" },
+      { property: "og:image:height", content: "630" },
+      { property: "og:image:type", content: "image/png" },
       { name: "twitter:image", content: "https://www.livefoot.fun/logo.png" },
       { name: "twitter:image:alt", content: "Logo LiveFoot AI" },
       // AEO/GEO — informations d'éditeur exploitées par les moteurs de réponse et les IA

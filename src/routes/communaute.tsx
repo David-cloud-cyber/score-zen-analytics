@@ -39,6 +39,11 @@ export const Route = createFileRoute("/communaute")({
       title: "Communauté & échanges Live",
       description:
         "Rejoignez la communauté LiveFoot IA : votes sur les matchs réels, discussions et analyses partagées.",
+      alternates: [
+        { language: "fr", path: "/communaute" },
+        { language: "en", path: "/en/community" },
+        { language: "x-default", path: "/communaute" },
+      ],
     }),
     scripts: [
       {

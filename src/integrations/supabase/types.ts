@@ -35,10 +35,19 @@ export type Database = {
       ai_analyses: {
         Row: {
           away_team: string;
+          ai_latency_ms: number | null;
+          ai_status: "ai_enriched" | "ai_fallback" | "statistical_only" | "no_recommendation";
+          available_sections: string[];
+          unavailable_sections: string[];
+          calibration_version: string;
           created_at: string;
+          data_quality_level: "complete" | "partial" | "identity";
+          data_quality_score: number | null;
+          engine_version: string;
           home_team: string;
           id: string;
           match_id: string | null;
+          request_id: string | null;
           prediction_confidence: number | null;
           prediction_market: string | null;
           prediction_odd: number | null;
@@ -52,10 +61,19 @@ export type Database = {
         };
         Insert: {
           away_team: string;
+          ai_latency_ms?: number | null;
+          ai_status?: "ai_enriched" | "ai_fallback" | "statistical_only" | "no_recommendation";
+          available_sections?: string[];
+          unavailable_sections?: string[];
+          calibration_version?: string;
           created_at?: string;
+          data_quality_level?: "complete" | "partial" | "identity";
+          data_quality_score?: number | null;
+          engine_version?: string;
           home_team: string;
           id?: string;
           match_id?: string | null;
+          request_id?: string | null;
           prediction_confidence?: number | null;
           prediction_market?: string | null;
           prediction_odd?: number | null;
@@ -69,10 +87,19 @@ export type Database = {
         };
         Update: {
           away_team?: string;
+          ai_latency_ms?: number | null;
+          ai_status?: "ai_enriched" | "ai_fallback" | "statistical_only" | "no_recommendation";
+          available_sections?: string[];
+          unavailable_sections?: string[];
+          calibration_version?: string;
           created_at?: string;
+          data_quality_level?: "complete" | "partial" | "identity";
+          data_quality_score?: number | null;
+          engine_version?: string;
           home_team?: string;
           id?: string;
           match_id?: string | null;
+          request_id?: string | null;
           prediction_confidence?: number | null;
           prediction_market?: string | null;
           prediction_odd?: number | null;
@@ -486,12 +513,14 @@ export type Database = {
       };
       consume_analysis_credit: {
         Args: {
+          p_metadata?: Json;
           p_user_id: string;
           p_cost: number;
           p_home_team: string;
           p_away_team: string;
           p_match_id: string | null;
           p_result: Json;
+          p_request_id?: string | null;
         };
         Returns: {
           analysis_id: string;

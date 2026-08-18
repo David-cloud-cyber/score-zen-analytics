@@ -11,13 +11,16 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as AProposRouteImport } from './routes/a-propos'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AnalyseRouteImport } from './routes/analyse'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as BlogRouteImport } from './routes/blog'
 import { Route as CodesPromoRouteImport } from './routes/codes-promo'
 import { Route as CommunauteRouteImport } from './routes/communaute'
+import { Route as EnRouteImport } from './routes/en'
 import { Route as MentionsLegalesRouteImport } from './routes/mentions-legales'
+import { Route as PolitiqueEditorialeRouteImport } from './routes/politique-editoriale'
 import { Route as PremiumRouteImport } from './routes/premium'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as SupportRouteImport } from './routes/support'
@@ -46,6 +49,12 @@ import { Route as CodesPromoSlugRouteImport } from './routes/codes-promo.$slug'
 import { Route as CodesPromoCamerounRouteImport } from './routes/codes-promo.cameroun'
 import { Route as CodesPromoCoteIvoireRouteImport } from './routes/codes-promo.cote-ivoire'
 import { Route as CodesPromoSenegalRouteImport } from './routes/codes-promo.senegal'
+import { Route as EnIndexRouteImport } from './routes/en.index'
+import { Route as EnAnalyseRouteImport } from './routes/en.analyse'
+import { Route as EnBlogRouteImport } from './routes/en.blog'
+import { Route as EnCommunityRouteImport } from './routes/en.community'
+import { Route as EnPremiumRouteImport } from './routes/en.premium'
+import { Route as EnPromoCodesRouteImport } from './routes/en.promo-codes'
 import { Route as LiveIdRouteImport } from './routes/live.$id'
 import { Route as MatchIdRouteImport } from './routes/match.$id'
 import { Route as PremiumHistoriqueRouteImport } from './routes/premium.historique'
@@ -63,6 +72,11 @@ const IndexRoute = IndexRouteImport.update({
 } as any)
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AProposRoute = AProposRouteImport.update({
+  id: '/a-propos',
+  path: '/a-propos',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRoute = AdminRouteImport.update({
@@ -95,9 +109,19 @@ const CommunauteRoute = CommunauteRouteImport.update({
   path: '/communaute',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EnRoute = EnRouteImport.update({
+  id: '/en',
+  path: '/en',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MentionsLegalesRoute = MentionsLegalesRouteImport.update({
   id: '/mentions-legales',
   path: '/mentions-legales',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PolitiqueEditorialeRoute = PolitiqueEditorialeRouteImport.update({
+  id: '/politique-editoriale',
+  path: '/politique-editoriale',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PremiumRoute = PremiumRouteImport.update({
@@ -240,6 +264,36 @@ const CodesPromoSenegalRoute = CodesPromoSenegalRouteImport.update({
   path: '/senegal',
   getParentRoute: () => CodesPromoRoute,
 } as any)
+const EnIndexRoute = EnIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => EnRoute,
+} as any)
+const EnAnalyseRoute = EnAnalyseRouteImport.update({
+  id: '/analyse',
+  path: '/analyse',
+  getParentRoute: () => EnRoute,
+} as any)
+const EnBlogRoute = EnBlogRouteImport.update({
+  id: '/blog',
+  path: '/blog',
+  getParentRoute: () => EnRoute,
+} as any)
+const EnCommunityRoute = EnCommunityRouteImport.update({
+  id: '/community',
+  path: '/community',
+  getParentRoute: () => EnRoute,
+} as any)
+const EnPremiumRoute = EnPremiumRouteImport.update({
+  id: '/premium',
+  path: '/premium',
+  getParentRoute: () => EnRoute,
+} as any)
+const EnPromoCodesRoute = EnPromoCodesRouteImport.update({
+  id: '/promo-codes',
+  path: '/promo-codes',
+  getParentRoute: () => EnRoute,
+} as any)
 const LiveIdRoute = LiveIdRouteImport.update({
   id: '/live/$id',
   path: '/live/$id',
@@ -290,13 +344,16 @@ const CodesPromoSlugCountryRoute = CodesPromoSlugCountryRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/a-propos': typeof AProposRoute
   '/admin': typeof AdminRouteWithChildren
   '/analyse': typeof AnalyseRoute
   '/auth': typeof AuthRouteWithChildren
   '/blog': typeof BlogRouteWithChildren
   '/codes-promo': typeof CodesPromoRouteWithChildren
   '/communaute': typeof CommunauteRoute
+  '/en': typeof EnRouteWithChildren
   '/mentions-legales': typeof MentionsLegalesRoute
+  '/politique-editoriale': typeof PolitiqueEditorialeRoute
   '/premium': typeof PremiumRouteWithChildren
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/support': typeof SupportRoute
@@ -322,6 +379,11 @@ export interface FileRoutesByFullPath {
   '/codes-promo/cameroun': typeof CodesPromoCamerounRoute
   '/codes-promo/cote-ivoire': typeof CodesPromoCoteIvoireRoute
   '/codes-promo/senegal': typeof CodesPromoSenegalRoute
+  '/en/analyse': typeof EnAnalyseRoute
+  '/en/blog': typeof EnBlogRoute
+  '/en/community': typeof EnCommunityRoute
+  '/en/premium': typeof EnPremiumRoute
+  '/en/promo-codes': typeof EnPromoCodesRoute
   '/live/$id': typeof LiveIdRoute
   '/match/$id': typeof MatchIdRoute
   '/premium/historique': typeof PremiumHistoriqueRoute
@@ -329,6 +391,7 @@ export interface FileRoutesByFullPath {
   '/admin/': typeof AdminIndexRoute
   '/blog/': typeof BlogIndexRoute
   '/codes-promo/': typeof CodesPromoIndexRoute
+  '/en/': typeof EnIndexRoute
   '/api/public/conversion-event': typeof ApiPublicConversionEventRoute
   '/api/public/fapshi-webhook': typeof ApiPublicFapshiWebhookRoute
   '/api/public/fixture-diagnostic': typeof ApiPublicFixtureDiagnosticRoute
@@ -337,10 +400,12 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/a-propos': typeof AProposRoute
   '/analyse': typeof AnalyseRoute
   '/auth': typeof AuthRouteWithChildren
   '/communaute': typeof CommunauteRoute
   '/mentions-legales': typeof MentionsLegalesRoute
+  '/politique-editoriale': typeof PolitiqueEditorialeRoute
   '/premium': typeof PremiumRouteWithChildren
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/support': typeof SupportRoute
@@ -366,6 +431,11 @@ export interface FileRoutesByTo {
   '/codes-promo/cameroun': typeof CodesPromoCamerounRoute
   '/codes-promo/cote-ivoire': typeof CodesPromoCoteIvoireRoute
   '/codes-promo/senegal': typeof CodesPromoSenegalRoute
+  '/en/analyse': typeof EnAnalyseRoute
+  '/en/blog': typeof EnBlogRoute
+  '/en/community': typeof EnCommunityRoute
+  '/en/premium': typeof EnPremiumRoute
+  '/en/promo-codes': typeof EnPromoCodesRoute
   '/live/$id': typeof LiveIdRoute
   '/match/$id': typeof MatchIdRoute
   '/premium/historique': typeof PremiumHistoriqueRoute
@@ -373,6 +443,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminIndexRoute
   '/blog': typeof BlogIndexRoute
   '/codes-promo': typeof CodesPromoIndexRoute
+  '/en': typeof EnIndexRoute
   '/api/public/conversion-event': typeof ApiPublicConversionEventRoute
   '/api/public/fapshi-webhook': typeof ApiPublicFapshiWebhookRoute
   '/api/public/fixture-diagnostic': typeof ApiPublicFixtureDiagnosticRoute
@@ -383,13 +454,16 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/a-propos': typeof AProposRoute
   '/admin': typeof AdminRouteWithChildren
   '/analyse': typeof AnalyseRoute
   '/auth': typeof AuthRouteWithChildren
   '/blog': typeof BlogRouteWithChildren
   '/codes-promo': typeof CodesPromoRouteWithChildren
   '/communaute': typeof CommunauteRoute
+  '/en': typeof EnRouteWithChildren
   '/mentions-legales': typeof MentionsLegalesRoute
+  '/politique-editoriale': typeof PolitiqueEditorialeRoute
   '/premium': typeof PremiumRouteWithChildren
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/support': typeof SupportRoute
@@ -415,6 +489,11 @@ export interface FileRoutesById {
   '/codes-promo/cameroun': typeof CodesPromoCamerounRoute
   '/codes-promo/cote-ivoire': typeof CodesPromoCoteIvoireRoute
   '/codes-promo/senegal': typeof CodesPromoSenegalRoute
+  '/en/analyse': typeof EnAnalyseRoute
+  '/en/blog': typeof EnBlogRoute
+  '/en/community': typeof EnCommunityRoute
+  '/en/premium': typeof EnPremiumRoute
+  '/en/promo-codes': typeof EnPromoCodesRoute
   '/live/$id': typeof LiveIdRoute
   '/match/$id': typeof MatchIdRoute
   '/premium/historique': typeof PremiumHistoriqueRoute
@@ -422,6 +501,7 @@ export interface FileRoutesById {
   '/admin/': typeof AdminIndexRoute
   '/blog/': typeof BlogIndexRoute
   '/codes-promo/': typeof CodesPromoIndexRoute
+  '/en/': typeof EnIndexRoute
   '/api/public/conversion-event': typeof ApiPublicConversionEventRoute
   '/api/public/fapshi-webhook': typeof ApiPublicFapshiWebhookRoute
   '/api/public/fixture-diagnostic': typeof ApiPublicFixtureDiagnosticRoute
@@ -432,13 +512,16 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/a-propos'
     | '/admin'
     | '/analyse'
     | '/auth'
     | '/blog'
     | '/codes-promo'
     | '/communaute'
+    | '/en'
     | '/mentions-legales'
+    | '/politique-editoriale'
     | '/premium'
     | '/sitemap.xml'
     | '/support'
@@ -464,6 +547,11 @@ export interface FileRouteTypes {
     | '/codes-promo/cameroun'
     | '/codes-promo/cote-ivoire'
     | '/codes-promo/senegal'
+    | '/en/analyse'
+    | '/en/blog'
+    | '/en/community'
+    | '/en/premium'
+    | '/en/promo-codes'
     | '/live/$id'
     | '/match/$id'
     | '/premium/historique'
@@ -471,6 +559,7 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/blog/'
     | '/codes-promo/'
+    | '/en/'
     | '/api/public/conversion-event'
     | '/api/public/fapshi-webhook'
     | '/api/public/fixture-diagnostic'
@@ -479,10 +568,12 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/a-propos'
     | '/analyse'
     | '/auth'
     | '/communaute'
     | '/mentions-legales'
+    | '/politique-editoriale'
     | '/premium'
     | '/sitemap.xml'
     | '/support'
@@ -508,6 +599,11 @@ export interface FileRouteTypes {
     | '/codes-promo/cameroun'
     | '/codes-promo/cote-ivoire'
     | '/codes-promo/senegal'
+    | '/en/analyse'
+    | '/en/blog'
+    | '/en/community'
+    | '/en/premium'
+    | '/en/promo-codes'
     | '/live/$id'
     | '/match/$id'
     | '/premium/historique'
@@ -515,6 +611,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/blog'
     | '/codes-promo'
+    | '/en'
     | '/api/public/conversion-event'
     | '/api/public/fapshi-webhook'
     | '/api/public/fixture-diagnostic'
@@ -524,13 +621,16 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/_authenticated'
+    | '/a-propos'
     | '/admin'
     | '/analyse'
     | '/auth'
     | '/blog'
     | '/codes-promo'
     | '/communaute'
+    | '/en'
     | '/mentions-legales'
+    | '/politique-editoriale'
     | '/premium'
     | '/sitemap.xml'
     | '/support'
@@ -556,6 +656,11 @@ export interface FileRouteTypes {
     | '/codes-promo/cameroun'
     | '/codes-promo/cote-ivoire'
     | '/codes-promo/senegal'
+    | '/en/analyse'
+    | '/en/blog'
+    | '/en/community'
+    | '/en/premium'
+    | '/en/promo-codes'
     | '/live/$id'
     | '/match/$id'
     | '/premium/historique'
@@ -563,6 +668,7 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/blog/'
     | '/codes-promo/'
+    | '/en/'
     | '/api/public/conversion-event'
     | '/api/public/fapshi-webhook'
     | '/api/public/fixture-diagnostic'
@@ -573,13 +679,16 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  AProposRoute: typeof AProposRoute
   AdminRoute: typeof AdminRouteWithChildren
   AnalyseRoute: typeof AnalyseRoute
   AuthRoute: typeof AuthRouteWithChildren
   BlogRoute: typeof BlogRouteWithChildren
   CodesPromoRoute: typeof CodesPromoRouteWithChildren
   CommunauteRoute: typeof CommunauteRoute
+  EnRoute: typeof EnRouteWithChildren
   MentionsLegalesRoute: typeof MentionsLegalesRoute
+  PolitiqueEditorialeRoute: typeof PolitiqueEditorialeRoute
   PremiumRoute: typeof PremiumRouteWithChildren
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   SupportRoute: typeof SupportRoute
@@ -605,6 +714,13 @@ declare module '@tanstack/react-router' {
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof AuthenticatedRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/a-propos': {
+      id: '/a-propos'
+      path: '/a-propos'
+      fullPath: '/a-propos'
+      preLoaderRoute: typeof AProposRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin': {
@@ -649,11 +765,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CommunauteRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/en': {
+      id: '/en'
+      path: '/en'
+      fullPath: '/en'
+      preLoaderRoute: typeof EnRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/mentions-legales': {
       id: '/mentions-legales'
       path: '/mentions-legales'
       fullPath: '/mentions-legales'
       preLoaderRoute: typeof MentionsLegalesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/politique-editoriale': {
+      id: '/politique-editoriale'
+      path: '/politique-editoriale'
+      fullPath: '/politique-editoriale'
+      preLoaderRoute: typeof PolitiqueEditorialeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/premium': {
@@ -852,6 +982,48 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CodesPromoSenegalRouteImport
       parentRoute: typeof CodesPromoRoute
     }
+    '/en/': {
+      id: '/en/'
+      path: '/'
+      fullPath: '/en/'
+      preLoaderRoute: typeof EnIndexRouteImport
+      parentRoute: typeof EnRoute
+    }
+    '/en/analyse': {
+      id: '/en/analyse'
+      path: '/analyse'
+      fullPath: '/en/analyse'
+      preLoaderRoute: typeof EnAnalyseRouteImport
+      parentRoute: typeof EnRoute
+    }
+    '/en/blog': {
+      id: '/en/blog'
+      path: '/blog'
+      fullPath: '/en/blog'
+      preLoaderRoute: typeof EnBlogRouteImport
+      parentRoute: typeof EnRoute
+    }
+    '/en/community': {
+      id: '/en/community'
+      path: '/community'
+      fullPath: '/en/community'
+      preLoaderRoute: typeof EnCommunityRouteImport
+      parentRoute: typeof EnRoute
+    }
+    '/en/premium': {
+      id: '/en/premium'
+      path: '/premium'
+      fullPath: '/en/premium'
+      preLoaderRoute: typeof EnPremiumRouteImport
+      parentRoute: typeof EnRoute
+    }
+    '/en/promo-codes': {
+      id: '/en/promo-codes'
+      path: '/promo-codes'
+      fullPath: '/en/promo-codes'
+      preLoaderRoute: typeof EnPromoCodesRouteImport
+      parentRoute: typeof EnRoute
+    }
     '/live/$id': {
       id: '/live/$id'
       path: '/live/$id'
@@ -1023,6 +1195,26 @@ const CodesPromoRouteWithChildren = CodesPromoRoute._addFileChildren(
   CodesPromoRouteChildren,
 )
 
+interface EnRouteChildren {
+  EnAnalyseRoute: typeof EnAnalyseRoute
+  EnBlogRoute: typeof EnBlogRoute
+  EnCommunityRoute: typeof EnCommunityRoute
+  EnPremiumRoute: typeof EnPremiumRoute
+  EnPromoCodesRoute: typeof EnPromoCodesRoute
+  EnIndexRoute: typeof EnIndexRoute
+}
+
+const EnRouteChildren: EnRouteChildren = {
+  EnAnalyseRoute: EnAnalyseRoute,
+  EnBlogRoute: EnBlogRoute,
+  EnCommunityRoute: EnCommunityRoute,
+  EnPremiumRoute: EnPremiumRoute,
+  EnPromoCodesRoute: EnPromoCodesRoute,
+  EnIndexRoute: EnIndexRoute,
+}
+
+const EnRouteWithChildren = EnRoute._addFileChildren(EnRouteChildren)
+
 interface PremiumRouteChildren {
   PremiumHistoriqueRoute: typeof PremiumHistoriqueRoute
   PremiumTableauDeBordRoute: typeof PremiumTableauDeBordRoute
@@ -1039,13 +1231,16 @@ const PremiumRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  AProposRoute: AProposRoute,
   AdminRoute: AdminRouteWithChildren,
   AnalyseRoute: AnalyseRoute,
   AuthRoute: AuthRouteWithChildren,
   BlogRoute: BlogRouteWithChildren,
   CodesPromoRoute: CodesPromoRouteWithChildren,
   CommunauteRoute: CommunauteRoute,
+  EnRoute: EnRouteWithChildren,
   MentionsLegalesRoute: MentionsLegalesRoute,
+  PolitiqueEditorialeRoute: PolitiqueEditorialeRoute,
   PremiumRoute: PremiumRouteWithChildren,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   SupportRoute: SupportRoute,

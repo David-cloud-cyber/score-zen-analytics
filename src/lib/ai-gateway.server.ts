@@ -90,6 +90,39 @@ export async function requestOpenRouterJson(params: {
   return parseJsonText(content);
 }
 
+export async function requestGeminiJson(params: {
+  apiKey: string;
+  systemPrompt: string;
+  userPrompt: string;
+  timeoutMs: number;
+}): Promise<unknown> {
+  const response = await fetchJsonWithTimeout(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(params.apiKey)}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        system_instruction: { parts: [{ text: params.systemPrompt }] },
+        contents: [{ parts: [{ text: params.userPrompt }] }],
+        generationConfig: { response_mime_type: "application/json", temperature: 0.15 },
+      }),
+    },
+    params.timeoutMs,
+  );
+
+  if (!response.ok) {
+    const body = await response.text().catch(() => "");
+    throw new Error(`Gemini ${response.status}: ${body.slice(0, 180)}`);
+  }
+
+  const payload = (await response.json()) as {
+    candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+  };
+  const content = payload.candidates?.[0]?.content?.parts?.map((part) => part.text ?? "").join("\n");
+  if (!content) throw new Error("Le fournisseur IA a retourné une réponse vide.");
+  return parseJsonText(content);
+}
+
 export function getOpenRouterModels() {
   return {
     standard: getRuntimeEnv("OPENROUTER_STANDARD_MODEL") || AI_MODELS.standard,

@@ -4,7 +4,12 @@
 // layers: a fast per-isolate cache and a shared Cloudflare KV cache. This
 // prevents duplicate requests across SSR, hydration and Worker instances.
 
-import { getConfig, getRuntimeBinding, type RuntimeBinding } from "./config.server";
+import {
+  getConfig,
+  getRuntimeBinding,
+  type DurableObjectNamespaceBinding,
+  type RuntimeBinding,
+} from "./config.server";
 
 const BASE = "https://v3.football.api-sports.io";
 const CACHE_PREFIX = "lf:football:v1:";
@@ -66,12 +71,15 @@ let quotaState: QuotaState = { updatedAt: 0, blockedUntil: 0 };
 let quotaStateReadAt = 0;
 
 function cacheProfile(path: string, params: Record<string, string | number | undefined>) {
-  if (params.live === "all") return { freshMs: 30_000, staleMs: 15 * 60_000 };
-  if (path === "/fixtures/events" || path === "/fixtures/statistics" || path === "/fixtures/lineups") {
-    return { freshMs: 45_000, staleMs: 15 * 60_000 };
+  if (params.live === "all") return { freshMs: 10_000, staleMs: 15 * 60_000 };
+  if (path === "/fixtures/events" || path === "/fixtures/statistics") {
+    return { freshMs: 10_000, staleMs: 15 * 60_000 };
   }
-  if (path === "/odds/live") return { freshMs: 30_000, staleMs: 10 * 60_000 };
-  if (path === "/odds") return { freshMs: 90_000, staleMs: 10 * 60_000 };
+  if (path === "/fixtures/lineups" || path === "/injuries") {
+    return { freshMs: 60_000, staleMs: 15 * 60_000 };
+  }
+  if (path === "/odds/live") return { freshMs: 15_000, staleMs: 10 * 60_000 };
+  if (path === "/odds") return { freshMs: 30_000, staleMs: 10 * 60_000 };
   if (path === "/predictions") return { freshMs: 5 * 60_000, staleMs: 30 * 60_000 };
   if (path === "/standings" || path === "/players/topscorers") {
     return { freshMs: 10 * 60_000, staleMs: 60 * 60_000 };
@@ -183,13 +191,19 @@ export async function getApiFootballCacheEnvelope(
 ): Promise<{ data: unknown; storedAt: number; stale: boolean; cacheId: string } | null> {
   const url = new URL(`${BASE}${path}`);
   for (const [name, value] of Object.entries(params)) {
-    if (value !== undefined && value !== null && value !== "") url.searchParams.set(name, String(value));
+    if (value !== undefined && value !== null && value !== "")
+      url.searchParams.set(name, String(value));
   }
   const cacheId = await hashedCacheKey(url.toString());
   const now = Date.now();
   const memory = memoryCache.get(cacheId);
   if (memory && memory.staleUntil > now) {
-    return { data: memory.data, storedAt: memory.storedAt, stale: memory.freshUntil <= now, cacheId };
+    return {
+      data: memory.data,
+      storedAt: memory.storedAt,
+      stale: memory.freshUntil <= now,
+      cacheId,
+    };
   }
   const profile = cacheProfile(path, params);
   const shared = await readSharedCache(cacheId, profile.freshMs);
@@ -260,7 +274,10 @@ async function recordQuotaHeaders(response: Response) {
   quotaState = next;
 
   // Persist only critical/low quota states; normal responses stay cheap.
-  const dayLow = dayRemaining !== undefined && dayLimit !== undefined && dayRemaining <= Math.max(10, dayLimit * 0.1);
+  const dayLow =
+    dayRemaining !== undefined &&
+    dayLimit !== undefined &&
+    dayRemaining <= Math.max(10, dayLimit * 0.1);
   const minuteLow = minuteRemaining !== undefined && minuteRemaining <= 2;
   if (blockedUntil > now || dayLow || minuteLow) await persistQuotaState(next);
 }
@@ -301,10 +318,18 @@ async function requestRemoteUnqueued<T>(url: string, key: string): Promise<T> {
         throw error;
       }
       if (response.status === 401 || response.status === 403) {
-        throw new ApiFootballError("unauthorized", response.status, "Clé API-Football invalide ou expirée.");
+        throw new ApiFootballError(
+          "unauthorized",
+          response.status,
+          "Clé API-Football invalide ou expirée.",
+        );
       }
       if (!response.ok) {
-        lastError = new ApiFootballError("server", response.status, `API-Football ${response.status}`);
+        lastError = new ApiFootballError(
+          "server",
+          response.status,
+          `API-Football ${response.status}`,
+        );
         if (attempt + 1 < MAX_ATTEMPTS) {
           await sleep(250 * (attempt + 1));
           continue;
@@ -336,7 +361,11 @@ async function requestRemoteUnqueued<T>(url: string, key: string): Promise<T> {
       return (json.response ?? []) as T;
     } catch (error) {
       if (error instanceof ApiFootballError) {
-        if (error.code === "rate_limit" || error.code === "unauthorized" || error.code === "payload") {
+        if (
+          error.code === "rate_limit" ||
+          error.code === "unauthorized" ||
+          error.code === "payload"
+        ) {
           throw error;
         }
         lastError = error;
@@ -352,6 +381,43 @@ async function requestRemoteUnqueued<T>(url: string, key: string): Promise<T> {
 
 async function requestRemote<T>(url: string, key: string): Promise<T> {
   return withUpstreamSlot(() => requestRemoteUnqueued<T>(url, key));
+}
+
+async function requestCoordinated<T>(
+  url: string,
+): Promise<{ data: T; storedAt: number; stale: boolean }> {
+  const coordinator = getRuntimeBinding<DurableObjectNamespaceBinding>("LIVE_FOOTBALL_COORDINATOR");
+  if (!coordinator)
+    throw new ApiFootballError("network", 0, "Shared football coordinator unavailable.");
+
+  const source = new URL(url);
+  const target = new URL("https://livefoot.internal/api/upstream");
+  target.searchParams.set("path", source.pathname);
+  for (const [key, value] of source.searchParams) target.searchParams.set(key, value);
+
+  const response = await coordinator
+    .getByName("global")
+    .fetch(new Request(target, { method: "GET" }));
+  if (!response.ok) {
+    const code =
+      response.status === 429
+        ? "rate_limit"
+        : response.status === 401 || response.status === 403
+          ? "unauthorized"
+          : response.status >= 500
+            ? "server"
+            : "network";
+    throw new ApiFootballError(code, response.status, "Football data provider unavailable.");
+  }
+  const payload = (await response.json()) as {
+    response?: T;
+    meta?: { storedAt?: number; stale?: boolean };
+  };
+  return {
+    data: (payload.response ?? []) as T,
+    storedAt: typeof payload.meta?.storedAt === "number" ? payload.meta.storedAt : Date.now(),
+    stale: payload.meta?.stale === true,
+  };
 }
 
 async function fetchWithCache<T>(
@@ -372,33 +438,44 @@ async function fetchWithCache<T>(
     stale = newerCache(stale, shared);
   }
 
-  const state = await readQuotaState();
-  if (state.blockedUntil > now) {
-    if (stale && stale.staleUntil > now) return stale.data as T;
-    throw new ApiFootballError(
-      "rate_limit",
-      429,
-      "Données API-Football temporairement limitées. Réessayez dans quelques instants.",
-      { quotaKind: state.kind, retryAfterMs: state.blockedUntil - now },
-    );
+  const coordinator = getRuntimeBinding<DurableObjectNamespaceBinding>("LIVE_FOOTBALL_COORDINATOR");
+  if (!coordinator) {
+    const state = await readQuotaState();
+    if (state.blockedUntil > now) {
+      if (stale && stale.staleUntil > now) return stale.data as T;
+      throw new ApiFootballError(
+        "rate_limit",
+        429,
+        "Données API-Football temporairement limitées. Réessayez dans quelques instants.",
+        { quotaKind: state.kind, retryAfterMs: state.blockedUntil - now },
+      );
+    }
   }
 
   try {
-    const key = await getConfig("APIFOOTBALL_KEY");
-    if (!key) {
-      throw new ApiFootballError(
-        "unauthorized",
-        401,
-        "APIFOOTBALL_KEY missing — add it to Cloudflare Worker secrets or Supabase app_config.",
-      );
+    let data: T;
+    let coordinatedStoredAt: number | undefined;
+    if (coordinator) {
+      const coordinated = await requestCoordinated<T>(url);
+      data = coordinated.data;
+      coordinatedStoredAt = coordinated.storedAt;
+    } else {
+      const key = await getConfig("APIFOOTBALL_KEY");
+      if (!key) {
+        throw new ApiFootballError(
+          "unauthorized",
+          401,
+          "APIFOOTBALL_KEY missing — add it to Cloudflare Worker secrets or Supabase app_config.",
+        );
+      }
+      data = await requestRemote<T>(url, key);
     }
-    const data = await requestRemote<T>(url, key);
     // An empty upstream response must never erase the last real fixture list.
     // If a previous response exists, keep serving it as stale data.
     if (Array.isArray(data) && data.length === 0 && stale && stale.staleUntil > Date.now()) {
       return stale.data as T;
     }
-    const storedAt = Date.now();
+    const storedAt = coordinatedStoredAt ?? Date.now();
     const envelope: CacheEnvelope = {
       data,
       storedAt,
@@ -425,7 +502,8 @@ export async function apiFootball<T = unknown>(
 ): Promise<T> {
   const url = new URL(`${BASE}${path}`);
   for (const [name, value] of Object.entries(params)) {
-    if (value !== undefined && value !== null && value !== "") url.searchParams.set(name, String(value));
+    if (value !== undefined && value !== null && value !== "")
+      url.searchParams.set(name, String(value));
   }
   const urlString = url.toString();
   const cacheKey = await hashedCacheKey(urlString);
@@ -451,7 +529,8 @@ export async function getApiFootballCacheState(
 ): Promise<{ stale: boolean; storedAt: number } | null> {
   const url = new URL(`${BASE}${path}`);
   for (const [name, value] of Object.entries(params)) {
-    if (value !== undefined && value !== null && value !== "") url.searchParams.set(name, String(value));
+    if (value !== undefined && value !== null && value !== "")
+      url.searchParams.set(name, String(value));
   }
   const key = await hashedCacheKey(url.toString());
   const memory = memoryCache.get(key);

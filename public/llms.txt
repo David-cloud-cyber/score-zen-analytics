@@ -5,8 +5,8 @@
 LiveFoot AI (https://www.livefoot.fun) est une application web française qui combine un livescore complet (Ligue 1, Liga, Premier League, Serie A, Bundesliga, Ligue des champions) avec un moteur d'analyse propulsé par IA : probabilités 1X2, scores probables, marchés recommandés avec niveau de confiance et facteurs clés. Les analyses sont fournies à titre informatif ; le service ne propose ni pari, ni jeu d'argent.
 
 - Éditeur : LiveFoot AI
-- Langue : français
-- Zone principale : Afrique francophone (Cameroun, Côte d'Ivoire, Sénégal, Burkina Faso, Mali, Togo, Bénin, RDC) et France
+- Langues : français et anglais pour les pages disponibles
+- Zones principales : France et Afrique francophone ; des pages internationales sont ajoutées progressivement
 - Monnaie : FCFA (XAF/XOF)
 - Licence de citation : contenu librement citable avec attribution et lien vers la page source.
 
@@ -39,19 +39,29 @@ LiveFoot publie des articles football vérifiés sur les compétitions, la forme
 - [Linebet Sénégal — PREDAT](/codes-promo/linebet/senegal): vérification de l'offre, devise et paiements à confirmer pour le Sénégal.
 - [Communauté](/communaute): discussions par match et par compétition, pronostics et débats tactiques.
 - [Premium](/premium): abonnement, packs de crédits et tarifs en FCFA.
+- [À propos](/a-propos): mission, méthode, sources et engagements de LiveFoot.
+- [Politique éditoriale](/politique-editoriale): règles de vérification, mise à jour et publication.
 - [Mentions légales & CGU](/mentions-legales): éditeur, RGPD, avertissement sur les paris sportifs.
+
+## English edition
+
+- [Live football scores](/en): English overview of LiveFoot scores and match data.
+- [Football analysis](/en/analyse): English explanation of the analysis workflow and its limits.
+- [Premium](/en/premium): English overview of the Premium service.
+- [Promo codes](/en/promo-codes): English partner-code information and verification guidance.
+- [Community](/en/community): English overview of match votes and discussions.
+- [Editorial blog](/en/blog): English editorial overview.
 
 ## Données structurées disponibles (GEO)
 
 Chaque page publique expose du JSON-LD réutilisable par les moteurs génératifs :
 Organization et WebSite (racine), CollectionPage et ItemList (hub codes promo),
-Article, Review avec aggregateRating, HowTo, QAPage, Dataset de faits vérifiés,
-FAQPage et BreadcrumbList (pages bookmaker), WebApplication et FAQPage (/analyse).
+Article, HowTo, Dataset de faits vérifiés, FAQPage et BreadcrumbList (pages éditoriales),
+SportsEvent pour les fiches match réelles et WebApplication (/analyse).
 Les paragraphes de réponse directe sont marqués `data-answer` et référencés par
 `speakable`.
 
 ## Optional
 
-- [Match — exemple](/live/rma-fcb): fiche match détaillée avec stats, timeline, compositions, H2H et analyse IA.
 - [Sitemap](/sitemap.xml)
 - [robots.txt](/robots.txt): tous les agents de recherche et d'IA (GPTBot, OAI-SearchBot, ClaudeBot, PerplexityBot, Google-Extended, Applebot-Extended, CCBot…) sont autorisés à explorer et citer le site.

@@ -47,6 +47,11 @@ export const Route = createFileRoute("/")({
       title: "Scores football en direct : matchs du jour et analyses",
       description:
         "Suivez les scores football en direct et les matchs du jour : Ligue 1, Liga, Premier League, Ligue des champions, compositions et analyses statistiques.",
+      alternates: [
+        { language: "fr", path: "/" },
+        { language: "en", path: "/en" },
+        { language: "x-default", path: "/" },
+      ],
     });
     return {
       ...base,
@@ -688,6 +693,12 @@ function HomePage() {
           </button>
           <Link to="/mentions-legales" className="text-muted-foreground hover:text-foreground">
             Mentions légales
+          </Link>
+          <Link to="/a-propos" className="text-muted-foreground hover:text-foreground">
+            À propos
+          </Link>
+          <Link to="/politique-editoriale" className="text-muted-foreground hover:text-foreground">
+            Politique éditoriale
           </Link>
         </nav>
         <p className="text-[11px] text-muted-foreground">

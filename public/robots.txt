@@ -6,6 +6,9 @@ Disallow: /api/
 Disallow: /profil
 Disallow: /favoris
 Disallow: /premium/tableau-de-bord
+Disallow: /premium/historique
+Disallow: /support
+Disallow: /admin
 Disallow: /match/
 
 Sitemap: https://www.livefoot.fun/sitemap.xml

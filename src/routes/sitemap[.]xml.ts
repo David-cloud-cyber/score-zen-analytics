@@ -5,6 +5,15 @@ import { SEO_COUNTRIES } from "@/data/country-seo";
 
 const BASE_URL = "https://www.livefoot.fun";
 
+function xmlEscape(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
 interface SitemapEntry {
   path: string;
   lastmod?: string;
@@ -17,10 +26,40 @@ export const Route = createFileRoute("/sitemap.xml")({
     handlers: {
       GET: async () => {
         const { getEditorialSitemapEntries } = await import("@/lib/editorial.server");
-        const editorialEntries = await getEditorialSitemapEntries();
-        // On liste uniquement les routes publiques stables. Les fiches match
-        // (/live/$id) ne sont pas listées car leurs IDs API-Football changent
-        // en permanence : l'indexation se fait via les liens internes.
+        let editorialEntries: Awaited<ReturnType<typeof getEditorialSitemapEntries>> = [];
+        try {
+          editorialEntries = await getEditorialSitemapEntries();
+        } catch {
+          // Un sitemap technique valide reste disponible même sans la base éditoriale.
+        }
+        const publishedCategories = new Set(
+          editorialEntries.filter((entry) => entry.category).map((entry) => entry.category),
+        );
+        let fixtureEntries: SitemapEntry[] = [];
+        try {
+          const { getFixtures } = await import("@/lib/football.functions");
+          const today = new Date().toISOString().slice(0, 10);
+          const payload = await getFixtures({ data: { date: today } });
+          if (payload.state !== "unavailable") {
+            fixtureEntries = payload.matches
+              .filter(
+                (match) => match.id > 0 && match.home.name && match.away.name && match.league.name,
+              )
+              .map((match) => ({
+                path: `/live/${match.id}`,
+                lastmod: payload.fetchedAt ?? undefined,
+                changefreq:
+                  match.status === "live" || match.status === "ht"
+                    ? ("hourly" as const)
+                    : ("daily" as const),
+                priority: match.status === "live" || match.status === "ht" ? "0.9" : "0.6",
+              }));
+          }
+        } catch {
+          // Le sitemap reste disponible même si le fournisseur sportif est temporairement indisponible.
+        }
+        // Les fiches match sont incluses uniquement lorsqu’un snapshot réel et
+        // exploitable est disponible au moment de construire le sitemap.
         const latestBookmakerUpdate = BOOKMAKERS.reduce(
           (latest, bookmaker) => (bookmaker.updatedAt > latest ? bookmaker.updatedAt : latest),
           "",
@@ -31,9 +70,27 @@ export const Route = createFileRoute("/sitemap.xml")({
           { path: "/analyse", changefreq: "weekly", priority: "0.9" },
           { path: "/communaute", changefreq: "daily", priority: "0.8" },
           { path: "/mentions-legales", changefreq: "yearly", priority: "0.3" },
+          { path: "/a-propos", changefreq: "monthly", priority: "0.4" },
+          { path: "/politique-editoriale", changefreq: "monthly", priority: "0.4" },
           { path: "/premium", changefreq: "monthly", priority: "0.7" },
-          { path: "/codes-promo", lastmod: latestBookmakerUpdate, changefreq: "weekly", priority: "0.9" },
+          {
+            path: "/codes-promo",
+            lastmod: latestBookmakerUpdate,
+            changefreq: "weekly",
+            priority: "0.9",
+          },
           { path: "/blog", changefreq: "daily", priority: "0.9" },
+          { path: "/en", changefreq: "weekly", priority: "0.7" },
+          { path: "/en/analyse", changefreq: "weekly", priority: "0.7" },
+          { path: "/en/premium", changefreq: "monthly", priority: "0.5" },
+          { path: "/en/blog", changefreq: "weekly", priority: "0.6" },
+          { path: "/en/promo-codes", changefreq: "weekly", priority: "0.7" },
+          { path: "/en/community", changefreq: "daily", priority: "0.6" },
+          ...Array.from(publishedCategories).map((category) => ({
+            path: `/blog/categorie/${category}`,
+            changefreq: "daily" as const,
+            priority: "0.7",
+          })),
           ...editorialEntries.map((article) => ({
             path: `/blog/${article.slug}`,
             lastmod: article.updated_at,
@@ -53,22 +110,27 @@ export const Route = createFileRoute("/sitemap.xml")({
             priority: "0.8",
           })),
           ...BOOKMAKERS.flatMap((bookmaker) =>
-            SEO_COUNTRIES
-              .filter((country) => bookmaker.countryPageSlugs?.includes(country.slug))
-              .map((country) => ({
-                path: `/codes-promo/${bookmaker.slug}/${country.slug}`,
-                lastmod: bookmaker.updatedAt,
-                changefreq: "weekly" as const,
-                priority: "0.7",
-              })),
+            SEO_COUNTRIES.filter((country) =>
+              bookmaker.countryPageSlugs?.includes(country.slug),
+            ).map((country) => ({
+              path: `/codes-promo/${bookmaker.slug}/${country.slug}`,
+              lastmod: bookmaker.updatedAt,
+              changefreq: "weekly" as const,
+              priority: "0.7",
+            })),
           ),
+          ...fixtureEntries,
         ];
 
-        const urls = entries.map((e) =>
+        const uniqueEntries = Array.from(
+          new Map(entries.map((entry) => [entry.path, entry])).values(),
+        );
+
+        const urls = uniqueEntries.map((e) =>
           [
             `  <url>`,
-            `    <loc>${BASE_URL}${e.path}</loc>`,
-            e.lastmod ? `    <lastmod>${e.lastmod}</lastmod>` : null,
+            `    <loc>${xmlEscape(`${BASE_URL}${e.path}`)}</loc>`,
+            e.lastmod ? `    <lastmod>${xmlEscape(e.lastmod)}</lastmod>` : null,
             e.changefreq ? `    <changefreq>${e.changefreq}</changefreq>` : null,
             e.priority ? `    <priority>${e.priority}</priority>` : null,
             `  </url>`,

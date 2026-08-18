@@ -1,16 +1,17 @@
 import { BOOKMAKERS, type Bookmaker } from "@/data/bookmakers";
 import type { SeoCountry } from "@/data/country-seo";
-import { buildRouteMeta, ORG, qaSchema, SPEAKABLE } from "@/lib/seo";
+import { buildRouteMeta, ORG, SPEAKABLE } from "@/lib/seo";
 
 const SITE = "https://www.livefoot.fun";
 
 export function countryHubHead(country: SeoCountry) {
   const path = `/codes-promo/${country.slug}`;
-  const answer = `LiveFoot compare les codes promo bookmakers destinés aux joueurs majeurs au ${country.name}. Le code, le bonus, la devise ${country.currency} et les paiements doivent être confirmés sur la page d’inscription de chaque partenaire.`;
+  const eligibleBookmakers = BOOKMAKERS.filter((b) => b.countryPageSlugs?.includes(country.slug));
   const base = buildRouteMeta({
     path,
     title: `Codes promo bookmakers au ${country.name} : bonus ${country.currency} 2026`,
     description: `Comparez les codes promo bookmakers au ${country.name} : bonus en ${country.currency}, conditions, dépôts Mobile Money et liens d’inscription. Offres à vérifier en 2026.`,
+    noindex: eligibleBookmakers.length < 2,
   });
 
   return {
@@ -32,21 +33,11 @@ export function countryHubHead(country: SeoCountry) {
       },
       {
         type: "application/ld+json",
-        children: JSON.stringify(
-          qaSchema({
-            path,
-            question: `Quel code promo bookmaker utiliser au ${country.name} ?`,
-            answer,
-          }),
-        ),
-      },
-      {
-        type: "application/ld+json",
         children: JSON.stringify({
           "@context": "https://schema.org",
           "@type": "ItemList",
           name: `Codes promo bookmakers au ${country.name}`,
-          itemListElement: BOOKMAKERS.filter((b) => b.countryPageSlugs?.includes(country.slug)).map(
+          itemListElement: eligibleBookmakers.map(
             (b, index) => ({
               "@type": "ListItem",
               position: index + 1,
@@ -117,17 +108,6 @@ export function countryBookmakerHead(bookmaker: Bookmaker, country: SeoCountry) 
           ],
           speakable: SPEAKABLE,
         }),
-      },
-      {
-        type: "application/ld+json",
-        children: JSON.stringify(
-          qaSchema({
-            path,
-            question: `Quel est le code promo ${bookmaker.name} au ${country.name} ?`,
-            answer,
-            dateModified: bookmaker.updatedAt,
-          }),
-        ),
       },
       {
         type: "application/ld+json",

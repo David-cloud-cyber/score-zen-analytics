@@ -25,7 +25,7 @@ import {
 } from "@/components/promo/PromoUI";
 import { BookmakerLogo } from "@/components/promo/BookmakerLogo";
 import { track, useCtaImpression } from "@/lib/analytics";
-import { buildRouteMeta, qaSchema, factsSchema, SPEAKABLE, ORG } from "@/lib/seo";
+import { buildRouteMeta, factsSchema, SPEAKABLE, ORG } from "@/lib/seo";
 import { Check, X, Sparkles, ArrowRight, BadgeCheck, ChevronDown } from "lucide-react";
 
 const SITE = "https://www.livefoot.fun";
@@ -160,17 +160,6 @@ export const Route = createFileRoute("/codes-promo/$slug")({
               acceptedAnswer: { "@type": "Answer", text: f.a },
             })),
           }),
-        },
-        {
-          type: "application/ld+json",
-          children: JSON.stringify(
-            qaSchema({
-              path: `/codes-promo/${b.slug}`,
-              question: `Quel est le code promo ${b.name} en 2026 ?`,
-              answer: b.directAnswer!,
-              dateModified: b.updatedAt,
-            }),
-          ),
         },
         {
           type: "application/ld+json",
@@ -450,6 +439,8 @@ function BookmakerArticle() {
               <img
                 src={b.bannerUrl}
                 alt={`Bonus de bienvenue ${b.name} avec le code promo ${b.code}`}
+                width={1200}
+                height={630}
                 loading="lazy"
                 className="w-full object-cover"
               />

@@ -24,6 +24,8 @@ export function BlogCard({ article }: { article: EditorialListItem }) {
         <img
           src={article.coverImage}
           alt={article.title}
+          width={1200}
+          height={630}
           loading="lazy"
           decoding="async"
           referrerPolicy="no-referrer"
@@ -82,6 +84,8 @@ export function BlogArticleView({ article }: { article: PublicEditorialArticle }
             <img
               src={article.coverImage}
               alt={article.title}
+              width={1200}
+              height={630}
               loading="eager"
               decoding="async"
               referrerPolicy="no-referrer"

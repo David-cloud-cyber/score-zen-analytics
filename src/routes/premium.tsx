@@ -44,6 +44,11 @@ export const Route = createFileRoute("/premium")({
       description:
         "Passez à LiveFoot IA Premium : 100 crédits d'analyse par mois, favoris illimités et accès aux packs de recharge exclusifs.",
       path: "/premium",
+      alternates: [
+        { language: "fr", path: "/premium" },
+        { language: "en", path: "/en/premium" },
+        { language: "x-default", path: "/premium" },
+      ],
     }),
     scripts: [
       {
