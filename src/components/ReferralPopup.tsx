@@ -122,7 +122,7 @@ function FreeInviteContent({ onDismiss }: { onDismiss: () => void }) {
         <button
           type="button"
           onClick={onDismiss}
-          className="grid size-8 shrink-0 place-items-center rounded-full bg-surface ring-1 ring-black/5 dark:ring-white/10"
+          className="grid size-8 shrink-0 place-items-center rounded-full bg-surface text-foreground ring-1 ring-black/5 dark:ring-white/10"
           aria-label="Fermer"
         >
           <X className="size-4" />
@@ -204,7 +204,7 @@ function PremiumLowCreditsContent({ onDismiss }: { onDismiss: () => void }) {
         <button
           type="button"
           onClick={onDismiss}
-          className="grid size-8 shrink-0 place-items-center rounded-full bg-surface ring-1 ring-black/5 dark:ring-white/10"
+          className="grid size-8 shrink-0 place-items-center rounded-full bg-surface text-foreground ring-1 ring-black/5 dark:ring-white/10"
           aria-label="Fermer"
         >
           <X className="size-4" />
@@ -250,6 +250,7 @@ function PremiumLowCreditsContent({ onDismiss }: { onDismiss: () => void }) {
         </button>
         <Link
           to="/premium"
+          search={{}}
           onClick={onDismiss}
           className="flex items-center justify-center gap-1.5 rounded-xl bg-foreground py-3 text-xs font-black text-background transition-transform active:scale-[0.98]"
         >

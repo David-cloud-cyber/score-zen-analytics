@@ -127,6 +127,7 @@ function FavorisPage() {
             </span>
             <Link
               to="/premium"
+              search={{}}
               className="inline-flex items-center gap-1 text-[11px] underline font-black text-foreground"
             >
               Passer Premium <Crown className="size-3 text-brand" />
@@ -271,7 +272,7 @@ function FavorisPage() {
                       compétitions.
                     </p>
                     <button
-                      onClick={() => navigate({ to: "/premium" })}
+                      onClick={() => navigate({ to: "/premium", search: {} })}
                       className="mt-3 w-full rounded-2xl bg-brand py-2.5 text-xs font-black text-brand-foreground"
                     >
                       Passer Premium maintenant

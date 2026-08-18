@@ -340,6 +340,20 @@ export const getAdminAuditLog = createServerFn({ method: "GET" }).middleware([re
   return { entries: rows ?? [], hasMore: (rows ?? []).length === data.pageSize };
 });
 
+export const getAdminIncidents = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data) => pageSchema.parse(data))
+  .handler(async ({ data, context }) => {
+    await requireAdmin(context);
+    const { data: rows, error, count } = await supabaseAdmin
+      .from("app_error_events")
+      .select("id, incident_id, route, category, status_code, device_family, browser_family, deployment_version, duration_ms, cache_id, created_at", { count: "exact" })
+      .order("created_at", { ascending: false })
+      .range((data.page - 1) * data.pageSize, data.page * data.pageSize - 1);
+    if (error) throw new Error("ADMIN_INCIDENTS_UNAVAILABLE");
+    return { entries: rows ?? [], total: count ?? 0, hasMore: (rows ?? []).length === data.pageSize };
+  });
+
 export const getAdminActionRequests = createServerFn({ method: "GET" }).middleware([requireSupabaseAuth]).handler(async ({ context }) => {
   await requireAdmin(context);
   const { data } = await supabaseAdmin.from("admin_action_requests").select("id, action_type, target_type, target_id, requested_by, reason, status, created_at, approved_by, approved_at, executed_at").order("created_at", { ascending: false }).limit(100);

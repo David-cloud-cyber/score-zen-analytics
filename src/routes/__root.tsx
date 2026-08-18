@@ -22,16 +22,16 @@ function NotFoundComponent() {
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
         <h1 className="text-7xl font-bold text-foreground">404</h1>
-        <h2 className="mt-4 text-xl font-semibold text-foreground">Page not found</h2>
+        <h2 className="mt-4 text-xl font-semibold text-foreground">Page introuvable</h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          The page you're looking for doesn't exist or has been moved.
+          Cette page n'existe plus ou a été déplacée.
         </p>
         <div className="mt-6">
           <Link
             to="/"
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            className="recovery-primary inline-flex items-center justify-center rounded-xl px-4 py-2.5 text-sm font-bold transition-colors"
           >
-            Go home
+            Retour à l'accueil
           </Link>
         </div>
       </div>
@@ -62,13 +62,13 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
               router.invalidate();
               reset();
             }}
-            className="inline-flex items-center justify-center rounded-xl bg-foreground px-4 py-2.5 text-xs font-bold text-background transition-transform active:scale-95"
+            className="recovery-primary inline-flex items-center justify-center rounded-xl px-4 py-2.5 text-xs font-bold transition-transform active:scale-95"
           >
             Essayer à nouveau
           </button>
           <a
             href="/"
-            className="inline-flex items-center justify-center rounded-xl border border-border bg-card px-4 py-2.5 text-xs font-bold text-foreground transition-transform active:scale-95"
+            className="recovery-secondary inline-flex items-center justify-center rounded-xl border px-4 py-2.5 text-xs font-bold transition-transform active:scale-95"
           >
             Rentrez chez vous
           </a>
@@ -206,6 +206,11 @@ img,svg,video{max-width:100%;height:auto}
 a{color:inherit;text-decoration:none}
 ul,ol{list-style:none;margin:0;padding:0}
 button{font:inherit;color:inherit;border:0}
+.recovery-primary,.recovery-secondary{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:10px 16px;border-radius:12px;font-weight:700;cursor:pointer;text-decoration:none}
+.recovery-primary{background:#101820!important;color:#fff!important;border:1px solid #101820!important}
+.recovery-secondary{background:#fff!important;color:#101820!important;border:1px solid #cbd5e1!important}
+html.dark .recovery-primary{background:#f8fafc!important;color:#071019!important;border-color:#f8fafc!important}
+html.dark .recovery-secondary{background:#111a24!important;color:#f8fafc!important;border-color:#334155!important}
 `.trim();
 
 /**
@@ -218,13 +223,13 @@ const CSS_GUARD_SCRIPT = `
 (function(){
 var tries=0;
 function styled(){try{var p=document.createElement('div');p.className='hidden';p.setAttribute('style','position:absolute');(document.body||document.documentElement).appendChild(p);var ok=getComputedStyle(p).display==='none';p.remove();return ok}catch(e){return true}}
-function href(){var l=document.querySelector('link[rel=stylesheet][href*="styles"]');return l&&l.getAttribute('href')}
+function stylesheet(){return document.querySelector('link[data-livefoot-css="1"]')}
 function check(){
   if(styled())return;
   tries++;
-  var h=href();if(!h)return;
+  var link=stylesheet();var h=link&&link.getAttribute('href');if(!h)return;
   var u=h+(h.indexOf('?')>-1?'&':'?')+'r='+Date.now();
-  if(tries===1){var n=document.createElement('link');n.rel='stylesheet';n.href=u;document.head.appendChild(n);return}
+  if(tries===1){var n=document.createElement('link');n.rel='stylesheet';n.setAttribute('data-livefoot-css','1');n.href=u;n.onerror=function(){n.remove()};document.head.appendChild(n);return}
   if(tries===2){
     try{fetch(u,{cache:'reload'}).then(function(r){return r.ok?r.text():null}).then(function(t){
       if(!t||styled())return;var s=document.createElement('style');s.setAttribute('data-css-guard','1');s.textContent=t;document.head.appendChild(s);
@@ -250,7 +255,7 @@ function RootShell({ children }: { children: ReactNode }) {
       <head>
         <meta name="color-scheme" content="light dark" />
         <style dangerouslySetInnerHTML={{ __html: CRITICAL_CSS }} />
-        <link rel="stylesheet" href={APP_CSS_HREF} />
+        <link rel="stylesheet" data-livefoot-css="1" href={APP_CSS_HREF} onError={(event) => event.currentTarget.remove()} />
         <HeadContent />
       </head>
       <body suppressHydrationWarning>

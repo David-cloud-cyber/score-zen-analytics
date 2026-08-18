@@ -10,6 +10,7 @@ if (typeof globalThis.WebSocket === "undefined") {
 
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
+import { newIncidentId, recordServerIncident } from "./lib/incident.server";
 import { getFixtureSections, getFixtureSummary } from "./lib/football.functions";
 import { runEditorialCycle } from "./lib/editorial.pipeline.server";
 
@@ -87,10 +88,16 @@ async function normalizeCatastrophicSsrResponse(response: Response): Promise<Res
   const body = await response.clone().text();
   if (!isH3SwallowedErrorBody(body)) return response;
 
-  console.error(consumeLastCapturedError() ?? new Error(`h3 swallowed SSR error: ${body}`));
-  return new Response(renderErrorPage(), {
+  const incidentId = newIncidentId();
+  void recordServerIncident({ incidentId, category: "render", statusCode: 500 });
+  consumeLastCapturedError();
+  return new Response(renderErrorPage(incidentId), {
     status: 500,
-    headers: { "content-type": "text/html; charset=utf-8" },
+    headers: {
+      "content-type": "text/html; charset=utf-8",
+      "cache-control": "no-store, max-age=0, must-revalidate",
+      pragma: "no-cache",
+    },
   });
 }
 
@@ -133,10 +140,20 @@ export default {
       const normalized = await normalizeCatastrophicSsrResponse(response);
       return preventHtmlAssetMismatch(normalized);
     } catch (error) {
-      console.error(error);
-      return new Response(renderErrorPage(), {
+      const incidentId = newIncidentId();
+      void recordServerIncident({
+        incidentId,
+        route: new URL(request.url).pathname,
+        category: "render",
+        statusCode: 500,
+      });
+      return new Response(renderErrorPage(incidentId), {
         status: 500,
-        headers: { "content-type": "text/html; charset=utf-8" },
+        headers: {
+          "content-type": "text/html; charset=utf-8",
+          "cache-control": "no-store, max-age=0, must-revalidate",
+          pragma: "no-cache",
+        },
       });
     }
   },

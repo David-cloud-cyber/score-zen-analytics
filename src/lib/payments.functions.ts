@@ -120,13 +120,17 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
 
       // Do not hold the browser on a second database write. The webhook and
       // manual verification attach trans_id/external_id idempotently later.
-      void supabaseAdmin
-        .from("subscriptions")
-        .update({ trans_id: res.transId, checkout_link: res.link, checkout_mode: res.mode })
-        .eq("user_id", context.userId)
-        .eq("external_id", externalId)
-        .then(() => undefined)
-        .catch((error) => console.error("Subscription checkout reconciliation failed:", error));
+      void (async () => {
+        try {
+          await supabaseAdmin
+            .from("subscriptions")
+            .update({ trans_id: res.transId, checkout_link: res.link, checkout_mode: res.mode })
+            .eq("user_id", context.userId)
+            .eq("external_id", externalId);
+        } catch (error: unknown) {
+          console.error("Subscription checkout reconciliation failed:", error);
+        }
+      })();
 
       return { link: res.link, transId: res.transId, mode: res.mode, status: "PENDING", amountXaf: plan.priceXaf, planId: plan.id };
     } catch (error) {
@@ -219,13 +223,17 @@ export const createTopupCheckout = createServerFn({ method: "POST" })
         message: `Recharge ${pack.credits} crédits Livefoot IA`,
       });
 
-      void supabaseAdmin
-        .from("payments")
-        .update({ trans_id: res.transId, link: res.link, checkout_link: res.link, checkout_mode: res.mode })
-        .eq("user_id", context.userId)
-        .eq("checkout_request_id", data.checkoutRequestId)
-        .then(() => undefined)
-        .catch((error) => console.error("Payment checkout reconciliation failed:", error));
+      void (async () => {
+        try {
+          await supabaseAdmin
+            .from("payments")
+            .update({ trans_id: res.transId, link: res.link, checkout_link: res.link, checkout_mode: res.mode })
+            .eq("user_id", context.userId)
+            .eq("checkout_request_id", data.checkoutRequestId);
+        } catch (error: unknown) {
+          console.error("Payment checkout reconciliation failed:", error);
+        }
+      })();
 
       return {
         link: res.link,

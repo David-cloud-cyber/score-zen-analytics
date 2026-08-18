@@ -207,7 +207,7 @@ function AuthPage() {
           <button
             onClick={handleGoogle}
             disabled={loading}
-            className="mb-4 flex w-full items-center justify-center gap-2 rounded-2xl border border-border bg-background py-3 text-sm font-bold shadow-xs transition-transform active:scale-[0.98] disabled:opacity-50"
+            className="mb-4 flex w-full items-center justify-center gap-2 rounded-2xl border border-border bg-background py-3 text-sm font-bold text-foreground shadow-xs transition-transform active:scale-[0.98] disabled:opacity-50"
           >
             <GoogleIcon /> Continuer avec Google
           </button>

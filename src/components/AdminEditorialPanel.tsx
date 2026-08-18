@@ -5,6 +5,14 @@ import { AdminCard } from "@/components/AdminShell";
 import { isLocalDemo } from "@/lib/local-demo";
 import { getAdminEditorialQueue, runAdminEditorialCycle, setAdminEditorialStatus } from "@/lib/editorial.functions";
 
+type AdminEditorialArticle = {
+  id: string;
+  title: string;
+  status: string;
+  quality_score: number | null;
+  word_count: number;
+};
+
 export function AdminEditorialPanel() {
   const demo = isLocalDemo();
   const queryClient = useQueryClient();
@@ -23,7 +31,7 @@ export function AdminEditorialPanel() {
       </AdminCard>
       <AdminCard>
         <div className="flex items-center justify-between"><div><p className="text-sm font-black">Articles récents</p><p className="mt-1 text-xs text-muted-foreground">Un article n’est public qu’après les contrôles éditoriaux.</p></div><span className="rounded-full bg-brand/10 px-2.5 py-1 text-xs font-black text-brand">{data?.articles.length ?? 0}</span></div>
-        {!data?.articles.length ? <p className="mt-4 rounded-xl bg-surface p-4 text-center text-xs font-bold text-muted-foreground">Aucun article éditorial enregistré.</p> : <div className="mt-4 space-y-2">{data.articles.slice(0, 8).map((article) => <div key={article.id} className="flex flex-wrap items-center gap-3 rounded-xl bg-surface p-3"><div className="min-w-0 flex-1"><p className="truncate text-xs font-black">{article.title}</p><p className="mt-1 text-[10px] text-muted-foreground">{article.status} · score {article.quality_score ?? "—"} · {article.word_count} mots</p></div>{article.status === "validated" && <><button type="button" onClick={() => status.mutate({ articleId: article.id, status: "published" })} disabled={status.isPending} className="inline-flex items-center gap-1 rounded-lg bg-brand px-2.5 py-2 text-[10px] font-black text-brand-foreground"><Check className="size-3" />Publier</button><button type="button" onClick={() => status.mutate({ articleId: article.id, status: "rejected" })} disabled={status.isPending} className="inline-flex items-center gap-1 rounded-lg bg-alert px-2.5 py-2 text-[10px] font-black text-white"><X className="size-3" />Bloquer</button></>}</div>)}</div>}
+        {!data?.articles.length ? <p className="mt-4 rounded-xl bg-surface p-4 text-center text-xs font-bold text-muted-foreground">Aucun article éditorial enregistré.</p> : <div className="mt-4 space-y-2">{(data.articles as AdminEditorialArticle[]).slice(0, 8).map((article: AdminEditorialArticle) => <div key={article.id} className="flex flex-wrap items-center gap-3 rounded-xl bg-surface p-3"><div className="min-w-0 flex-1"><p className="truncate text-xs font-black">{article.title}</p><p className="mt-1 text-[10px] text-muted-foreground">{article.status} · score {article.quality_score ?? "—"} · {article.word_count} mots</p></div>{article.status === "validated" && <><button type="button" onClick={() => status.mutate({ articleId: article.id, status: "published" })} disabled={status.isPending} className="inline-flex items-center gap-1 rounded-lg bg-brand px-2.5 py-2 text-[10px] font-black text-brand-foreground"><Check className="size-3" />Publier</button><button type="button" onClick={() => status.mutate({ articleId: article.id, status: "rejected" })} disabled={status.isPending} className="inline-flex items-center gap-1 rounded-lg bg-alert px-2.5 py-2 text-[10px] font-black text-white"><X className="size-3" />Bloquer</button></>}</div>)}</div>}
       </AdminCard>
     </div>
   );

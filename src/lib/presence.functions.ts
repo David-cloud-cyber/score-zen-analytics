@@ -13,7 +13,7 @@ const ONLINE_WINDOW_MS = 90_000;
 export type AdminOnlineUser = {
   id: string;
   displayName: string;
-  plan: string;
+  plan: "free" | "premium";
   lastSeenAt: string;
   route: string;
   deviceFamily: "mobile" | "tablet" | "desktop";
@@ -67,20 +67,18 @@ export const getAdminOnlineUsers = createServerFn({ method: "GET" })
     if (profileError) throw new Error("PRESENCE_PROFILES_READ_FAILED");
 
     const profileMap = new Map((profiles ?? []).map((profile) => [profile.id, profile]));
-    const users: AdminOnlineUser[] = (presenceRows ?? [])
-      .map((presence) => {
+    const users: AdminOnlineUser[] = (presenceRows ?? []).flatMap((presence) => {
         const profile = profileMap.get(presence.user_id);
-        if (!profile) return null;
-        return {
+        if (!profile) return [];
+        return [{
           id: presence.user_id,
           displayName: profile.display_name?.trim() || "Utilisateur",
-          plan: profile.plan,
+          plan: profile.plan === "premium" ? "premium" : "free",
           lastSeenAt: presence.last_seen_at,
           route: presence.route,
           deviceFamily: presence.device_family as AdminOnlineUser["deviceFamily"],
-        };
-      })
-      .filter((user): user is AdminOnlineUser => Boolean(user));
+        }];
+      });
 
     return { count: users.length, users, generatedAt: new Date().toISOString() };
   });

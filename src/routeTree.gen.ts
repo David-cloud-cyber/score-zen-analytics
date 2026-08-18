@@ -59,6 +59,7 @@ import { Route as LiveIdRouteImport } from './routes/live.$id'
 import { Route as MatchIdRouteImport } from './routes/match.$id'
 import { Route as PremiumHistoriqueRouteImport } from './routes/premium.historique'
 import { Route as PremiumTableauDeBordRouteImport } from './routes/premium.tableau-de-bord'
+import { Route as ApiPublicAppErrorRouteImport } from './routes/api/public/app-error'
 import { Route as ApiPublicConversionEventRouteImport } from './routes/api/public/conversion-event'
 import { Route as ApiPublicFapshiWebhookRouteImport } from './routes/api/public/fapshi-webhook'
 import { Route as ApiPublicFixtureDiagnosticRouteImport } from './routes/api/public/fixture-diagnostic'
@@ -314,6 +315,11 @@ const PremiumTableauDeBordRoute = PremiumTableauDeBordRouteImport.update({
   path: '/tableau-de-bord',
   getParentRoute: () => PremiumRoute,
 } as any)
+const ApiPublicAppErrorRoute = ApiPublicAppErrorRouteImport.update({
+  id: '/api/public/app-error',
+  path: '/api/public/app-error',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicConversionEventRoute =
   ApiPublicConversionEventRouteImport.update({
     id: '/api/public/conversion-event',
@@ -392,6 +398,7 @@ export interface FileRoutesByFullPath {
   '/blog/': typeof BlogIndexRoute
   '/codes-promo/': typeof CodesPromoIndexRoute
   '/en/': typeof EnIndexRoute
+  '/api/public/app-error': typeof ApiPublicAppErrorRoute
   '/api/public/conversion-event': typeof ApiPublicConversionEventRoute
   '/api/public/fapshi-webhook': typeof ApiPublicFapshiWebhookRoute
   '/api/public/fixture-diagnostic': typeof ApiPublicFixtureDiagnosticRoute
@@ -444,6 +451,7 @@ export interface FileRoutesByTo {
   '/blog': typeof BlogIndexRoute
   '/codes-promo': typeof CodesPromoIndexRoute
   '/en': typeof EnIndexRoute
+  '/api/public/app-error': typeof ApiPublicAppErrorRoute
   '/api/public/conversion-event': typeof ApiPublicConversionEventRoute
   '/api/public/fapshi-webhook': typeof ApiPublicFapshiWebhookRoute
   '/api/public/fixture-diagnostic': typeof ApiPublicFixtureDiagnosticRoute
@@ -502,6 +510,7 @@ export interface FileRoutesById {
   '/blog/': typeof BlogIndexRoute
   '/codes-promo/': typeof CodesPromoIndexRoute
   '/en/': typeof EnIndexRoute
+  '/api/public/app-error': typeof ApiPublicAppErrorRoute
   '/api/public/conversion-event': typeof ApiPublicConversionEventRoute
   '/api/public/fapshi-webhook': typeof ApiPublicFapshiWebhookRoute
   '/api/public/fixture-diagnostic': typeof ApiPublicFixtureDiagnosticRoute
@@ -560,6 +569,7 @@ export interface FileRouteTypes {
     | '/blog/'
     | '/codes-promo/'
     | '/en/'
+    | '/api/public/app-error'
     | '/api/public/conversion-event'
     | '/api/public/fapshi-webhook'
     | '/api/public/fixture-diagnostic'
@@ -612,6 +622,7 @@ export interface FileRouteTypes {
     | '/blog'
     | '/codes-promo'
     | '/en'
+    | '/api/public/app-error'
     | '/api/public/conversion-event'
     | '/api/public/fapshi-webhook'
     | '/api/public/fixture-diagnostic'
@@ -669,6 +680,7 @@ export interface FileRouteTypes {
     | '/blog/'
     | '/codes-promo/'
     | '/en/'
+    | '/api/public/app-error'
     | '/api/public/conversion-event'
     | '/api/public/fapshi-webhook'
     | '/api/public/fixture-diagnostic'
@@ -695,6 +707,7 @@ export interface RootRouteChildren {
   VipRoute: typeof VipRoute
   LiveIdRoute: typeof LiveIdRoute
   MatchIdRoute: typeof MatchIdRoute
+  ApiPublicAppErrorRoute: typeof ApiPublicAppErrorRoute
   ApiPublicConversionEventRoute: typeof ApiPublicConversionEventRoute
   ApiPublicFapshiWebhookRoute: typeof ApiPublicFapshiWebhookRoute
   ApiPublicFixtureDiagnosticRoute: typeof ApiPublicFixtureDiagnosticRoute
@@ -1052,6 +1065,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PremiumTableauDeBordRouteImport
       parentRoute: typeof PremiumRoute
     }
+    '/api/public/app-error': {
+      id: '/api/public/app-error'
+      path: '/api/public/app-error'
+      fullPath: '/api/public/app-error'
+      preLoaderRoute: typeof ApiPublicAppErrorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/conversion-event': {
       id: '/api/public/conversion-event'
       path: '/api/public/conversion-event'
@@ -1247,6 +1267,7 @@ const rootRouteChildren: RootRouteChildren = {
   VipRoute: VipRoute,
   LiveIdRoute: LiveIdRoute,
   MatchIdRoute: MatchIdRoute,
+  ApiPublicAppErrorRoute: ApiPublicAppErrorRoute,
   ApiPublicConversionEventRoute: ApiPublicConversionEventRoute,
   ApiPublicFapshiWebhookRoute: ApiPublicFapshiWebhookRoute,
   ApiPublicFixtureDiagnosticRoute: ApiPublicFixtureDiagnosticRoute,

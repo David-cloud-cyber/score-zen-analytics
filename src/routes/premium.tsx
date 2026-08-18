@@ -32,12 +32,13 @@ import { DEMO_PROFILE, isLocalDemo } from "@/lib/local-demo";
 import { track } from "@/lib/analytics";
 
 export const Route = createFileRoute("/premium")({
-  validateSearch: (search) => ({
-    plan:
+  validateSearch: (search): { plan?: "premium_monthly" | "premium_yearly" } => {
+    const plan =
       search.plan === "premium_monthly" || search.plan === "premium_yearly"
         ? search.plan
-        : undefined,
-  }),
+        : undefined;
+    return plan ? { plan } : {};
+  },
   head: () => ({
     ...buildRouteMeta({
       title: "Abonnement Premium & Packs de Crédits",
@@ -104,11 +105,11 @@ function PremiumSubscriptionPage() {
   const handleSubscribe = (plan: PremiumPlan) => {
     if (demoMode) {
       toast.info("Aperçu local : le paiement est désactivé et aucune donnée n'est envoyée.");
-      navigate({ to: "/premium/tableau-de-bord" });
+      navigate({ to: "/premium/tableau-de-bord", search: {} });
       return;
     }
     if (isPremium) {
-      navigate({ to: "/premium/tableau-de-bord" });
+      navigate({ to: "/premium/tableau-de-bord", search: {} });
       return;
     }
     if (!user) {

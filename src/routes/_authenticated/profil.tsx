@@ -179,7 +179,7 @@ function ProfilPage() {
     }
     if (!isPremium) {
       toast.error("Les packs sont réservés aux membres Premium. Passez Premium d'abord !");
-      navigate({ to: "/premium" });
+      navigate({ to: "/premium", search: {} });
       return;
     }
     setShowTopup(false);
@@ -306,6 +306,7 @@ function ProfilPage() {
             </div>
             <Link
               to="/premium/tableau-de-bord"
+              search={{}}
               className="shrink-0 rounded-xl bg-brand px-3 py-2 text-[10px] font-black text-brand-foreground"
             >
               Ouvrir le Hub
@@ -349,6 +350,7 @@ function ProfilPage() {
               ) : (
                 <Link
                   to="/premium"
+                  search={{}}
                   className="inline-flex items-center gap-1.5 rounded-full bg-brand px-3 py-2 text-xs font-black text-brand-foreground transition-transform hover:scale-105 active:scale-95 shadow-md"
                 >
                   <Crown className="size-3.5" /> Passer Premium
@@ -597,6 +599,7 @@ function ProfilPage() {
             </p>
             <Link
               to="/premium"
+              search={{}}
               className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-brand py-3 text-xs font-black text-brand-foreground transition-transform active:scale-[0.98]"
             >
               Découvrir les offres Premium <ChevronRight className="size-4" />
@@ -610,7 +613,7 @@ function ProfilPage() {
         <MenuRow
           icon={<Crown className="size-4 text-brand" />}
           label="Offres & Abonnements Premium"
-          onClick={() => navigate({ to: "/premium" })}
+          onClick={() => navigate({ to: "/premium", search: {} })}
         />
         <MenuRow
           icon={<LogOut className="size-4" />}
@@ -809,7 +812,7 @@ function TopupDialog({
           </div>
           <button
             onClick={onClose}
-            className="grid size-8 place-items-center rounded-full bg-surface ring-1 ring-black/5 dark:ring-white/10"
+            className="grid size-8 place-items-center rounded-full bg-surface text-foreground ring-1 ring-black/5 dark:ring-white/10"
           >
             <X className="size-4" />
           </button>
@@ -826,7 +829,7 @@ function TopupDialog({
             <button
               onClick={() => {
                 onClose();
-                navigate({ to: "/premium" });
+                navigate({ to: "/premium", search: {} });
               }}
               className="mt-2 w-full rounded-xl bg-brand py-2 text-xs font-black text-brand-foreground"
             >
@@ -842,7 +845,7 @@ function TopupDialog({
               onClick={() => onBuy(p)}
               disabled={busyPack !== null || !isPremium}
               className={cn(
-                "relative flex flex-col items-start gap-1 rounded-2xl p-3 text-left ring-1 transition-all disabled:opacity-50",
+                "relative flex flex-col items-start gap-1 rounded-2xl p-3 text-left text-foreground ring-1 transition-all disabled:opacity-50",
                 p.best ? "bg-brand/10 ring-brand/40" : "bg-card ring-black/5 dark:ring-white/5",
               )}
             >

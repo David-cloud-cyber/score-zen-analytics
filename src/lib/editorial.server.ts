@@ -162,11 +162,11 @@ export async function getPublishedEditorialArticle(slug: string) {
     .order("published_at", { ascending: false })
     .limit(12);
 
-  const relatedArticles = (relatedRows ?? [])
+  const relatedArticles: EditorialListItem[] = (relatedRows ?? [])
     .map((related: Record<string, unknown>) => ({ article: mapListItem(related), sameCategory: category(related.category) === article.category }))
-    .sort((left, right) => Number(right.sameCategory) - Number(left.sameCategory))
+    .sort((left: { sameCategory: boolean }, right: { sameCategory: boolean }) => Number(right.sameCategory) - Number(left.sameCategory))
     .slice(0, 3)
-    .map(({ article: related }) => related);
+    .map(({ article: related }: { article: EditorialListItem; sameCategory: boolean }) => related);
 
   return { ...article, relatedArticles };
 }

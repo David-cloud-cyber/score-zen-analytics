@@ -681,7 +681,7 @@ function HomePage() {
           <Link to="/codes-promo" className="text-brand hover:underline">
             Codes promo bookmakers
           </Link>
-          <Link to="/premium" className="text-muted-foreground hover:text-foreground">
+          <Link to="/premium" search={{}} className="text-muted-foreground hover:text-foreground">
             Premium
           </Link>
           <button

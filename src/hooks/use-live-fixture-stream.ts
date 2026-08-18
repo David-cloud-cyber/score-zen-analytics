@@ -39,13 +39,15 @@ export function useLiveFixtureStream({ enabled, initialPayload, loadSnapshot }: 
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [retrySignal, setRetrySignal] = useState(0);
   const loadRef = useRef(loadSnapshot);
+  const initialPayloadRef = useRef(initialPayload);
   loadRef.current = loadSnapshot;
+  initialPayloadRef.current = initialPayload;
 
   const retry = useCallback(() => setRetrySignal((value) => value + 1), []);
 
   useEffect(() => {
     if (!enabled) return;
-    if (initialPayload) setPayload(initialPayload);
+    if (initialPayloadRef.current) setPayload(initialPayloadRef.current);
 
     let disposed = false;
     let socket: WebSocket | undefined;
@@ -95,16 +97,17 @@ export function useLiveFixtureStream({ enabled, initialPayload, loadSnapshot }: 
     };
 
     const startFallback = () => {
-      if (disposed || fallbackTimer !== undefined) return;
+      if (disposed || document.visibilityState !== "visible" || fallbackTimer !== undefined) return;
       void refreshOverHttp();
       fallbackTimer = window.setInterval(() => void refreshOverHttp(), HTTP_FALLBACK_MS);
     };
 
     const connect = () => {
-      if (disposed || typeof WebSocket === "undefined") {
+      if (disposed || document.visibilityState !== "visible" || typeof WebSocket === "undefined") {
         startFallback();
         return;
       }
+      if (socket && (socket.readyState === WebSocket.CONNECTING || socket.readyState === WebSocket.OPEN)) return;
 
       try {
         socket = new WebSocket(websocketUrl());
@@ -150,14 +153,29 @@ export function useLiveFixtureStream({ enabled, initialPayload, loadSnapshot }: 
       };
     };
 
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden") {
+        if (fallbackTimer !== undefined) window.clearInterval(fallbackTimer);
+        fallbackTimer = undefined;
+        return;
+      }
+      if (!disposed) {
+        void refreshOverHttp();
+        if (!socket || socket.readyState === WebSocket.CLOSED) connect();
+      }
+    };
+
+    document.addEventListener("visibilitychange", onVisibility);
+
     connect();
 
     return () => {
       disposed = true;
+      document.removeEventListener("visibilitychange", onVisibility);
       clearTimers();
       socket?.close(1000, "Page changed");
     };
-  }, [enabled, initialPayload, retrySignal]);
+  }, [enabled, retrySignal]);
 
   return { payload, isRefreshing, retry };
 }
@@ -211,16 +229,17 @@ export function useLiveMatchStream({ enabled, fixtureId, onUpdate }: LiveMatchSt
     };
 
     const startFallback = () => {
-      if (disposed || fallbackTimer !== undefined) return;
+      if (disposed || document.visibilityState !== "visible" || fallbackTimer !== undefined) return;
       void refreshOverHttp();
       fallbackTimer = window.setInterval(() => void refreshOverHttp(), 10_000);
     };
 
     const connect = () => {
-      if (disposed || typeof WebSocket === "undefined") {
+      if (disposed || document.visibilityState !== "visible" || typeof WebSocket === "undefined") {
         startFallback();
         return;
       }
+      if (socket && (socket.readyState === WebSocket.CONNECTING || socket.readyState === WebSocket.OPEN)) return;
       try {
         socket = new WebSocket(websocketUrl());
       } catch {
@@ -267,7 +286,13 @@ export function useLiveMatchStream({ enabled, fixtureId, onUpdate }: LiveMatchSt
     };
 
     const onVisibility = () => {
-      if (document.visibilityState === "visible") void refreshOverHttp();
+      if (document.visibilityState === "hidden") {
+        if (fallbackTimer !== undefined) window.clearInterval(fallbackTimer);
+        fallbackTimer = undefined;
+        return;
+      }
+      void refreshOverHttp();
+      if (!socket || socket.readyState === WebSocket.CLOSED) connect();
     };
     document.addEventListener("visibilitychange", onVisibility);
     connect();

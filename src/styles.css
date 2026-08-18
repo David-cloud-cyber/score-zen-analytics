@@ -364,6 +364,60 @@
 @utility animate-score-pop {
   animation: score-pop 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
+
+/* Recovery controls must remain legible even when the theme stylesheet is
+ * partially loaded or a token is overridden by a third-party component. */
+.recovery-primary,
+.recovery-secondary {
+  -webkit-tap-highlight-color: transparent;
+  text-decoration: none;
+}
+
+.recovery-primary {
+  background: #101820 !important;
+  color: #ffffff !important;
+  border-color: #101820 !important;
+}
+
+.recovery-primary:hover {
+  background: #1b2933 !important;
+}
+
+.recovery-secondary {
+  background: #ffffff !important;
+  color: #101820 !important;
+  border-color: #cbd5e1 !important;
+}
+
+.recovery-secondary:hover {
+  background: #eef2f6 !important;
+}
+
+.dark .recovery-primary {
+  background: #f8fafc !important;
+  color: #071019 !important;
+  border-color: #f8fafc !important;
+}
+
+.dark .recovery-primary:hover {
+  background: #dce4eb !important;
+}
+
+.dark .recovery-secondary {
+  background: #111a24 !important;
+  color: #f8fafc !important;
+  border-color: #334155 !important;
+}
+
+.dark .recovery-secondary:hover {
+  background: #1a2734 !important;
+}
+
+.recovery-primary:focus-visible,
+.recovery-secondary:focus-visible {
+  outline: 3px solid #10b981;
+  outline-offset: 3px;
+}
 @utility no-scrollbar {
   scrollbar-width: none;
   &::-webkit-scrollbar {

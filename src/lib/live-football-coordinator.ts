@@ -53,6 +53,7 @@ type UpstreamResult = {
 };
 
 const LIVE_KEY = "lf:shared:v2:fixtures:live";
+const LIVE_STORAGE_KEY = "live-snapshot-envelope:v2";
 const QUOTA_KEY = "lf:shared:v2:coordinator:quota";
 const LAST_HTTP_ACCESS_KEY = "lf:shared:v2:coordinator:last-http-access";
 const UPSTREAM_PREFIX = "lf:shared:v2:upstream:";
@@ -340,6 +341,13 @@ export class LiveFootballCoordinator extends DurableObject<CoordinatorEnv> {
   }
 
   private async readEnvelope(key: string): Promise<SharedSnapshotEnvelope | null> {
+    // Durable Object storage is the authoritative L1 for live snapshots. KV
+    // edge reads have a minimum cache TTL and can otherwise hide a fresh score
+    // for longer than the live refresh cadence.
+    if (key === LIVE_KEY) {
+      const local = await this.ctx.storage.get<unknown>(LIVE_STORAGE_KEY);
+      if (isSnapshotEnvelope(local)) return local;
+    }
     // Cloudflare KV requires cacheTtl >= 30 seconds. The snapshot freshness
     // itself remains adaptive; this only controls the edge read cache.
     const value = await this.env.FOOTBALL_CACHE?.get(key, { type: "json", cacheTtl: 30 });
@@ -347,6 +355,9 @@ export class LiveFootballCoordinator extends DurableObject<CoordinatorEnv> {
   }
 
   private async writeEnvelope(key: string, envelope: SharedSnapshotEnvelope) {
+    if (key === LIVE_KEY) {
+      await this.ctx.storage.put(LIVE_STORAGE_KEY, envelope);
+    }
     await this.env.FOOTBALL_CACHE?.put(key, JSON.stringify(envelope), {
       expirationTtl: Math.max(60, Math.ceil((envelope.staleUntil - envelope.storedAt) / 1000) + 60),
     });

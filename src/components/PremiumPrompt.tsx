@@ -26,7 +26,7 @@ export function PremiumPrompt({ stage, onDismiss }: { stage: PremiumPromptStage;
           <button type="button" onClick={dismiss} className="grid size-8 shrink-0 place-items-center rounded-full bg-surface text-muted-foreground hover:text-foreground" aria-label="Fermer"><X className="size-4" /></button>
         </div>
         <ul className="mt-4 space-y-2 text-xs font-bold"><li className="flex items-center gap-2"><Check className="size-3.5 text-brand" />100 crédits par mois</li><li className="flex items-center gap-2"><Check className="size-3.5 text-brand" />Environ 33 analyses</li><li className="flex items-center gap-2"><Check className="size-3.5 text-brand" />Historique, favoris et alertes</li></ul>
-        <div className="mt-5 grid grid-cols-2 gap-2.5"><Link to="/premium" onClick={() => track("premium_cta_click", { location: `premium_prompt_${stage}` })} className="inline-flex items-center justify-center rounded-xl bg-brand px-3 py-3 text-xs font-black text-brand-foreground">Voir les offres</Link><button type="button" onClick={dismiss} className="rounded-xl bg-surface px-3 py-3 text-xs font-bold text-foreground">Plus tard</button></div>
+        <div className="mt-5 grid grid-cols-2 gap-2.5"><Link to="/premium" search={{}} onClick={() => track("premium_cta_click", { location: `premium_prompt_${stage}` })} className="inline-flex items-center justify-center rounded-xl bg-brand px-3 py-3 text-xs font-black text-brand-foreground">Voir les offres</Link><button type="button" onClick={dismiss} className="rounded-xl bg-surface px-3 py-3 text-xs font-bold text-foreground">Plus tard</button></div>
       </div>
     </div>
   );

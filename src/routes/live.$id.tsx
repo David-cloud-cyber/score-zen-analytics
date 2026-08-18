@@ -521,14 +521,14 @@ function PublicMatchErrorState({ reset }: { reset: () => void }) {
             type="button"
             onClick={reset}
             disabled={cooldown > 0}
-            className="inline-flex items-center gap-2 rounded-full bg-foreground px-4 py-2 text-xs font-bold text-background disabled:cursor-not-allowed disabled:opacity-50"
+            className="recovery-primary inline-flex items-center gap-2 rounded-full disabled:cursor-not-allowed disabled:opacity-50"
           >
             <RefreshCw className="size-3.5" />
             {cooldown > 0 ? `Réessayer dans ${cooldown}s` : "Réessayer"}
           </button>
           <Link
             to="/"
-            className="inline-flex items-center rounded-full bg-surface px-4 py-2 text-xs font-bold ring-1 ring-black/5 dark:ring-white/10"
+            className="recovery-secondary inline-flex items-center rounded-full ring-1 ring-black/5 dark:ring-white/10"
           >
             Retour
           </Link>
@@ -567,14 +567,14 @@ function MatchErrorState({ error, reset }: { error: Error; reset: () => void }) 
               reset();
             }}
             disabled={retryDisabled}
-            className="inline-flex items-center gap-2 rounded-full bg-foreground px-4 py-2 text-xs font-bold text-background disabled:cursor-not-allowed disabled:opacity-50"
+            className="recovery-primary inline-flex items-center gap-2 rounded-full disabled:cursor-not-allowed disabled:opacity-50"
           >
             <RefreshCw className="size-3.5" />
             {retryDisabled ? `Réessayer dans ${cooldown}s` : "Réessayer"}
           </button>
           <Link
             to="/"
-            className="inline-flex items-center rounded-full bg-surface px-4 py-2 text-xs font-bold ring-1 ring-black/5 dark:ring-white/10"
+            className="recovery-secondary inline-flex items-center rounded-full ring-1 ring-black/5 dark:ring-white/10"
           >
             Retour
           </Link>

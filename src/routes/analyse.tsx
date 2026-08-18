@@ -551,6 +551,7 @@ function AnalysePage() {
                 </div>
                 <Link
                   to="/premium"
+                  search={{}}
                   onClick={() => track("premium_cta_click", { location: "analysis_result" })}
                   className="inline-flex shrink-0 items-center justify-center rounded-xl bg-brand px-3.5 py-2 text-xs font-black text-brand-foreground transition-transform active:scale-95"
                 >

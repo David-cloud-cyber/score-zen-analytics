@@ -712,7 +712,166 @@ export const getFixtureSummary = createServerFn({ method: "GET" })
  */
 export const getFixtureSections = createServerFn({ method: "GET" })
   .inputValidator((input) => z.object({ id: z.number().int().positive() }).parse(input))
-  .handler(async ({ data }) => getFixtureDetail({ data }));
+  .handler(async ({ data }): Promise<RemoteMatchDetail> => {
+    const summary = await getFixtureSummary({ data });
+    const homeId = summary.home.id;
+    const awayId = summary.away.id;
+    const unavailableSections: string[] = [];
+    const loadedSections = new Set<string>();
+
+    type EventPayload = {
+      time: { elapsed: number };
+      team: { id: number };
+      player: { name: string };
+      type: string;
+      detail: string;
+    };
+    type StatsPayload = Array<{ team: { id: number }; statistics: StatItem[] }>;
+    type LineupPayload = Array<{
+      team: { id: number; name: string; colors: { player: { primary: string } } | null };
+      formation: string;
+      coach: { name: string };
+      startXI: Array<{ player: { name: string; number: number; pos: string } }>;
+    }>;
+
+    const [eventsResult, statsResult, lineupsResult, h2hResult, oddsResult, predictionResult, injuriesResult] =
+      await Promise.allSettled([
+        apiFootball<EventPayload[]>("/fixtures/events", { fixture: data.id }),
+        apiFootball<StatsPayload>("/fixtures/statistics", { fixture: data.id }),
+        apiFootball<LineupPayload>("/fixtures/lineups", { fixture: data.id }),
+        apiFootball<ApiFixture[]>("/fixtures/headtohead", {
+          h2h: `${homeId}-${awayId}`,
+          last: 5,
+        }),
+        apiFootball<ApiOddsResponse[]>("/odds", { fixture: data.id, bet: 1 }),
+        apiFootball<ApiPredictionResponse[]>("/predictions", { fixture: data.id }),
+        apiFootball<ApiInjuryResponse[]>("/injuries", { fixture: data.id }),
+      ]);
+
+    const eventsArr = settledValue(eventsResult, [], "événements", unavailableSections);
+    if (eventsResult.status === "fulfilled") loadedSections.add("événements");
+    const statsArr = settledValue(statsResult, [], "statistiques", unavailableSections);
+    if (statsResult.status === "fulfilled") loadedSections.add("statistiques");
+    const lineupsArr = settledValue(lineupsResult, [], "compositions", unavailableSections);
+    if (lineupsResult.status === "fulfilled") loadedSections.add("compositions");
+    const h2hArr = settledValue(h2hResult, [], "confrontations", unavailableSections);
+    if (h2hResult.status === "fulfilled") loadedSections.add("confrontations");
+    const oddsArr = settledValue(oddsResult, [], "cotes", unavailableSections);
+    if (oddsResult.status === "fulfilled") loadedSections.add("cotes");
+    const predictionArr = settledValue(predictionResult, [], "prédictions", unavailableSections);
+    if (predictionResult.status === "fulfilled") loadedSections.add("prédictions");
+    const injuriesArr = settledValue(injuriesResult, [], "absences", unavailableSections);
+    if (injuriesResult.status === "fulfilled") loadedSections.add("absences");
+
+    const events: ApiEvent[] = eventsArr.map((event) => ({
+      minute: event.time.elapsed,
+      side: event.team.id === homeId ? "home" : "away",
+      player: event.player.name,
+      type: (event.type.toLowerCase().includes("goal")
+        ? "goal"
+        : event.detail.toLowerCase().includes("yellow")
+          ? "yellow"
+          : event.detail.toLowerCase().includes("red")
+            ? "red"
+            : event.type.toLowerCase().includes("var") || event.detail.toLowerCase().includes("var")
+              ? "var"
+              : "sub") as ApiEvent["type"],
+      detail: event.detail,
+    }));
+
+    const homeStatsRaw = statsArr.find((item) => item.team.id === homeId)?.statistics ?? [];
+    const awayStatsRaw = statsArr.find((item) => item.team.id === awayId)?.statistics ?? [];
+    const stats = mapStats(homeStatsRaw, awayStatsRaw);
+    const makeLineup = (teamId: number, fallbackColor: string): ApiLineup | null => {
+      const lineup = lineupsArr.find((item) => item.team.id === teamId);
+      if (!lineup) return null;
+      return {
+        formation: lineup.formation,
+        coach: lineup.coach.name,
+        color: lineup.team.colors?.player?.primary
+          ? `#${lineup.team.colors.player.primary}`
+          : fallbackColor,
+        players: lineup.startXI.map((player) => ({
+          name: player.player.name,
+          number: player.player.number,
+          position: player.player.pos,
+        })),
+      };
+    };
+    const h2h: ApiH2H[] = h2hArr.map((item) => ({
+      id: item.fixture.id,
+      date: dayLabel(item.fixture.date),
+      home: item.teams.home.name,
+      away: item.teams.away.name,
+      score: `${item.goals.home ?? 0} - ${item.goals.away ?? 0}`,
+      competition: item.league.name,
+    }));
+    const oddsData = oddsArr[0];
+    const odds = oddsData
+      ? {
+          home: averageSelectionOdds(oddsData, "home"),
+          draw: averageSelectionOdds(oddsData, "draw"),
+          away: averageSelectionOdds(oddsData, "away"),
+          bookmakers: oddsData.bookmakers?.length ?? 0,
+          updatedAt: oddsData.update ?? null,
+        }
+      : null;
+    const predictionData = predictionArr[0]?.predictions;
+    const prediction = predictionData
+      ? {
+          home: parsePercent(predictionData.percent?.home),
+          draw: parsePercent(predictionData.percent?.draw),
+          away: parsePercent(predictionData.percent?.away),
+          winner:
+            predictionData.winner?.id === homeId
+              ? ("home" as const)
+              : predictionData.winner?.id === awayId
+                ? ("away" as const)
+                : null,
+          winnerName: predictionData.winner?.name ?? null,
+          advice: predictionData.advice ?? null,
+          underOver: predictionData.under_over ?? null,
+        }
+      : null;
+    const injuries = {
+      home: injuriesArr.filter((item) => item.team.id === homeId).map((item) => ({
+        playerId: item.player.id,
+        name: item.player.name,
+        photo: item.player.photo,
+        reason: item.player.reason,
+        type: item.player.type,
+        teamId: item.team.id,
+      })),
+      away: injuriesArr.filter((item) => item.team.id === awayId).map((item) => ({
+        playerId: item.player.id,
+        name: item.player.name,
+        photo: item.player.photo,
+        reason: item.player.reason,
+        type: item.player.type,
+        teamId: item.team.id,
+      })),
+    };
+
+    const inheritedUnavailable = summary.meta.unavailableSections.filter(
+      (section) => !loadedSections.has(section),
+    );
+    const meta = {
+      ...summary.meta,
+      unavailableSections: [...new Set([...inheritedUnavailable, ...unavailableSections])],
+    };
+    return {
+      ...summaryDetailDefaults(meta),
+      ...summary,
+      meta,
+      events,
+      stats,
+      lineups: { home: makeLineup(homeId, "#10b981"), away: makeLineup(awayId, "#3b82f6") },
+      h2h,
+      odds,
+      prediction,
+      injuries,
+    };
+  });
 
 export type StandingRow = {
   rank: number;

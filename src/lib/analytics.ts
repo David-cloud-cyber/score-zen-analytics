@@ -32,6 +32,8 @@ export type AnalyticsEvent =
   | "premium_prompt_dismissed"
   | "premium_checkout_started"
   | "premium_checkout_redirected"
+  | "topup_checkout_started"
+  | "topup_checkout_redirected"
   | "promo_code_copy"
   | "promo_affiliate_click";
 

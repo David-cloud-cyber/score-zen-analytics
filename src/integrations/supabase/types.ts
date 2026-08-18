@@ -8,6 +8,36 @@ export type Database = {
   };
   public: {
     Tables: {
+      app_error_events: {
+        Row: {
+          id: string;
+          incident_id: string;
+          route: string;
+          category: "data" | "route" | "render" | "css" | "provider" | "timeout" | "quota" | "payment";
+          status_code: number;
+          device_family: "mobile" | "tablet" | "desktop";
+          browser_family: string;
+          deployment_version: string;
+          duration_ms: number | null;
+          cache_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          incident_id: string;
+          route: string;
+          category: "data" | "route" | "render" | "css" | "provider" | "timeout" | "quota" | "payment";
+          status_code?: number;
+          device_family?: "mobile" | "tablet" | "desktop";
+          browser_family?: string;
+          deployment_version?: string;
+          duration_ms?: number | null;
+          cache_id?: string | null;
+          created_at?: string;
+        };
+        Update: never;
+        Relationships: [];
+      };
       user_presence: {
         Row: {
           user_id: string;

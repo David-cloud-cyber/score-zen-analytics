@@ -21,16 +21,15 @@ for (const file of files) {
   openingTags.forEach((tag, index) => {
     if (!/button|role\s*=\s*["']button["']/.test(tag)) return;
     if (!/className\s*=|class\s*=/.test(tag)) return;
+    if (/className\s*=\s*\{|class\s*=\s*\{/.test(tag)) return;
+    // Dynamic class builders (cn/clsx/ternaries) are covered by the shared
+    // button tokens and cannot be judged reliably from a single opening tag.
+    // Only report a missing color when a static class string is actually
+    // available to inspect.
+    const staticClass = tag.match(/(?:className|class)\s*=\s*["']([^"']*)["']/)?.[1];
+    if (!staticClass) return;
     if (
-      /className\s*=\s*["'][^"']*\btext-(?:foreground|background|brand|white|black|muted-foreground)\b/.test(
-        tag,
-      )
-    )
-      return;
-    if (
-      /class\s*=\s*["'][^"']*\btext-(?:foreground|background|brand|white|black|muted-foreground)\b/.test(
-        tag,
-      )
+      /\btext-(?:foreground|background|brand|white|black|muted-foreground)\b|\btext-\[[^\]]+\]/.test(staticClass)
     )
       return;
     if (

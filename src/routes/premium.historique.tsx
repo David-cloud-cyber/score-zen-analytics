@@ -111,7 +111,7 @@ function PredictionHistoryPage() {
       <div className="space-y-5 px-4 pb-12 pt-4 lg:px-0">
         <header className="flex items-start justify-between gap-3">
           <div>
-            <Link to="/premium/tableau-de-bord" className="mb-3 inline-flex items-center gap-1.5 text-xs font-black text-brand hover:underline">
+            <Link to="/premium/tableau-de-bord" search={{}} className="mb-3 inline-flex items-center gap-1.5 text-xs font-black text-brand hover:underline">
               <ArrowLeft className="size-3.5" /> Retour au Hub
             </Link>
             <div className="flex items-center gap-2 text-brand">

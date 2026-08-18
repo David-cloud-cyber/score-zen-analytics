@@ -322,6 +322,7 @@ function DesktopSidebar({
         {collapsed ? (
           <Link
             to="/premium/tableau-de-bord"
+            search={{}}
             aria-label="Ouvrir le Premium Intelligence Hub"
             title="Premium Intelligence Hub"
             className="mx-auto grid size-10 place-items-center rounded-xl border border-brand/25 bg-brand/10 text-brand transition-colors hover:bg-brand/20"
@@ -341,6 +342,7 @@ function DesktopSidebar({
             </p>
             <Link
               to="/premium/tableau-de-bord"
+              search={{}}
               className="mt-3 flex items-center justify-center gap-1 rounded-lg bg-brand py-2 text-[11px] font-black text-brand-foreground transition-transform hover:scale-[1.02]"
             >
               Ouvrir le Hub <ArrowRight className="size-3" />

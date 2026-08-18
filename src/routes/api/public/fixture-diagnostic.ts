@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { newIncidentId, recordServerIncident } from "@/lib/incident.server";
 
 type Diagnostic = {
   reason?: string;
@@ -38,7 +39,17 @@ export const Route = createFileRoute("/api/public/fixture-diagnostic")({
             userAgent: validText(input.userAgent, 120),
             at: validText(input.at, 40),
           };
-          console.warn("Fixture diagnostic", JSON.stringify(record));
+          const category = input.errorCode === "rate_limit" ? "quota" : input.errorCode === "network" ? "provider" : "data";
+          await recordServerIncident({
+            incidentId: newIncidentId(),
+            route: record.page,
+            category,
+            statusCode: 503,
+            deviceFamily: record.device === "mobile" ? "mobile" : "desktop",
+            browserFamily: "browser",
+            durationMs: undefined,
+            cacheId: record.cacheId,
+          });
         } catch {
           // Diagnostics are best-effort and must not expose a server error to users.
         }

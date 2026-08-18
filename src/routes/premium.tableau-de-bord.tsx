@@ -547,6 +547,7 @@ function RecentPredictions({
         />
         <Link
           to="/premium/historique"
+          search={{}}
           className="inline-flex shrink-0 items-center gap-1 text-xs font-black text-brand hover:underline"
         >
           Tout voir <ChevronRight className="size-3.5" aria-hidden />
@@ -1006,6 +1007,7 @@ function PremiumGate({ credits }: { credits: number }) {
           <div className="mt-5 flex flex-wrap gap-2">
             <Link
               to="/premium"
+              search={{}}
               className="inline-flex items-center gap-2 rounded-xl bg-brand px-4 py-3 text-sm font-black text-brand-foreground"
             >
               Passer Premium <ChevronRight className="size-4" />
