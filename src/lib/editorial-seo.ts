@@ -1,9 +1,9 @@
 import { buildRouteMeta, breadcrumbSchema, faqSchema, ORG, SPEAKABLE } from "@/lib/seo";
-import type { PublicEditorialArticle } from "./editorial.types";
+import type { EditorialListItem, PublicEditorialArticle } from "./editorial.types";
 
 const SITE = "https://www.livefoot.fun";
 
-export function blogIndexHead() {
+export function blogIndexHead(articles: EditorialListItem[] = []) {
   const base = buildRouteMeta({
     path: "/blog",
     title: "Blog football : actualités, analyses et données vérifiées",
@@ -17,6 +17,15 @@ export function blogIndexHead() {
   });
   return {
     ...base,
+    links: [
+      ...base.links,
+      {
+        rel: "alternate",
+        type: "application/rss+xml",
+        title: "Flux RSS du blog football LiveFoot",
+        href: `${SITE}/blog/rss.xml`,
+      },
+    ],
     scripts: [
       {
         type: "application/ld+json",
@@ -28,6 +37,17 @@ export function blogIndexHead() {
           inLanguage: "fr",
           publisher: ORG,
           speakable: SPEAKABLE,
+          mainEntity: articles.length
+            ? {
+                "@type": "ItemList",
+                itemListElement: articles.slice(0, 12).map((article, index) => ({
+                  "@type": "ListItem",
+                  position: index + 1,
+                  name: article.title,
+                  url: `${SITE}/blog/${article.slug}`,
+                })),
+              }
+            : undefined,
         }),
       },
       {
@@ -64,6 +84,12 @@ export function blogArticleHead(article: PublicEditorialArticle) {
         datePublished: article.publishedAt,
         dateModified: article.updatedAt,
         wordCount: article.wordCount,
+        articleBody: [
+          article.directAnswer,
+          article.content.summary,
+          ...article.content.sections.flatMap((section) => section.paragraphs),
+        ].join("\n\n"),
+        keywords: [article.title, article.category, "football", "LiveFoot"].join(", "),
         inLanguage: "fr",
         mainEntityOfPage: `${SITE}${path}`,
         author: { "@type": "Person", name: article.authorName },

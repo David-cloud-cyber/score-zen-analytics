@@ -40,6 +40,7 @@ export function buildRouteMeta(input: RouteMetaInput) {
     { property: "og:url", content: url },
     { property: "og:type", content: input.type ?? "website" },
     { property: "og:locale", content: language === "en" ? "en_US" : "fr_FR" },
+    { property: "og:locale:alternate", content: language === "en" ? "fr_FR" : "en_US" },
     { name: "twitter:title", content: fullTitle },
     { name: "twitter:description", content: input.description },
     { name: "twitter:card", content: "summary_large_image" },
@@ -50,6 +51,7 @@ export function buildRouteMeta(input: RouteMetaInput) {
     { property: "og:image:type", content: imageType },
     { name: "twitter:image", content: socialImage },
     { name: "twitter:image:alt", content: fullTitle },
+    { name: "referrer", content: "origin-when-cross-origin" },
     {
       name: "robots",
       content: input.noindex

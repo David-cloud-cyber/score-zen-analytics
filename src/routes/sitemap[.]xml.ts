@@ -19,6 +19,33 @@ interface SitemapEntry {
   lastmod?: string;
   changefreq?: "always" | "hourly" | "daily" | "weekly" | "monthly" | "yearly" | "never";
   priority?: string;
+  alternates?: SitemapAlternate[];
+}
+
+interface SitemapAlternate {
+  language: "fr" | "en" | "x-default";
+  path: string;
+}
+
+const TRANSLATED_PATHS: Record<string, { fr: string; en: string }> = {
+  "/": { fr: "/", en: "/en" },
+  "/analyse": { fr: "/analyse", en: "/en/analyse" },
+  "/communaute": { fr: "/communaute", en: "/en/community" },
+  "/premium": { fr: "/premium", en: "/en/premium" },
+  "/blog": { fr: "/blog", en: "/en/blog" },
+  "/codes-promo": { fr: "/codes-promo", en: "/en/promo-codes" },
+};
+
+function alternatesFor(path: string): SitemapAlternate[] | undefined {
+  const pair =
+    TRANSLATED_PATHS[path] ??
+    Object.values(TRANSLATED_PATHS).find((candidate) => candidate.en === path);
+  if (!pair) return undefined;
+  return [
+    { language: "fr", path: pair.fr },
+    { language: "en", path: pair.en },
+    { language: "x-default", path: pair.fr },
+  ];
 }
 
 export const Route = createFileRoute("/sitemap.xml")({
@@ -73,6 +100,7 @@ export const Route = createFileRoute("/sitemap.xml")({
           { path: "/a-propos", changefreq: "monthly", priority: "0.4" },
           { path: "/politique-editoriale", changefreq: "monthly", priority: "0.4" },
           { path: "/premium", changefreq: "monthly", priority: "0.7" },
+          { path: "/vip", changefreq: "weekly", priority: "0.8" },
           {
             path: "/codes-promo",
             lastmod: latestBookmakerUpdate,
@@ -122,14 +150,21 @@ export const Route = createFileRoute("/sitemap.xml")({
           ...fixtureEntries,
         ];
 
-        const uniqueEntries = Array.from(
-          new Map(entries.map((entry) => [entry.path, entry])).values(),
+        const uniqueEntries = Array.from(new Map(entries.map((entry) => [entry.path, entry])).values()).map(
+          (entry) => ({
+            ...entry,
+            alternates: entry.alternates ?? alternatesFor(entry.path),
+          }),
         );
 
         const urls = uniqueEntries.map((e) =>
           [
             `  <url>`,
             `    <loc>${xmlEscape(`${BASE_URL}${e.path}`)}</loc>`,
+            ...(e.alternates ?? []).map(
+              (alternate) =>
+                `    <xhtml:link rel="alternate" hreflang="${xmlEscape(alternate.language)}" href="${xmlEscape(`${BASE_URL}${alternate.path}`)}" />`,
+            ),
             e.lastmod ? `    <lastmod>${xmlEscape(e.lastmod)}</lastmod>` : null,
             e.changefreq ? `    <changefreq>${e.changefreq}</changefreq>` : null,
             e.priority ? `    <priority>${e.priority}</priority>` : null,
@@ -141,7 +176,7 @@ export const Route = createFileRoute("/sitemap.xml")({
 
         const xml = [
           `<?xml version="1.0" encoding="UTF-8"?>`,
-          `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">`,
+          `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">`,
           ...urls,
           `</urlset>`,
         ].join("\n");

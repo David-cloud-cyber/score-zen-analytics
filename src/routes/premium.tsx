@@ -19,7 +19,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { AppShell, PageTitle } from "@/components/AppShell";
-import { breadcrumbSchema, buildRouteMeta } from "@/lib/seo";
+import { breadcrumbSchema, buildRouteMeta, faqSchema } from "@/lib/seo";
 import { PREMIUM_PLANS, PRICED_PACKS, formatXaf, type PremiumPlan, type PricedPack } from "@/lib/pricing";
 import { createSubscriptionCheckout, createTopupCheckout } from "@/lib/payments.functions";
 import { getMyBalance } from "@/lib/analyses.functions";
@@ -54,6 +54,10 @@ export const Route = createFileRoute("/premium")({
     scripts: [
       {
         type: "application/ld+json",
+        children: JSON.stringify(faqSchema(PREMIUM_FAQ)),
+      },
+      {
+        type: "application/ld+json",
         children: JSON.stringify(
           breadcrumbSchema([
             { name: "Accueil", path: "/" },
@@ -65,6 +69,21 @@ export const Route = createFileRoute("/premium")({
   }),
   component: PremiumPage,
 });
+
+const PREMIUM_FAQ = [
+  {
+    q: "Comment fonctionne le renouvellement des crédits ?",
+    a: "Chaque mois, votre solde de crédits Premium est réinitialisé à 100 crédits. Les crédits inutilisés du mois précédent ne se cumulent pas, mais les crédits achetés via des packs restent conservés indéfiniment.",
+  },
+  {
+    q: "Quels moyens de paiement sont acceptés ?",
+    a: "Nous acceptons MTN Mobile Money et Orange Money dans la zone FCFA via notre partenaire sécurisé Fapshi.",
+  },
+  {
+    q: "Puis-je annuler mon abonnement à tout moment ?",
+    a: "Oui, sans engagement. Votre accès Premium reste actif jusqu'à la fin de la période déjà payée.",
+  },
+];
 
 function PremiumPage() {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
@@ -444,18 +463,9 @@ function PremiumSubscriptionPage() {
       <section className="mt-10 px-4 pb-8 lg:px-0">
         <h2 className="mb-4 text-center text-lg font-black">Foire Aux Questions (FAQ)</h2>
         <div className="space-y-3">
-          <FaqItem
-            q="Comment fonctionne le renouvellement des crédits ?"
-            r="Chaque mois, votre solde de crédits Premium est réinitialisé à 100 crédits. Les crédits inutilisés du mois précédent ne se cumulent pas, mais les crédits achetés via des packs restent conservés indéfiniment."
-          />
-          <FaqItem
-            q="Quels moyens de paiement sont acceptés ?"
-            r="Nous acceptons MTN Mobile Money et Orange Money dans toute la zone FCFA via notre partenaire sécurisé Fapshi."
-          />
-          <FaqItem
-            q="Puis-je annuler mon abonnement à tout moment ?"
-            r="Oui, sans aucun engagement. Votre accès Premium restera actif jusqu'à la fin de la période entamée."
-          />
+          {PREMIUM_FAQ.map((item) => (
+            <FaqItem key={item.q} q={item.q} r={item.a} />
+          ))}
         </div>
       </section>
 

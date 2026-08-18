@@ -16,7 +16,7 @@ export const Route = createFileRoute("/blog/")({
       return { articles: [], page: 1, pageSize: 12, hasMore: false };
     }
   },
-  head: () => blogIndexHead(),
+  head: ({ loaderData }) => blogIndexHead(loaderData?.articles ?? []),
   component: BlogIndexPage,
 });
 
