@@ -73,14 +73,21 @@ export const Route = createFileRoute("/live/$id")({
         : match.status === "upcoming"
           ? "Match à venir"
           : "Match en direct";
+    const eventStatus =
+      match.status === "finished"
+        ? "https://schema.org/EventCompleted"
+        : match.status === "upcoming"
+          ? "https://schema.org/EventScheduled"
+          : "https://schema.org/EventInProgress";
     const score =
       match.homeScore !== null && match.awayScore !== null
         ? ` Score : ${match.homeScore}-${match.awayScore}.`
         : "";
+    const pageDescription = `${match.home.name} contre ${match.away.name} : ${status.toLowerCase()} en ${match.league.name}.${score} Score, événements, statistiques et compositions disponibles selon les informations vérifiées.`;
     const base = buildRouteMeta({
       path,
-      title: `${match.home.name} - ${match.away.name} : score et statistiques`,
-      description: `${status} de ${match.home.name} contre ${match.away.name} en ${match.league.name}.${score} Consultez les événements, statistiques, compositions et confrontations disponibles.`,
+      title: `${match.home.name} vs ${match.away.name} : score en direct et statistiques`,
+      description: pageDescription,
       type: "article",
     });
     return {
@@ -88,7 +95,15 @@ export const Route = createFileRoute("/live/$id")({
       meta: [
         ...base.meta,
         { name: "author", content: "LiveFoot IA" },
+        {
+          name: "keywords",
+          content: `${match.home.name}, ${match.away.name}, ${match.league.name}, score football, statistiques match`,
+        },
         { property: "article:section", content: "Football" },
+        { property: "article:published_time", content: match.kickoff },
+        ...(match.meta?.fetchedAt
+          ? [{ property: "article:modified_time", content: match.meta.fetchedAt }]
+          : []),
       ],
       scripts: [
         {
@@ -96,23 +111,32 @@ export const Route = createFileRoute("/live/$id")({
           children: JSON.stringify({
             "@context": "https://schema.org",
             "@type": "SportsEvent",
+            "@id": `https://www.livefoot.fun${path}#event`,
             name: `${match.home.name} vs ${match.away.name}`,
-            description: `${status} — ${match.league.name}`,
+            description: pageDescription,
             startDate: match.kickoff,
-            eventStatus:
-              match.status === "upcoming"
-                ? "https://schema.org/EventScheduled"
-                : "https://schema.org/EventInProgress",
+            eventStatus,
             sport: "Football",
-            homeTeam: { "@type": "SportsTeam", name: match.home.name, logo: match.home.logo },
-            awayTeam: { "@type": "SportsTeam", name: match.away.name, logo: match.away.logo },
+            homeTeam: {
+              "@type": "SportsTeam",
+              name: match.home.name,
+              identifier: String(match.home.id),
+              logo: match.home.logo,
+            },
+            awayTeam: {
+              "@type": "SportsTeam",
+              name: match.away.name,
+              identifier: String(match.away.id),
+              logo: match.away.logo,
+            },
             competitor: [
-              { "@type": "SportsTeam", name: match.home.name },
-              { "@type": "SportsTeam", name: match.away.name },
+              { "@type": "SportsTeam", name: match.home.name, identifier: String(match.home.id) },
+              { "@type": "SportsTeam", name: match.away.name, identifier: String(match.away.id) },
             ],
             location: match.venue ? { "@type": "Place", name: match.venue } : undefined,
             organizer: ORG,
             url: `https://www.livefoot.fun${path}`,
+            mainEntityOfPage: `https://www.livefoot.fun${path}`,
             isAccessibleForFree: true,
             inLanguage: "fr",
             speakable: SPEAKABLE,
@@ -221,8 +245,11 @@ function LiveMatchView({ m }: { m: RemoteMatchDetail }) {
                     {m.league.name}
                   </span>
                 </div>
+                <h1 className="mt-1 max-w-[250px] text-[11px] font-black leading-tight text-[#fdfdfd]">
+                  {m.home.name} <span className="text-[#777777]">vs</span> {m.away.name}
+                </h1>
                 <div className="text-[11px] font-semibold text-[#888888]">
-                  {m.dayLabel} · {m.venue?.split(",")[0] ?? "—"}
+                  <time dateTime={m.kickoff}>{m.dayLabel}</time> · {m.venue?.split(",")[0] ?? "—"}
                 </div>
               </div>
               <div className="size-9" />
