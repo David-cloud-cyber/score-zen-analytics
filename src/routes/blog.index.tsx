@@ -1,19 +1,23 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { AppShell } from "@/components/AppShell";
-import { PremiumCta } from "@/components/PremiumCta";
-import { BlogCard, BlogIndexEmpty, BLOG_CATEGORY_LABELS } from "@/components/BlogUI";
+import { BlogListingPage } from "@/components/BlogUI";
 import { getBlogIndex } from "@/lib/editorial.functions";
 import { blogIndexHead } from "@/lib/editorial-seo";
-import { cn } from "@/lib/utils";
+
+type BlogSearch = { page: number; q: string; category: string; sort: "newest" | "useful" };
 
 export const Route = createFileRoute("/blog/")({
-  loader: async () => {
+  validateSearch: (search: Record<string, unknown>): BlogSearch => ({
+    page: Math.max(1, Math.min(100, Number(search.page ?? 1) || 1)),
+    q: typeof search.q === "string" ? search.q.slice(0, 80) : "",
+    category: typeof search.category === "string" ? search.category.slice(0, 30) : "",
+    sort: search.sort === "useful" ? "useful" : "newest",
+  }),
+  loaderDeps: ({ search }) => ({ page: search.page, q: search.q, category: search.category, sort: search.sort }),
+  loader: async ({ deps }) => {
     try {
-      return await getBlogIndex({ data: { page: 1 } });
+      return await getBlogIndex({ data: { page: deps.page, query: deps.q || undefined, category: deps.category || undefined, sort: deps.sort } });
     } catch {
-      // Le blog reste crawlable et lisible lorsque la base éditoriale est
-      // momentanément indisponible : aucun contenu de substitution n'est inventé.
-      return { articles: [], page: 1, pageSize: 12, hasMore: false };
+      return { articles: [], page: deps.page, pageSize: 12, hasMore: false, total: 0 };
     }
   },
   head: ({ loaderData }) => blogIndexHead(loaderData?.articles ?? []),
@@ -21,53 +25,5 @@ export const Route = createFileRoute("/blog/")({
 });
 
 function BlogIndexPage() {
-  const data = Route.useLoaderData();
-  const categories = Object.entries(BLOG_CATEGORY_LABELS);
-  return (
-    <AppShell>
-      <section className="mx-auto max-w-5xl space-y-8 px-4 pb-16 pt-8 lg:px-0">
-        <header className="max-w-3xl space-y-3">
-          <p className="text-[10px] font-black uppercase tracking-widest text-brand">
-            La rédaction LiveFoot
-          </p>
-          <h1 className="text-3xl font-black tracking-tight sm:text-4xl">
-            Le blog football qui explique les matchs
-          </h1>
-          <p className="text-base leading-relaxed text-muted-foreground">
-            Actualités confirmées, données de forme, compétitions et analyses accessibles pour mieux
-            comprendre le football du jour.
-          </p>
-          <PremiumCta location="blog_intro" compact label="Voir Premium" />
-        </header>
-        <nav aria-label="Catégories du blog" className="flex gap-2 overflow-x-auto pb-1">
-          <a
-            href="/blog"
-            className="shrink-0 rounded-xl bg-foreground px-3 py-2 text-xs font-black text-background"
-          >
-            Tous les articles
-          </a>
-          {categories.map(([slug, label]) => (
-            <a
-              key={slug}
-              href={`/blog/categorie/${slug}`}
-              className={cn(
-                "shrink-0 rounded-xl border border-border/70 bg-card px-3 py-2 text-xs font-bold text-muted-foreground hover:text-foreground",
-              )}
-            >
-              {label}
-            </a>
-          ))}
-        </nav>
-        {data.articles.length ? (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {data.articles.map((article) => (
-              <BlogCard key={article.id} article={article} />
-            ))}
-          </div>
-        ) : (
-          <BlogIndexEmpty />
-        )}
-      </section>
-    </AppShell>
-  );
+  return <BlogListingPage data={Route.useLoaderData()} basePath="/blog" title="Le blog football qui explique les matchs" description="Actualités confirmées, données de forme, compétitions et analyses accessibles pour mieux comprendre le football du jour." />;
 }

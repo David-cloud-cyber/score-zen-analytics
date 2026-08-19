@@ -65,11 +65,12 @@ export function blogIndexHead(articles: EditorialListItem[] = []) {
 
 export function blogArticleHead(article: PublicEditorialArticle) {
   const path = `/blog/${article.slug}`;
+  const articleImage = article.coverImage?.startsWith("/") ? `${SITE}${article.coverImage}` : article.coverImage ?? undefined;
   const base = buildRouteMeta({
     path,
     title: article.seoTitle,
     description: article.seoDescription,
-    image: article.coverImage ?? undefined,
+    image: articleImage,
     type: "article",
   });
   const scripts = [
@@ -80,7 +81,7 @@ export function blogArticleHead(article: PublicEditorialArticle) {
         "@type": "Article",
         headline: article.title,
         description: article.seoDescription,
-        image: article.coverImage ? [article.coverImage] : undefined,
+        image: articleImage ? [articleImage] : undefined,
         datePublished: article.publishedAt,
         dateModified: article.updatedAt,
         wordCount: article.wordCount,

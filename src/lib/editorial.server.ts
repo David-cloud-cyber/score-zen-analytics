@@ -1,4 +1,5 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { createClient } from "@supabase/supabase-js";
 import type {
   EditorialCategory,
   EditorialContent,
@@ -7,7 +8,12 @@ import type {
   PublicEditorialArticle,
 } from "./editorial.types";
 
-const db = supabaseAdmin as any;
+const db = (() => {
+  if (process.env.SUPABASE_SERVICE_ROLE_KEY) return supabaseAdmin as any;
+  const url = process.env.SUPABASE_URL ?? "https://oirdlreedxhldmwadwom.supabase.co";
+  const key = process.env.SUPABASE_PUBLISHABLE_KEY ?? "sb_publishable_yxv1dFxXbVRB4V58m1833w_MW11Uigv";
+  return createClient(url, key) as any;
+})();
 
 function category(value: unknown): EditorialCategory {
   return ["actualites", "competitions", "forme", "analyse", "guides"].includes(String(value))
@@ -82,6 +88,11 @@ function mapArticle(row: Record<string, unknown>, sourceRows: unknown[] = []): P
     wordCount: Number(row.word_count ?? 0),
     authorName: String(row.author_name ?? "Rédaction LiveFoot"),
     coverImage: typeof row.cover_image === "string" ? row.cover_image : null,
+    coverAlt: typeof row.cover_alt === "string" ? row.cover_alt : null,
+    coverCredit: typeof row.cover_credit === "string" ? row.cover_credit : null,
+    coverSourceUrl: typeof row.cover_source_url === "string" ? row.cover_source_url : null,
+    coverKind: row.cover_kind === "official" || row.cover_kind === "generated" ? row.cover_kind : null,
+    readingTimeMinutes: Number(row.reading_time_minutes ?? Math.max(1, Math.ceil(Number(row.word_count ?? 0) / 220))),
     disclosure: typeof row.disclosure === "string" ? row.disclosure : null,
     publishedAt: String(row.published_at ?? row.created_at),
     updatedAt: String(row.updated_at ?? row.created_at),
@@ -99,39 +110,51 @@ function mapListItem(row: Record<string, unknown>): EditorialListItem {
     excerpt: String(row.excerpt ?? ""),
     wordCount: Number(row.word_count ?? 0),
     coverImage: typeof row.cover_image === "string" ? row.cover_image : null,
+    coverAlt: typeof row.cover_alt === "string" ? row.cover_alt : null,
+    readingTimeMinutes: Number(row.reading_time_minutes ?? Math.max(1, Math.ceil(Number(row.word_count ?? 0) / 220))),
     publishedAt: String(row.published_at ?? row.created_at),
     updatedAt: String(row.updated_at ?? row.created_at),
   };
 }
 
 const PUBLIC_COLUMNS =
-  "id, slug, category, title, seo_title, seo_description, excerpt, direct_answer, content, internal_links, quality_score, word_count, author_name, cover_image, disclosure, published_at, updated_at";
+  "id, slug, category, title, seo_title, seo_description, excerpt, direct_answer, content, internal_links, quality_score, word_count, author_name, cover_image, cover_alt, cover_credit, cover_source_url, cover_kind, reading_time_minutes, disclosure, published_at, updated_at";
 
 export async function getPublishedEditorialIndex(input: {
   page?: number;
   pageSize?: number;
   category?: string;
+  query?: string;
+  sort?: "newest" | "useful";
 }) {
   const page = Math.max(1, input.page ?? 1);
   const pageSize = Math.min(24, Math.max(1, input.pageSize ?? 12));
   let query = db
     .from("editorial_articles")
-    .select(PUBLIC_COLUMNS)
+    .select(PUBLIC_COLUMNS, { count: "exact" })
     .eq("status", "published")
     .not("published_at", "is", null)
     .lte("published_at", new Date().toISOString())
-    .order("published_at", { ascending: false })
+    .order(input.sort === "useful" ? "quality_score" : "published_at", { ascending: false, nullsFirst: false })
     .range((page - 1) * pageSize, page * pageSize - 1);
   if (input.category) query = query.eq("category", input.category);
-  const { data, error } = await query;
+  const cleanedQuery = input.query?.trim().replace(/[%_,]/g, " ").slice(0, 80);
+  if (cleanedQuery) query = query.or(`title.ilike.%${cleanedQuery}%,excerpt.ilike.%${cleanedQuery}%,seo_description.ilike.%${cleanedQuery}%`);
+  const { data, error, count } = await query;
   if (error) throw new Error("EDITORIAL_INDEX_UNAVAILABLE");
   const rows = (data ?? []) as Record<string, unknown>[];
   return {
-    articles: rows.map((row) => mapArticle(row)),
+    articles: rows.map((row) => mapListItem(row)),
     page,
     pageSize,
     hasMore: rows.length === pageSize,
+    total: typeof count === "number" ? count : undefined,
   };
+}
+
+export async function getFeaturedEditorialArticles() {
+  const result = await getPublishedEditorialIndex({ page: 1, pageSize: 4, sort: "useful" });
+  return result.articles;
 }
 
 export async function getPublishedEditorialArticle(slug: string) {

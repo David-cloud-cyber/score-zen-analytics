@@ -36,8 +36,8 @@ const draftSchema = z.object({
         bullets: z.array(z.string().min(15).max(240)).max(6).optional(),
       }),
     )
-    .min(4)
-    .max(8),
+    .min(6)
+    .max(10),
   faq: z
     .array(z.object({ question: z.string().min(15).max(140), answer: z.string().min(40).max(500) }))
     .max(6),
@@ -221,7 +221,7 @@ async function generateDraft(topic: { title: string; category: EditorialCategory
     timeoutMs: 35_000,
     maxTokens: 5_000,
     systemPrompt: `Tu es la rédaction football francophone de LiveFoot. Rédige un article original, factuel et réellement intéressant pour la France et l'Afrique francophone. Pars d'une question ou d'un besoin concret que le lecteur cherche aujourd'hui : ce qui change, ce qu'il faut comprendre, les conséquences pour les équipes et les points à surveiller. Utilise uniquement les faits présents dans les sources fournies. Si une information n'est pas confirmée, ne l'affirme pas. Ne copie aucune phrase source. N'invente ni score, ni blessure, ni cote, ni date, ni déclaration. Réponds uniquement en JSON avec les clés category, title, seoTitle, seoDescription, excerpt, directAnswer, summary, sections et faq. L'article doit expliquer, contextualiser et apporter une lecture data, des repères concrets et des limites claires, pas seulement résumer les sources. Évite les titres génériques et les introductions creuses.`,
-    userPrompt: `Sujet : ${topic.title}\nCatégorie : ${topic.category}\n\nSources autorisées :\n${sourceText}\n\nRédige un article de 1200 à 1800 mots avec une promesse éditoriale claire dès le début. Les sections doivent contenir plusieurs paragraphes substantiels, des exemples uniquement lorsqu'ils sont confirmés par les sources et une conclusion qui aide le lecteur à agir ou à approfondir le sujet sur LiveFoot.`,
+    userPrompt: `Sujet : ${topic.title}\nCatégorie : ${topic.category}\n\nSources autorisées :\n${sourceText}\n\nRédige un article de 1500 à 2500 mots réels, avec une promesse éditoriale claire dès le début. Utilise 6 à 10 sections H2/H3 substantielles, une réponse directe, une FAQ utile et une conclusion qui aide le lecteur à agir ou à approfondir le sujet sur LiveFoot. Ne remplis pas artificiellement : si les sources ne permettent pas d'atteindre cette longueur avec une vraie valeur ajoutée, signale que le contenu doit rester en validation interne.`,
   });
   return draftSchema.parse(raw);
 }
@@ -245,7 +245,8 @@ async function createArticle(topic: { title: string; category: EditorialCategory
   const draft = await generateDraft(topic);
   const articleText = [draft.title, draft.excerpt, draft.directAnswer, draft.summary, ...draft.sections.flatMap((section) => [section.heading, ...section.paragraphs, ...(section.bullets ?? [])]), ...draft.faq.flatMap((item) => [item.question, item.answer])].join(" ");
   const wordCount = words(articleText);
-  if (wordCount < 900) throw new Error("EDITORIAL_WORD_COUNT_TOO_LOW");
+  if (wordCount < 1500) throw new Error("EDITORIAL_WORD_COUNT_TOO_LOW");
+  if (wordCount > 2500) throw new Error("EDITORIAL_WORD_COUNT_TOO_HIGH");
   const sourceText = topic.sources.map((source) => `${source.title} (${source.publisher}) — ${source.excerpt}`).join("\n");
   const review = await reviewDraft(draft, sourceText);
   const qualityScore = Math.round(review.score);
@@ -256,7 +257,17 @@ async function createArticle(topic: { title: string; category: EditorialCategory
     { label: "Voir les matchs en direct", path: "/", reason: "Consulter les rencontres du moment" },
     { label: "Rejoindre la communauté", path: "/communaute", reason: "Comparer les avis des utilisateurs" },
   ];
-  const shouldPublish = review.approved && qualityScore >= 80 && wordCount >= 900;
+  const coverSourceUrl = topic.sources.find((source) => allowedCoverImage(source.coverImage))?.url ?? null;
+  const officialCover = allowedCoverImage(topic.sources.find((source) => source.coverImage)?.coverImage ?? null);
+  const categoryCover = {
+    actualites: "/images/blog/cover-football.png",
+    competitions: "/images/blog/cover-competitions.png",
+    forme: "/images/blog/cover-forme.png",
+    analyse: "/images/blog/cover-analysis.png",
+    guides: "/images/blog/cover-guides.png",
+  }[draft.category];
+  const coverImage = officialCover ?? categoryCover;
+  const shouldPublish = review.approved && qualityScore >= 80 && wordCount >= 1500 && wordCount <= 2500 && Boolean(coverImage);
   const { data: article, error } = await db
     .from("editorial_articles")
     .insert({
@@ -275,7 +286,12 @@ async function createArticle(topic: { title: string; category: EditorialCategory
       word_count: wordCount,
       author_name: "Rédaction LiveFoot",
       disclosure: "Article préparé à partir de sources publiques citées et vérifié avant publication.",
-      cover_image: allowedCoverImage(topic.sources.find((source) => source.coverImage)?.coverImage ?? null),
+      cover_image: coverImage,
+      cover_alt: officialCover ? `Image d’illustration vérifiée pour ${draft.title}` : `Illustration LiveFoot consacrée à ${draft.title}`,
+      cover_credit: officialCover ? topic.sources.find((source) => allowedCoverImage(source.coverImage))?.publisher ?? "Source officielle" : "Visuel original LiveFoot",
+      cover_source_url: officialCover ? coverSourceUrl : null,
+      cover_kind: officialCover ? "official" : "generated",
+      reading_time_minutes: Math.max(1, Math.ceil(wordCount / 220)),
       published_at: shouldPublish ? new Date().toISOString() : null,
       updated_at: new Date().toISOString(),
     })

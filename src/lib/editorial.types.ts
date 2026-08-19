@@ -58,6 +58,11 @@ export type PublicEditorialArticle = {
   wordCount: number;
   authorName: string;
   coverImage: string | null;
+  coverAlt: string | null;
+  coverCredit: string | null;
+  coverSourceUrl: string | null;
+  coverKind: "official" | "generated" | null;
+  readingTimeMinutes: number;
   disclosure: string | null;
   publishedAt: string;
   updatedAt: string;
@@ -67,5 +72,27 @@ export type PublicEditorialArticle = {
 
 export type EditorialListItem = Pick<
   PublicEditorialArticle,
-  "id" | "slug" | "category" | "title" | "seoDescription" | "excerpt" | "wordCount" | "coverImage" | "publishedAt" | "updatedAt"
+  | "id"
+  | "slug"
+  | "category"
+  | "title"
+  | "seoDescription"
+  | "excerpt"
+  | "wordCount"
+  | "coverImage"
+  | "coverAlt"
+  | "readingTimeMinutes"
+  | "publishedAt"
+  | "updatedAt"
 >;
+
+export type EditorialComment = {
+  id: string;
+  articleId: string;
+  userId: string;
+  parentId: string | null;
+  body: string;
+  createdAt: string;
+  authorName: string;
+  reactions: Record<string, number>;
+};
