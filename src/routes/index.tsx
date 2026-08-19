@@ -440,7 +440,7 @@ function HomePage() {
                 />
                 <div className="trending-match-score text-3xl font-black tabular-nums">
                   {topMatch.homeScore ?? "—"}
-                  <span className="mx-2 text-background/40">·</span>
+                  <span className="trending-match-muted mx-2">·</span>
                   {topMatch.awayScore ?? "—"}
                 </div>
                 <img

@@ -306,7 +306,7 @@ function CommunautePage() {
       <PageTitle eyebrow="Espace public" title="Communauté Livefoot IA" />
 
       <div className="space-y-6 px-4 pb-28 lg:px-0">
-        <div className="relative animate-rise overflow-hidden rounded-xl bg-[#181818] p-6 text-[#f7f7f7] shadow-none">
+        <div className="score-dark-surface relative animate-rise overflow-hidden rounded-xl bg-[#181818] p-6 text-[#f7f7f7] shadow-none">
           <div className="pointer-events-none absolute -right-16 -top-16 size-48 rounded-full bg-brand/25 blur-3xl" aria-hidden />
           <div className="pointer-events-none absolute -bottom-16 -left-10 size-40 rounded-full bg-data/25 blur-3xl" aria-hidden />
           <div className="relative">
@@ -314,7 +314,7 @@ function CommunautePage() {
               <Radio className="size-3 animate-pulse" /> En direct Live
             </div>
             <h2 className="text-xl font-black leading-tight lg:text-2xl">Pronostiquez & échangez en temps réel</h2>
-            <p className="mt-2 max-w-lg text-xs leading-relaxed text-background/70 lg:text-sm">
+            <p className="mt-2 max-w-lg text-xs leading-relaxed text-[#b7c1cb] lg:text-sm">
               Consultez les matchs réels, partagez votre avis et comparez les tendances de la communauté.
             </p>
           </div>

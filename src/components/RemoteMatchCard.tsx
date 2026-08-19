@@ -63,7 +63,7 @@ export function RemoteMatchCard({ match }: { match: RemoteMatchSummary }) {
   return (
     <div
       className={cn(
-        "group relative block overflow-hidden rounded-xl border border-[#252525] bg-[#181818] text-[#fdfdfd] transition-colors hover:border-[#3a3a3a] hover:bg-[#1d1d1d] active:scale-[0.99]",
+        "score-dark-surface group relative block overflow-hidden rounded-xl border border-[#252525] bg-[#181818] text-[#fdfdfd] transition-colors hover:border-[#3a3a3a] hover:bg-[#1d1d1d] active:scale-[0.99]",
         isLive && "border-l-2 border-l-alert",
       )}
     >

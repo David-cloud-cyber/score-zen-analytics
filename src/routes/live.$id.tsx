@@ -228,7 +228,7 @@ function LiveMatchView({ m }: { m: RemoteMatchDetail }) {
     <AppShell hideHeader>
       <div className="mx-auto min-h-screen w-full max-w-[440px] bg-background pb-20 lg:max-w-[980px] lg:pb-0">
         {/* Dynamic Hero Header */}
-        <div className="relative overflow-hidden border-b border-[#252525] bg-[#111111] text-[#fdfdfd]">
+        <div className="score-dark-surface relative overflow-hidden border-b border-[#252525] bg-[#111111] text-[#fdfdfd]">
           <div className="relative">
             {/* Navigation Header */}
             <div className="flex items-center justify-between border-b border-[#252525] px-4 py-3">
@@ -313,7 +313,7 @@ function LiveMatchView({ m }: { m: RemoteMatchDetail }) {
             </div>
 
             {/* Direct AI Prediction CTA Banner */}
-            <div className="border-t border-[#252525] bg-[#181818] p-3">
+            <div className="score-dark-surface border-t border-[#252525] bg-[#181818] p-3">
               <a
                 href={`/analyse?home=${encodeURIComponent(m.home.name)}&away=${encodeURIComponent(m.away.name)}&matchId=${m.id}`}
                 className="flex w-full items-center justify-between rounded-2xl bg-brand px-4 py-2.5 text-xs font-black text-neutral-900 shadow-lg transition-transform hover:scale-[1.02] active:scale-[0.98]"
@@ -377,7 +377,7 @@ function LiveMatchView({ m }: { m: RemoteMatchDetail }) {
 
           {/* Stats Tab */}
           <TabsContent value="stats" className="mt-0 space-y-5 p-4">
-            <div className="rounded-xl border border-[#252525] bg-[#181818] p-5 shadow-none">
+            <div className="score-dark-surface rounded-xl border border-[#252525] bg-[#181818] p-5 shadow-none">
               <div className="mb-4 flex items-center justify-between text-[11px] font-black uppercase tracking-wider">
                 <span>{m.home.short}</span>
                 <span className="flex items-center gap-1 text-muted-foreground">
@@ -430,7 +430,7 @@ function LiveMatchView({ m }: { m: RemoteMatchDetail }) {
                 Aucun événement enregistré pour l'instant.
               </div>
             ) : (
-              <div className="relative rounded-xl border border-[#252525] bg-[#181818] p-5 shadow-none">
+              <div className="score-dark-surface relative rounded-xl border border-[#252525] bg-[#181818] p-5 shadow-none">
                 <div className="absolute inset-y-6 left-1/2 w-px bg-border" />
                 <div className="space-y-4">
                   {m.events.map((e, i) => (
@@ -483,7 +483,7 @@ function LiveMatchView({ m }: { m: RemoteMatchDetail }) {
                 Aucune confrontation directe récente.
               </div>
             ) : (
-              <div className="rounded-xl border border-[#252525] bg-[#181818] shadow-none">
+              <div className="score-dark-surface rounded-xl border border-[#252525] bg-[#181818] shadow-none">
                 <div className="border-b border-border/60 px-5 py-3.5 text-[11px] font-black uppercase tracking-widest">
                   Confrontations directes récentes
                 </div>

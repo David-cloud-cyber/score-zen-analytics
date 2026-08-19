@@ -215,7 +215,7 @@ function PremiumSubscriptionPage() {
 
       {/* Hero Banner */}
       <div className="px-4 lg:px-0">
-        <div className="relative animate-rise overflow-hidden rounded-xl bg-[#181818] p-6 text-[#f7f7f7] shadow-none">
+        <div className="score-dark-surface relative animate-rise overflow-hidden rounded-xl bg-[#181818] p-6 text-[#f7f7f7] shadow-none">
           <div
             className="pointer-events-none absolute -right-12 -top-16 size-56 rounded-full bg-brand/35 blur-3xl"
             aria-hidden
@@ -233,7 +233,7 @@ function PremiumSubscriptionPage() {
             <h1 className="mt-3 text-2xl font-black leading-tight sm:text-3xl">
               Débloquez la puissance maximale des prédictions IA
             </h1>
-            <p className="mt-2 text-xs leading-relaxed text-background/75 sm:text-sm">
+            <p className="mt-2 text-xs leading-relaxed text-[#b7c1cb] sm:text-sm">
               100 crédits par mois réinitialisés à chaque cycle, favoris illimités, et accès
               exclusif aux packs de recharge pour ne jamais tomber à court.
             </p>

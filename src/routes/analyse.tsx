@@ -469,7 +469,7 @@ function AnalysePage() {
           </div>
         ) : (
           <>
-            <div className="animate-score-pop rounded-xl bg-[#181818] p-5 text-[#f7f7f7] shadow-none">
+            <div className="score-dark-surface animate-score-pop rounded-xl bg-[#181818] p-5 text-[#f7f7f7] shadow-none">
               <div className="mb-3 flex items-center justify-between">
                 <div className="inline-flex items-center gap-1.5 rounded-full bg-brand/20 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-brand">
                   <Sparkles className="size-3" /> Prédiction LiveFoot

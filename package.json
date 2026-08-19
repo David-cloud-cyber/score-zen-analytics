@@ -12,6 +12,7 @@
     "audit:seo": "node scripts/audit-seo.mjs",
     "audit:live": "node scripts/audit-live-realtime.mjs",
     "audit:buttons": "node scripts/audit-button-labels.mjs",
+    "audit:contrast": "node scripts/audit-contrast.mjs",
     "test:prediction-quality": "node --experimental-strip-types scripts/test-prediction-quality.mjs",
     "format": "prettier --write ."
   },

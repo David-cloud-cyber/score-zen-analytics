@@ -323,7 +323,7 @@ function ProfilPage() {
 
       {/* Credits Wallet */}
       <section aria-labelledby="wallet-title" className="mt-4 px-4 lg:px-0">
-        <div className="relative animate-rise overflow-hidden rounded-xl bg-[#181818] p-5 text-[#f7f7f7]">
+        <div className="score-dark-surface relative animate-rise overflow-hidden rounded-xl bg-[#181818] p-5 text-[#f7f7f7]">
           <div
             className="pointer-events-none absolute -right-10 -top-16 size-48 rounded-full bg-warn/25 blur-3xl"
             aria-hidden
@@ -341,7 +341,7 @@ function ProfilPage() {
                 <h2 id="wallet-title" className="text-4xl font-black tabular-nums leading-none">
                   {balance}
                 </h2>
-                <p className="mt-1 text-[11px] text-background/60">
+                <p className="mt-1 text-[11px] text-[#b7c1cb]">
                   ≈ {Math.floor(balance / 3)} analyses IA restantes (3 crédits / analyse)
                 </p>
               </div>
@@ -365,7 +365,7 @@ function ProfilPage() {
             </div>
 
             <div className="mt-4">
-              <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-widest text-background/60">
+              <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-widest text-[#b7c1cb]">
                 <span>{isPremium ? "Crédits Mensuels Premium" : "Crédits de bienvenue"}</span>
                 <span className="tabular-nums text-background">
                   {balance} / {monthlyLimit}

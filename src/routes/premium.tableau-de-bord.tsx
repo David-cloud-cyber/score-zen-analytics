@@ -348,7 +348,7 @@ function PremiumHubPage() {
           <FollowedTeams favorites={data.favorites} onNotification={handleNotification} />
         </section>
 
-        <div className="animate-score-pop rounded-xl bg-[#181818] p-5 text-[#f7f7f7] shadow-none sm:p-6">
+        <div className="score-dark-surface animate-score-pop rounded-xl bg-[#181818] p-5 text-[#f7f7f7] shadow-none sm:p-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-brand">
@@ -392,7 +392,7 @@ function HubHeader({
   refreshing: boolean;
 }) {
   return (
-    <header className="relative animate-rise overflow-hidden rounded-xl bg-[#181818] p-5 text-[#f7f7f7] shadow-none sm:p-6">
+    <header className="score-dark-surface relative animate-rise overflow-hidden rounded-xl bg-[#181818] p-5 text-[#f7f7f7] shadow-none sm:p-6">
       <div
         className="pointer-events-none absolute -right-16 -top-24 size-64 rounded-full bg-brand/35 blur-3xl"
         aria-hidden
@@ -997,7 +997,7 @@ function PremiumGate({ credits }: { credits: number }) {
   return (
     <AppShell>
       <div className="space-y-6 px-4 pb-12 pt-6 lg:px-0">
-        <div className="relative animate-rise overflow-hidden rounded-xl bg-[#181818] p-6 text-[#f7f7f7] shadow-none">
+        <div className="score-dark-surface relative animate-rise overflow-hidden rounded-xl bg-[#181818] p-6 text-[#f7f7f7] shadow-none">
           <Lock className="size-7 text-brand" />
           <h1 className="mt-4 text-2xl font-black">Le Premium Intelligence Hub vous attend</h1>
           <p className="mt-2 max-w-xl text-sm leading-relaxed text-[#f7f7f7]/70">

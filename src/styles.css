@@ -503,6 +503,28 @@
     color: color-mix(in srgb, currentColor 82%, var(--muted-foreground));
   }
 
+  /* Dark promotional/data surfaces must keep readable text in every theme.
+     Page-level tokens are intentionally not reused here: in dark mode
+     --background is itself dark and would make subtitles disappear. */
+  .score-shell .score-dark-surface {
+    color: #f7f7f7;
+  }
+
+  .score-shell .score-dark-surface [class*="text-background"],
+  .score-shell .score-dark-surface [class*="text-foreground"] {
+    color: #f7f7f7 !important;
+  }
+
+  .score-shell .score-dark-surface [class*="text-muted-foreground"] {
+    color: #b7c1cb !important;
+  }
+
+  .score-shell .score-dark-surface input::placeholder,
+  .score-shell .score-dark-surface textarea::placeholder {
+    color: #b7c1cb !important;
+    opacity: 1;
+  }
+
   .lf-loading-skeleton {
     position: relative;
     overflow: hidden;
