@@ -20,6 +20,7 @@ interface SitemapEntry {
   changefreq?: "always" | "hourly" | "daily" | "weekly" | "monthly" | "yearly" | "never";
   priority?: string;
   alternates?: SitemapAlternate[];
+  image?: string;
 }
 
 interface SitemapAlternate {
@@ -108,6 +109,7 @@ export const Route = createFileRoute("/sitemap.xml")({
             priority: "0.9",
           },
           { path: "/blog", changefreq: "daily", priority: "0.9" },
+          { path: "/blog/football", lastmod: editorialEntries[0]?.updated_at, changefreq: "daily", priority: "0.85" },
           { path: "/en", changefreq: "weekly", priority: "0.7" },
           { path: "/en/analyse", changefreq: "weekly", priority: "0.7" },
           { path: "/en/premium", changefreq: "monthly", priority: "0.5" },
@@ -124,6 +126,7 @@ export const Route = createFileRoute("/sitemap.xml")({
             lastmod: article.updated_at,
             changefreq: "daily" as const,
             priority: "0.8",
+            image: article.cover_image?.startsWith("/") ? `${BASE_URL}${article.cover_image}` : article.cover_image ?? undefined,
           })),
           ...BOOKMAKERS.map((b) => ({
             path: `/codes-promo/${b.slug}`,
@@ -168,6 +171,7 @@ export const Route = createFileRoute("/sitemap.xml")({
             e.lastmod ? `    <lastmod>${xmlEscape(e.lastmod)}</lastmod>` : null,
             e.changefreq ? `    <changefreq>${e.changefreq}</changefreq>` : null,
             e.priority ? `    <priority>${e.priority}</priority>` : null,
+            e.image ? `    <image:image><image:loc>${xmlEscape(e.image)}</image:loc></image:image>` : null,
             `  </url>`,
           ]
             .filter(Boolean)
@@ -176,7 +180,7 @@ export const Route = createFileRoute("/sitemap.xml")({
 
         const xml = [
           `<?xml version="1.0" encoding="UTF-8"?>`,
-          `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">`,
+          `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">`,
           ...urls,
           `</urlset>`,
         ].join("\n");

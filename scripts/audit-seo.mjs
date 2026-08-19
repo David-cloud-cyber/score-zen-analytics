@@ -14,6 +14,8 @@ const publicRoutes = [
   "src/routes/communaute.tsx",
   "src/routes/premium.tsx",
   "src/routes/blog.index.tsx",
+  "src/routes/blog.football.tsx",
+  "src/routes/blog.$slug.tsx",
   "src/routes/codes-promo.index.tsx",
   "src/routes/en.index.tsx",
   "src/routes/en.analyse.tsx",
@@ -29,7 +31,7 @@ for (const file of publicRoutes) {
     const source = read(file);
     check(source.includes("head:"), `${file} ne déclare pas de métadonnées head`);
     check(
-      source.includes("buildRouteMeta") || source.includes("blogIndexHead"),
+      source.includes("buildRouteMeta") || source.includes("blogIndexHead") || source.includes("blogCollectionHead") || source.includes("blogArticleHead"),
       `${file} n'utilise pas de helper SEO partagé`,
     );
   }

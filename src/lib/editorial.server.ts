@@ -197,13 +197,13 @@ export async function getPublishedEditorialArticle(slug: string) {
 export async function getEditorialSitemapEntries() {
   const { data, error } = await db
     .from("editorial_articles")
-    .select("slug, category, published_at, updated_at")
+    .select("slug, category, published_at, updated_at, cover_image")
     .eq("status", "published")
     .not("published_at", "is", null)
     .lte("published_at", new Date().toISOString())
     .order("published_at", { ascending: false });
   if (error) throw new Error("EDITORIAL_SITEMAP_UNAVAILABLE");
-  return (data ?? []) as Array<{ slug: string; category: string; published_at: string; updated_at: string }>;
+  return (data ?? []) as Array<{ slug: string; category: string; published_at: string; updated_at: string; cover_image: string | null }>;
 }
 
 export async function getEditorialFeedEntries() {

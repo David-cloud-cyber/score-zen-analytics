@@ -3,28 +3,50 @@ import type { EditorialListItem, PublicEditorialArticle } from "./editorial.type
 
 const SITE = "https://www.livefoot.fun";
 
-export function blogIndexHead(articles: EditorialListItem[] = []) {
+type BlogCollectionOptions = {
+  path: string;
+  title: string;
+  description: string;
+  articles?: EditorialListItem[];
+  total?: number;
+  page?: number;
+  query?: string;
+  category?: string;
+  sort?: "newest" | "useful";
+  breadcrumb: { name: string; path: string }[];
+  alternates?: { language: "fr" | "en" | "x-default"; path: string }[];
+};
+
+/**
+ * SEO partagé pour les hubs éditoriaux.
+ * Les recherches, tris et filtres restent accessibles aux visiteurs mais ne
+ * créent pas de copies concurrentes dans l'index. Les pages paginées propres
+ * gardent leur URL canonique afin que tous les articles restent découvrables.
+ */
+export function blogCollectionHead(options: BlogCollectionOptions) {
+  const page = Math.max(1, options.page ?? 1);
+  const refined = Boolean(options.query || options.category || options.sort === "useful");
+  const canonicalPath = refined
+    ? options.path
+    : page > 1
+      ? `${options.path}?page=${page}`
+      : options.path;
+  const total = options.total ?? options.articles?.length ?? 0;
   const base = buildRouteMeta({
-    path: "/blog",
-    title: "Blog football : actualités, analyses et données vérifiées",
-    description:
-      "Actualités football confirmées, analyses statistiques, forme des équipes et guides utiles pour suivre les compétitions en France et en Afrique francophone.",
-    alternates: [
-      { language: "fr", path: "/blog" },
-      { language: "en", path: "/en/blog" },
-      { language: "x-default", path: "/blog" },
-    ],
+    path: canonicalPath,
+    title: options.title,
+    description: options.description,
+    noindex: refined || total < 2,
+    alternates: !refined && page === 1 ? options.alternates : undefined,
   });
+  const articles = options.articles ?? [];
   return {
     ...base,
     links: [
       ...base.links,
-      {
-        rel: "alternate",
-        type: "application/rss+xml",
-        title: "Flux RSS du blog football LiveFoot",
-        href: `${SITE}/blog/rss.xml`,
-      },
+      ...(options.path === "/blog"
+        ? [{ rel: "alternate", type: "application/rss+xml", title: "Flux RSS du blog football LiveFoot", href: `${SITE}/blog/rss.xml` }]
+        : []),
     ],
     scripts: [
       {
@@ -32,35 +54,54 @@ export function blogIndexHead(articles: EditorialListItem[] = []) {
         children: JSON.stringify({
           "@context": "https://schema.org",
           "@type": "CollectionPage",
-          name: "Blog football LiveFoot",
-          url: `${SITE}/blog`,
+          name: options.title,
+          description: options.description,
+          url: `${SITE}${canonicalPath}`,
           inLanguage: "fr",
           publisher: ORG,
           speakable: SPEAKABLE,
-          mainEntity: articles.length
-            ? {
-                "@type": "ItemList",
-                itemListElement: articles.slice(0, 12).map((article, index) => ({
-                  "@type": "ListItem",
-                  position: index + 1,
-                  name: article.title,
-                  url: `${SITE}/blog/${article.slug}`,
-                })),
-              }
-            : undefined,
+          mainEntity: {
+            "@type": "ItemList",
+            numberOfItems: total,
+            itemListElement: articles.slice(0, 12).map((article, index) => ({
+              "@type": "ListItem",
+              position: index + 1 + (page - 1) * 12,
+              name: article.title,
+              url: `${SITE}/blog/${article.slug}`,
+              ...(article.coverImage ? { image: article.coverImage.startsWith("/") ? `${SITE}${article.coverImage}` : article.coverImage } : {}),
+            })),
+          },
         }),
       },
       {
         type: "application/ld+json",
-        children: JSON.stringify(
-          breadcrumbSchema([
-            { name: "Accueil", path: "/" },
-            { name: "Blog", path: "/blog" },
-          ]),
-        ),
+        children: JSON.stringify(breadcrumbSchema(options.breadcrumb)),
       },
     ],
   };
+}
+
+export function blogIndexHead(
+  articles: EditorialListItem[] = [],
+  options: Pick<BlogCollectionOptions, "page" | "query" | "category" | "sort" | "total"> = {},
+) {
+  return blogCollectionHead({
+    path: "/blog",
+    title: "Blog football : actualités, analyses et données vérifiées",
+    description:
+      "Actualités football confirmées, analyses statistiques, forme des équipes et guides utiles pour suivre les compétitions en France et en Afrique francophone.",
+    articles,
+    ...options,
+    breadcrumb: [
+      { name: "Accueil", path: "/" },
+      { name: "Blog", path: "/blog" },
+    ],
+    alternates: [
+      { language: "fr", path: "/blog" },
+      { language: "en", path: "/en/blog" },
+      { language: "x-default", path: "/blog" },
+    ],
+  });
 }
 
 export function blogArticleHead(article: PublicEditorialArticle) {

@@ -15,12 +15,20 @@ export const Route = createFileRoute("/blog/")({
   loaderDeps: ({ search }) => ({ page: search.page, q: search.q, category: search.category, sort: search.sort }),
   loader: async ({ deps }) => {
     try {
-      return await getBlogIndex({ data: { page: deps.page, query: deps.q || undefined, category: deps.category || undefined, sort: deps.sort } });
+      const data = await getBlogIndex({ data: { page: deps.page, query: deps.q || undefined, category: deps.category || undefined, sort: deps.sort } });
+      return { ...data, _seo: deps };
     } catch {
-      return { articles: [], page: deps.page, pageSize: 12, hasMore: false, total: 0 };
+      return { articles: [], page: deps.page, pageSize: 12, hasMore: false, total: 0, _seo: deps };
     }
   },
-  head: ({ loaderData }) => blogIndexHead(loaderData?.articles ?? []),
+  head: ({ loaderData }) =>
+    blogIndexHead(loaderData?.articles ?? [], {
+      page: loaderData?._seo.page,
+      query: loaderData?._seo.q,
+      category: loaderData?._seo.category,
+      sort: loaderData?._seo.sort,
+      total: loaderData?.total,
+    }),
   component: BlogIndexPage,
 });
 
