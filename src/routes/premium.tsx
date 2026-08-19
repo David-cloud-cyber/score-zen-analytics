@@ -22,6 +22,7 @@ import { AppShell, PageTitle } from "@/components/AppShell";
 import { breadcrumbSchema, buildRouteMeta, faqSchema } from "@/lib/seo";
 import { PREMIUM_PLANS, PRICED_PACKS, formatXaf, type PremiumPlan, type PricedPack } from "@/lib/pricing";
 import { createSubscriptionCheckout, createTopupCheckout } from "@/lib/payments.functions";
+import { rememberPaymentHandoff } from "@/lib/payment-handoff";
 import { getMyBalance } from "@/lib/analyses.functions";
 import { useServerFn } from "@tanstack/react-start";
 import { useSession } from "@/hooks/use-session";
@@ -156,6 +157,8 @@ function PremiumSubscriptionPage() {
       track("premium_checkout_started", { plan: plan.id, location: "premium_plan_card", mode: "hosted" });
       const res = await subCheckoutFn({ data: { planId: plan.id, checkoutRequestId: crypto.randomUUID() } });
       if (!res.link) throw new Error("La page de paiement n'a pas pu être ouverte.");
+      if (!res.externalId || !res.transId) throw new Error("La page de paiement n'a pas pu être ouverte.");
+      rememberPaymentHandoff({ externalId: res.externalId, transId: res.transId });
       track("premium_checkout_redirected", { plan: plan.id, durationMs: Date.now() - startedAt, mode: "hosted" });
       window.location.assign(res.link);
     } catch (err) {
@@ -195,6 +198,8 @@ function PremiumSubscriptionPage() {
       track("topup_checkout_started", { pack: pack.id, mode: "hosted" });
       const res = await topupCheckoutFn({ data: { packId: pack.id, checkoutRequestId: crypto.randomUUID() } });
       if (!res.link) throw new Error("La page de paiement n'a pas pu être ouverte.");
+      if (!res.externalId || !res.transId) throw new Error("La page de paiement n'a pas pu être ouverte.");
+      rememberPaymentHandoff({ externalId: res.externalId, transId: res.transId });
       track("topup_checkout_redirected", { pack: pack.id, durationMs: Date.now() - startedAt, mode: "hosted" });
       window.location.assign(res.link);
     } catch (err) {

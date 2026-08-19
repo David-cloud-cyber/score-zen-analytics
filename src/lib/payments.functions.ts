@@ -69,7 +69,7 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
 
     const { data: existing, error: existingError } = await supabaseAdmin
       .from("subscriptions")
-      .select("id, trans_id, checkout_link, checkout_mode, status")
+      .select("id, trans_id, external_id, checkout_link, checkout_mode, status")
       .eq("user_id", context.userId)
       .eq("checkout_request_id", data.checkoutRequestId)
       .maybeSingle();
@@ -79,6 +79,7 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
         return {
           link: existing.checkout_link,
           transId: existing.trans_id,
+          externalId: existing.external_id,
           mode: existing.checkout_mode ?? "hosted",
           status: existing.status,
           amountXaf: plan.priceXaf,
@@ -132,7 +133,7 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
         }
       })();
 
-      return { link: res.link, transId: res.transId, mode: res.mode, status: "PENDING", amountXaf: plan.priceXaf, planId: plan.id };
+      return { link: res.link, transId: res.transId, externalId, mode: res.mode, status: "PENDING", amountXaf: plan.priceXaf, planId: plan.id };
     } catch (error) {
       await supabaseAdmin
         .from("subscriptions")
@@ -173,7 +174,7 @@ export const createTopupCheckout = createServerFn({ method: "POST" })
 
     const { data: existing, error: existingError } = await supabaseAdmin
       .from("payments")
-      .select("id, trans_id, link, checkout_link, checkout_mode, status")
+      .select("id, trans_id, external_id, link, checkout_link, checkout_mode, status")
       .eq("user_id", context.userId)
       .eq("checkout_request_id", data.checkoutRequestId)
       .maybeSingle();
@@ -184,6 +185,7 @@ export const createTopupCheckout = createServerFn({ method: "POST" })
         return {
           link: existingLink,
           transId: existing.trans_id,
+          externalId: existing.external_id,
           mode: existing.checkout_mode ?? "hosted",
           status: existing.status,
           amountXaf: pack.priceXaf,
@@ -238,6 +240,7 @@ export const createTopupCheckout = createServerFn({ method: "POST" })
       return {
         link: res.link,
         transId: res.transId,
+        externalId,
         mode: res.mode,
         status: "PENDING",
         amountXaf: pack.priceXaf,
@@ -267,10 +270,14 @@ export const verifyTopup = createServerFn({ method: "POST" })
 export const verifyCheckout = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) =>
-    z.object({ externalId: z.string().trim().regex(/^(sub|pk)_[A-Za-z0-9]+$/).max(120) }).parse(data),
+    z.object({
+      externalId: z.string().trim().regex(/^(sub|pk)_[A-Za-z0-9]+$/).max(120),
+      transId: z.string().trim().min(1).max(120).optional(),
+    }).parse(data),
   )
   .handler(async ({ data, context }) => {
-    const { settleByExternalId } = await import("./payments.server");
+    const { settleByExternalId, settlePaymentOrSubscription } = await import("./payments.server");
+    if (data.transId) return settlePaymentOrSubscription(data.transId, context.userId);
     return settleByExternalId(data.externalId, context.userId);
   });
 

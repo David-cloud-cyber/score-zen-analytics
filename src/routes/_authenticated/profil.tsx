@@ -23,6 +23,7 @@ import {
 import { AppShell, PageTitle } from "@/components/AppShell";
 import { PRICED_PACKS, formatXaf, type PricedPack } from "@/lib/pricing";
 import { createTopupCheckout, verifyTopup, verifyCheckout, getMyPayments } from "@/lib/payments.functions";
+import { clearPaymentHandoff, readPaymentHandoff, rememberPaymentHandoff } from "@/lib/payment-handoff";
 import { getMyBalance, getMyAnalysisHistory } from "@/lib/analyses.functions";
 import { getMyReferralDetails } from "@/lib/referral.functions";
 import { requestReferralPopup } from "@/hooks/use-referral-popup";
@@ -143,19 +144,22 @@ function ProfilPage() {
     if (demoMode) return;
     const externalId = new URLSearchParams(window.location.search).get("payment");
     if (!externalId) return;
+    const handoff = readPaymentHandoff(externalId);
     window.history.replaceState({}, "", `${window.location.pathname}${window.location.hash}`);
     let cancelled = false;
     const confirmReturnedPayment = async () => {
       setFlash("Confirmation de votre paiement en cours…");
       for (let attempt = 0; attempt < 8 && !cancelled; attempt += 1) {
         try {
-          const result = await verifyCheckoutFn({ data: { externalId } });
+          const result = await verifyCheckoutFn({ data: { externalId, transId: handoff?.transId } });
           if (result.status === "SUCCESSFUL") {
+            clearPaymentHandoff();
             setFlash(result.credits ? `${result.credits} crédits ont été ajoutés à votre solde.` : "Paiement confirmé. Votre accès Premium est actif.");
             await queryClient.invalidateQueries({ queryKey: ["me"] });
             return;
           }
           if (["FAILED", "EXPIRED", "UNDERPAID"].includes(result.status)) {
+            clearPaymentHandoff();
             setFlash("Le paiement n'a pas abouti. Vous pouvez réessayer depuis cette page.");
             return;
           }
@@ -191,6 +195,8 @@ function ProfilPage() {
     try {
       const res = await checkoutFn({ data: { packId: pack.id, checkoutRequestId: crypto.randomUUID() } });
       if (!res.link) throw new Error("La page de paiement n'a pas pu être ouverte.");
+      if (!res.externalId || !res.transId) throw new Error("La page de paiement n'a pas pu être ouverte.");
+      rememberPaymentHandoff({ externalId: res.externalId, transId: res.transId });
       window.location.assign(res.link);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "La page de paiement n'a pas pu être ouverte.");
@@ -848,14 +854,22 @@ function TopupDialog({
                 "relative flex flex-col items-start gap-1 rounded-2xl p-3 text-left text-foreground ring-1 transition-all disabled:opacity-50",
                 p.best ? "bg-brand/10 ring-brand/40" : "bg-card ring-black/5 dark:ring-white/5",
               )}
-            >
-              <div className="flex items-center gap-1 text-warn">
-                <Coins className="size-3.5" />
-                <span className="text-[10px] font-black uppercase tracking-widest">Crédits</span>
-              </div>
-              <div className="text-2xl font-black tabular-nums leading-none">{p.credits}</div>
-              <div className="text-sm font-black tabular-nums">{p.priceLabel}</div>
-              <div className="text-[10px] text-muted-foreground">{p.perAnalysisLabel}</div>
+              >
+                {busyPack === p.id ? (
+                  <span className="min-h-[68px] w-full text-center text-xs font-black leading-tight">
+                    Ouverture du paiement…
+                  </span>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-1 text-warn">
+                      <Coins className="size-3.5" />
+                      <span className="text-[10px] font-black uppercase tracking-widest">Crédits</span>
+                    </div>
+                    <div className="text-2xl font-black tabular-nums leading-none">{p.credits}</div>
+                    <div className="text-sm font-black tabular-nums">{p.priceLabel}</div>
+                    <div className="text-[10px] text-muted-foreground">{p.perAnalysisLabel}</div>
+                  </>
+                )}
             </button>
           ))}
         </div>
