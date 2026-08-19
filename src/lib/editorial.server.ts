@@ -120,6 +120,12 @@ function mapListItem(row: Record<string, unknown>): EditorialListItem {
 const PUBLIC_COLUMNS =
   "id, slug, category, title, seo_title, seo_description, excerpt, direct_answer, content, internal_links, quality_score, word_count, author_name, cover_image, cover_alt, cover_credit, cover_source_url, cover_kind, reading_time_minutes, disclosure, published_at, updated_at";
 
+// Les cartes, catégories, recommandations et données structurées de liste ne
+// doivent pas charger le JSONB complet d'un article. Le contenu détaillé reste
+// réservé à la fiche ouverte, ce qui réduit fortement le TTFB du blog.
+const LIST_COLUMNS =
+  "id, slug, category, title, seo_description, excerpt, word_count, cover_image, cover_alt, reading_time_minutes, published_at, updated_at";
+
 export async function getPublishedEditorialIndex(input: {
   page?: number;
   pageSize?: number;
@@ -131,7 +137,7 @@ export async function getPublishedEditorialIndex(input: {
   const pageSize = Math.min(24, Math.max(1, input.pageSize ?? 12));
   let query = db
     .from("editorial_articles")
-    .select(PUBLIC_COLUMNS, { count: "exact" })
+    .select(LIST_COLUMNS, { count: "exact" })
     .eq("status", "published")
     .not("published_at", "is", null)
     .lte("published_at", new Date().toISOString())
@@ -177,7 +183,7 @@ export async function getPublishedEditorialArticle(slug: string) {
   const article = mapArticle(row as Record<string, unknown>, sourceRows ?? []);
   const { data: relatedRows } = await db
     .from("editorial_articles")
-    .select(PUBLIC_COLUMNS)
+    .select(LIST_COLUMNS)
     .eq("status", "published")
     .neq("id", row.id)
     .not("published_at", "is", null)
