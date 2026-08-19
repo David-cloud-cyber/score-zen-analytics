@@ -14,6 +14,13 @@ function xmlEscape(value: string) {
     .replace(/'/g, "&apos;");
 }
 
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number) {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => setTimeout(() => reject(new Error("SITEMAP_SOURCE_TIMEOUT")), timeoutMs)),
+  ]);
+}
+
 interface SitemapEntry {
   path: string;
   lastmod?: string;
@@ -67,7 +74,10 @@ export const Route = createFileRoute("/sitemap.xml")({
         try {
           const { getFixtures } = await import("@/lib/football.functions");
           const today = new Date().toISOString().slice(0, 10);
-          const payload = await getFixtures({ data: { date: today } });
+          // Le sitemap ne doit jamais attendre un fournisseur sportif lent.
+          // Les fiches réelles restent découvertes par leurs liens et par le
+          // prochain rafraîchissement du sitemap.
+          const payload = await withTimeout(getFixtures({ data: { date: today } }), 2500);
           if (payload.state !== "unavailable") {
             fixtureEntries = payload.matches
               .filter(
