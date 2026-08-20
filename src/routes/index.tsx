@@ -28,6 +28,7 @@ import { requestCookiePreferences } from "@/lib/meta-pixel";
 import { DEMO_FAVORITES, DEMO_FIXTURES, isLocalDemo } from "@/lib/local-demo";
 import { useSession } from "@/hooks/use-session";
 import { useLiveFixtureStream } from "@/hooks/use-live-fixture-stream";
+import { TelegramCtaCard } from "@/components/TelegramCtaCard";
 
 const fixturesQuery = (mode: "today" | "live", date?: string) =>
   queryOptions({
@@ -573,6 +574,10 @@ function HomePage() {
             )}
           </div>
         ))}
+      </div>
+
+      <div className="mt-8 px-4 lg:px-0">
+        <TelegramCtaCard location="home_bottom" />
       </div>
 
       {/* CTA (mobile only) */}

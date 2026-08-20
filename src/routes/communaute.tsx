@@ -31,6 +31,7 @@ import {
 import { breadcrumbSchema, buildRouteMeta } from "@/lib/seo";
 import { cn } from "@/lib/utils";
 import { DEMO_COMMUNITY_POLLS, DEMO_LEADERBOARD, isLocalDemo } from "@/lib/local-demo";
+import { TelegramCtaCard } from "@/components/TelegramCtaCard";
 
 export const Route = createFileRoute("/communaute")({
   head: () => ({
@@ -319,6 +320,8 @@ function CommunautePage() {
             </p>
           </div>
         </div>
+
+        <TelegramCtaCard location="community_hero" compact />
 
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand/20 bg-brand/5 px-4 py-3">
           <p className="text-xs text-muted-foreground">Approfondissez les matchs suivis par la communauté avec les analyses Premium.</p>

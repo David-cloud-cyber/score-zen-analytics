@@ -31,6 +31,7 @@ import { cn } from "@/lib/utils";
 import { formatPremiumExpiry, isPremiumActive, premiumDaysRemaining } from "@/lib/premium-status";
 import { DEMO_PROFILE, isLocalDemo } from "@/lib/local-demo";
 import { track } from "@/lib/analytics";
+import { TelegramCtaCard } from "@/components/TelegramCtaCard";
 
 export const Route = createFileRoute("/premium")({
   validateSearch: (search): { plan?: "premium_monthly" | "premium_yearly" } => {
@@ -463,6 +464,10 @@ function PremiumSubscriptionPage() {
           ))}
         </div>
       </section>
+
+      <div className="px-4 lg:px-0">
+        <TelegramCtaCard location="premium_footer" compact />
+      </div>
 
       {/* FAQ */}
       <section className="mt-10 px-4 pb-8 lg:px-0">

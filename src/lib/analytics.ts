@@ -35,7 +35,9 @@ export type AnalyticsEvent =
   | "topup_checkout_started"
   | "topup_checkout_redirected"
   | "promo_code_copy"
-  | "promo_affiliate_click";
+  | "promo_affiliate_click"
+  | "telegram_cta_view"
+  | "telegram_cta_click";
 
 export type FixtureDiagnostic = {
   reason: "today_unavailable" | "live_unavailable" | "render_failure";
