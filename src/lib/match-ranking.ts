@@ -8,46 +8,85 @@ import type { RemoteMatchSummary } from "./football-types";
  * envoyées à la page Matchs.
  */
 
-const POPULAR_LEAGUES = new Set([
-  2, // UEFA Champions League
-  3, // UEFA Europa League
-  39, // Premier League
-  61, // Ligue 1
-  78, // Bundesliga
-  135, // Serie A
-  140, // La Liga
-  141, // La Liga 2
-  143, // Copa del Rey
-  72, // Brasileirão
-  94, // Primeira Liga
+/**
+ * Priorité éditoriale des compétitions connues.
+ *
+ * Les IDs sont la source principale : les noms de compétitions peuvent varier
+ * selon la langue ou le fournisseur. Les termes ci-dessous servent de secours
+ * pour les nouveaux IDs et les libellés localisés.
+ *
+ * 3 = priorité majeure (grands championnats, compétitions mondiales),
+ * 2 = priorité forte (coupes continentales et championnats très suivis),
+ * 1 = priorité locale ou secondaire à conserver dans les affiches populaires.
+ */
+const POPULAR_LEAGUE_PRIORITIES = new Map<number, 1 | 2 | 3>([
+  [1, 3], // FIFA World Cup
+  [2, 3], // UEFA Champions League
+  [3, 2], // UEFA Europa League
+  [4, 3], // UEFA Euro
+  [6, 3], // Africa Cup of Nations
+  [11, 2], // Copa Sudamericana
+  [12, 2], // CAF Champions League
+  [13, 3], // Copa Libertadores
+  [39, 3], // Premier League
+  [40, 1], // Championship
+  [61, 3], // Ligue 1
+  [71, 2], // Brasileirão Série A
+  [78, 3], // Bundesliga
+  [88, 2], // Eredivisie
+  [94, 2], // Primeira Liga
+  [140, 3], // La Liga
+  [143, 2], // Copa del Rey
+  [253, 2], // MLS
+  [307, 2], // Saudi Pro League
+  [848, 2], // UEFA Conference League
+  [135, 3], // Serie A
 ]);
 
-const POPULAR_LEAGUE_TERMS = [
-  "champions league",
-  "ligue des champions",
-  "europa league",
-  "conference league",
-  "premier league",
-  "la liga",
-  "laliga",
-  "ligue 1",
-  "bundesliga",
-  "serie a",
-  "eredivisie",
-  "primeira liga",
-  "brasileirao",
-  "brasileirão",
-  "copa libertadores",
-  "copa del rey",
-  "fa cup",
-  "championship",
-  "major league soccer",
-  "mls",
-  "saudi pro league",
-  "coupe d'afrique",
-  "africa cup of nations",
-  "world cup",
-  "euro",
+const POPULAR_LEAGUE_TERMS: ReadonlyArray<{ terms: string[]; priority: 1 | 2 | 3 }> = [
+  {
+    priority: 3,
+    terms: [
+      "champions league",
+      "ligue des champions",
+      "premier league",
+      "la liga",
+      "laliga",
+      "ligue 1",
+      "bundesliga",
+      "serie a",
+      "world cup",
+      "coupe du monde",
+      "euro",
+      "copa libertadores",
+      "africa cup of nations",
+      "coupe d afrique des nations",
+      "afcon",
+    ],
+  },
+  {
+    priority: 2,
+    terms: [
+      "europa league",
+      "conference league",
+      "eredivisie",
+      "primeira liga",
+      "liga portugal",
+      "brasileirao",
+      "brasileiro serie a",
+      "copa sudamericana",
+      "copa del rey",
+      "fa cup",
+      "caf champions league",
+      "major league soccer",
+      "mls",
+      "saudi pro league",
+    ],
+  },
+  {
+    priority: 1,
+    terms: ["championship"],
+  },
 ];
 
 const POPULAR_TEAMS = new Set([
@@ -99,11 +138,7 @@ function isTrendingCandidate(match: RemoteMatchSummary, now: number): boolean {
   if (LIVE_STATUSES.has(match.status)) return true;
 
   const kickoff = kickoffTime(match);
-  return (
-    match.status === "upcoming" &&
-    kickoff >= now &&
-    kickoff - now <= IMMINENT_WINDOW_MS
-  );
+  return match.status === "upcoming" && kickoff >= now && kickoff - now <= IMMINENT_WINDOW_MS;
 }
 
 function kickoffTime(match: RemoteMatchSummary): number {
@@ -161,7 +196,6 @@ function isFavorite(
   const matchIsFavorite = toArray(favoriteMatchIds).includes(String(match.id));
   if (matchIsFavorite) return true;
 
-
   const teamReferences = [favoriteTeamIds, favoriteTeamNames].filter(Boolean) as string[][];
   return [match.home, match.away].some((team) =>
     teamReferences.some((references) =>
@@ -170,12 +204,23 @@ function isFavorite(
   );
 }
 
-function popularityScore(match: RemoteMatchSummary, signal?: MatchRankingSignal): number {
+export function competitionPriority(match: RemoteMatchSummary): 0 | 1 | 2 | 3 {
+  const byId = POPULAR_LEAGUE_PRIORITIES.get(match.league.id);
+  if (byId) return byId;
+
   const leagueName = normalizeName(match.league.name);
-  const popularLeague =
-    POPULAR_LEAGUES.has(match.league.id) ||
-    POPULAR_LEAGUE_TERMS.some((term) => leagueName.includes(normalizeName(term)));
-  const leagueScore = popularLeague ? 100 : 0;
+  return (
+    POPULAR_LEAGUE_TERMS.find(({ terms }) =>
+      terms.some((term) => leagueName.includes(normalizeName(term))),
+    )?.priority ?? 0
+  );
+}
+
+function popularityScore(match: RemoteMatchSummary, signal?: MatchRankingSignal): number {
+  // La compétition est comparée séparément avant les équipes et les votes.
+  // Le score garde toutefois une valeur numérique stable pour les appels
+  // existants et les égalités entre compétitions du même niveau.
+  const leagueScore = competitionPriority(match) * 250;
   const teamScore =
     (POPULAR_TEAMS.has(match.home.id) ? 55 : 0) + (POPULAR_TEAMS.has(match.away.id) ? 55 : 0);
   const communityScore = Math.min(Math.max(signal?.communityVotes ?? 0, 0), 100) * 3;
@@ -302,6 +347,9 @@ export function rankMatches<T extends RemoteMatchSummary>(
       if (bucketDifference !== 0) return bucketDifference;
 
       if (options.serverRanked) return a.index - b.index;
+
+      const competitionDifference = competitionPriority(b.match) - competitionPriority(a.match);
+      if (competitionDifference !== 0) return competitionDifference;
 
       const popularityDifference =
         popularityScore(b.match, options.signals?.get(String(b.match.id))) -

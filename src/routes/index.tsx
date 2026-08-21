@@ -245,7 +245,7 @@ function HomePage() {
     [favoritesQuery.data],
   );
   const todayMatches = demoMode ? DEMO_FIXTURES : (todayPayload?.matches ?? []);
-  const sharedLivePayload = dayOffset === 0 ? liveStream.payload ?? livePayload : undefined;
+  const sharedLivePayload = dayOffset === 0 ? (liveStream.payload ?? livePayload) : undefined;
   const liveMatches = demoMode ? [] : (sharedLivePayload?.matches ?? []);
   const mergedMatches = useMemo(() => {
     const byId = new Map<number, RemoteMatchSummary>();
@@ -256,7 +256,10 @@ function HomePage() {
   const visibleFixtures = rankMatches(demoMode ? DEMO_FIXTURES : mergedMatches, {
     favoriteMatchIds,
     favoriteTeamNames,
-    serverRanked: !demoMode,
+    // Recalcule l'ordre après la fusion du calendrier et du direct. Un match
+    // qui vient d'apparaître en direct doit remonter immédiatement, même si
+    // le snapshot du calendrier était déjà chargé auparavant.
+    serverRanked: false,
   });
   const hasLive = visibleFixtures.some((m) => m.status === "live" || m.status === "ht");
   const [filter, setFilter] = useState<(typeof FILTERS)[number]["id"]>("upcoming");
@@ -290,9 +293,10 @@ function HomePage() {
 
   const topMatch = demoMode
     ? selectTrendingMatch(visibleFixtures)
-    : visibleFixtures.find((match) => match.isTrending) ?? selectTrendingMatch(visibleFixtures);
+    : (visibleFixtures.find((match) => match.isTrending) ?? selectTrendingMatch(visibleFixtures));
   const isFetching = isTodayFetching || isLiveFetching || liveStream.isRefreshing;
-  const todayUnavailable = !demoMode && (isTodayQueryError || todayPayload?.state === "unavailable");
+  const todayUnavailable =
+    !demoMode && (isTodayQueryError || todayPayload?.state === "unavailable");
   const liveUnavailable =
     !demoMode && (isLiveQueryError || sharedLivePayload?.state === "unavailable");
   const hasUsableMatches = visibleFixtures.length > 0;
@@ -307,7 +311,14 @@ function HomePage() {
       cacheId: todayPayload?.cacheId ?? sharedLivePayload?.cacheId ?? null,
       page: window.location.pathname,
     });
-  }, [demoMode, todayUnavailable, liveUnavailable, todayPayload, sharedLivePayload, visibleFixtures.length]);
+  }, [
+    demoMode,
+    todayUnavailable,
+    liveUnavailable,
+    todayPayload,
+    sharedLivePayload,
+    visibleFixtures.length,
+  ]);
 
   return (
     <AppShell>
@@ -377,9 +388,7 @@ function HomePage() {
               aria-pressed={active}
               className={cn(
                 "match-filter h-8 shrink-0 rounded-full px-3 py-1.5 text-[10px] font-semibold leading-5 transition-all",
-                active
-                  ? "match-filter-active"
-                  : "",
+                active ? "match-filter-active" : "",
               )}
             >
               {f.label}
@@ -396,7 +405,9 @@ function HomePage() {
         )}
       </div>
 
-      {(todayPayload?.state === "stale" || sharedLivePayload?.state === "stale" || liveUnavailable) && (
+      {(todayPayload?.state === "stale" ||
+        sharedLivePayload?.state === "stale" ||
+        liveUnavailable) && (
         <FixturesStatusNotice
           payload={todayPayload}
           livePayload={sharedLivePayload}
@@ -522,18 +533,18 @@ function HomePage() {
         {grouped.map((g, index) => (
           <div key={g.name}>
             <section>
-            <div className="mb-3 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <img src={g.logo} alt={`Logo ${g.name}`} className="size-4 object-contain" />
-                <h3 className="text-[11px] font-black uppercase tracking-[0.16em]">{g.name}</h3>
+              <div className="mb-3 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <img src={g.logo} alt={`Logo ${g.name}`} className="size-4 object-contain" />
+                  <h3 className="text-[11px] font-black uppercase tracking-[0.16em]">{g.name}</h3>
+                </div>
+                <span className="text-[10px] font-semibold text-muted-foreground">{g.country}</span>
               </div>
-              <span className="text-[10px] font-semibold text-muted-foreground">{g.country}</span>
-            </div>
-            <div className="space-y-3 lg:grid lg:grid-cols-2 lg:gap-3 lg:space-y-0 xl:grid-cols-3">
-              {g.matches.map((m) => (
-                <RemoteMatchCard key={m.id} match={m} />
-              ))}
-            </div>
+              <div className="space-y-3 lg:grid lg:grid-cols-2 lg:gap-3 lg:space-y-0 xl:grid-cols-3">
+                {g.matches.map((m) => (
+                  <RemoteMatchCard key={m.id} match={m} />
+                ))}
+              </div>
             </section>
 
             {showMatchListPremiumStrip && index === 0 && grouped.length > 1 && (
@@ -550,7 +561,9 @@ function HomePage() {
                       <Link
                         to="/analyse"
                         search={{ home: "", away: "" }}
-                        onClick={() => track("cta_click", { location: "match_list_between_competitions" })}
+                        onClick={() =>
+                          track("cta_click", { location: "match_list_between_competitions" })
+                        }
                         className="inline-flex w-full items-center justify-center rounded-xl bg-brand px-3.5 py-2 text-xs font-black text-brand-foreground transition-transform active:scale-95"
                       >
                         Lancer une analyse <ChevronRight className="ml-1 size-3.5" />
@@ -558,15 +571,25 @@ function HomePage() {
                     ) : (
                       <Link
                         to="/auth"
-                        search={{ mode: "signup", redirect: "/analyse", source: "match_list_between_competitions" }}
-                        onClick={() => track("cta_click", { location: "match_list_between_competitions" })}
+                        search={{
+                          mode: "signup",
+                          redirect: "/analyse",
+                          source: "match_list_between_competitions",
+                        }}
+                        onClick={() =>
+                          track("cta_click", { location: "match_list_between_competitions" })
+                        }
                         className="inline-flex w-full items-center justify-center rounded-xl bg-brand px-3.5 py-2 text-xs font-black text-brand-foreground transition-transform active:scale-95"
                       >
                         Créer mon compte <ChevronRight className="ml-1 size-3.5" />
                       </Link>
                     )}
                     <div className="flex w-full [&>a]:w-full [&>a]:justify-center">
-                      <PremiumCta location="match_list_between_competitions" compact label="Voir Premium" />
+                      <PremiumCta
+                        location="match_list_between_competitions"
+                        compact
+                        label="Voir Premium"
+                      />
                     </div>
                   </div>
                 </div>
