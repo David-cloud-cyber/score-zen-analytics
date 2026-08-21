@@ -100,7 +100,6 @@ function mergeMessages(current: CommunityMessage[], incoming: CommunityMessage):
     (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
   );
 }
-
 function friendlyFreshness(overview: CommunityOverview | undefined, loading: boolean): string {
   if (loading) return "Actualisation en cours.";
   if (!overview?.updatedAt) return "Les matchs réels seront affichés dès qu'ils seront disponibles.";
@@ -304,9 +303,9 @@ function CommunautePage() {
 
   return (
     <AppShell>
+      <div className="hidden md:block">
       <PageTitle eyebrow="Espace public" title="Communauté Livefoot IA" />
 
-      <div className="space-y-6 px-4 pb-28 lg:px-0">
         <div className="score-dark-surface relative animate-rise overflow-hidden rounded-xl bg-[#181818] p-6 text-[#f7f7f7] shadow-none">
           <div className="pointer-events-none absolute -right-16 -top-16 size-48 rounded-full bg-brand/25 blur-3xl" aria-hidden />
           <div className="pointer-events-none absolute -bottom-16 -left-10 size-40 rounded-full bg-data/25 blur-3xl" aria-hidden />
@@ -320,6 +319,9 @@ function CommunautePage() {
             </p>
           </div>
         </div>
+      </div>
+
+      <div className="space-y-6 px-4 pb-28 lg:px-0">
 
         <TelegramCtaCard location="community_hero" compact />
 
