@@ -127,7 +127,12 @@ function FixturesStatusNotice({
 }) {
   const stale = payload?.state === "stale" || livePayload?.state === "stale";
   const liveUnavailable = livePayload?.state === "unavailable";
-  const fetchedAt = payload?.fetchedAt ?? livePayload?.fetchedAt;
+  // A fresh day calendar must not hide an older live snapshot. Show the
+  // timestamp of the feed that actually triggered this notice.
+  const fetchedAt =
+    livePayload?.state === "stale" || livePayload?.state === "unavailable"
+      ? (livePayload.fetchedAt ?? payload?.fetchedAt)
+      : (payload?.fetchedAt ?? livePayload?.fetchedAt);
   const label = fetchedAt ? formatRelativeUpdate(fetchedAt) : "dernière synchronisation disponible";
 
   return (

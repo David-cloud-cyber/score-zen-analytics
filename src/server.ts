@@ -145,6 +145,10 @@ function preventHtmlAssetMismatch(response: Response): Response {
 
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
+    // Routes handled before TanStack/Nitro still need the Worker bindings.
+    // Publishing them before dispatch keeps fixture summaries on the shared
+    // coordinator instead of falling back to a fragile extra provider call.
+    (globalThis as typeof globalThis & { __env__?: unknown }).__env__ = env;
     try {
       const sharedLiveResponse = await handleSharedLiveRequest(request, env);
       if (sharedLiveResponse) return sharedLiveResponse;

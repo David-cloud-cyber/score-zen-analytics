@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { FixturesPayload } from "@/lib/football-types";
+import type {
+  FixturesPayload,
+  RemoteMatchDetail,
+  RemoteMatchSummary,
+} from "@/lib/football-types";
 
 type LoadSnapshot = () => Promise<FixturesPayload>;
 
@@ -183,7 +187,7 @@ export function useLiveFixtureStream({ enabled, initialPayload, loadSnapshot }: 
 type LiveMatchStreamOptions = {
   enabled: boolean;
   fixtureId: number;
-  onUpdate: () => void;
+  onUpdate: (summary?: RemoteMatchSummary, fetchedAt?: string) => void;
 };
 
 /**
@@ -220,7 +224,10 @@ export function useLiveMatchStream({ enabled, fixtureId, onUpdate }: LiveMatchSt
           headers: { accept: "application/json" },
           cache: "no-store",
         });
-        if (response.ok) onUpdateRef.current();
+        if (response.ok) {
+          const detail = (await response.json()) as RemoteMatchDetail;
+          onUpdateRef.current(detail, detail.meta?.fetchedAt);
+        }
       } catch {
         // Keep the last real match state visible until the coordinator recovers.
       } finally {
@@ -262,9 +269,14 @@ export function useLiveMatchStream({ enabled, fixtureId, onUpdate }: LiveMatchSt
       };
       socket.onmessage = (event) => {
         try {
-          const payload = JSON.parse(String(event.data)) as { type?: string; fixtureId?: number };
+          const payload = JSON.parse(String(event.data)) as {
+            type?: string;
+            fixtureId?: number;
+            summary?: RemoteMatchSummary;
+            fetchedAt?: string;
+          };
           if (payload.type === "fixture_update" && payload.fixtureId === fixtureId) {
-            onUpdateRef.current();
+            onUpdateRef.current(payload.summary, payload.fetchedAt);
           }
         } catch {
           // Ignore malformed keep-alives without dropping the stream.

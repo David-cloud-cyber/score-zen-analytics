@@ -8,6 +8,8 @@ const coordinator = read("src/lib/live-football-coordinator.ts");
 const shared = read("src/lib/live-football.shared.ts");
 const api = read("src/lib/apifootball.server.ts");
 const stream = read("src/hooks/use-live-fixture-stream.ts");
+const server = read("src/server.ts");
+const matchRoute = read("src/routes/live.$id.tsx");
 
 const checks = [
   ["cadence saine 10 secondes", shared.includes("LIVE_REFRESH_MS = 10_000")],
@@ -22,6 +24,26 @@ const checks = [
   ["messages de mise à jour de rencontre", coordinator.includes('type: "fixture_update"')],
   ["accès serveur coordonné", api.includes("requestCoordinated")],
   ["repli HTTP côté fiche", stream.includes("/api/fixture/${fixtureId}/summary")],
+  [
+    "binding Worker disponible avant les routes live",
+    server.includes(").__env__ = env;") &&
+      server.indexOf(").__env__ = env;") <
+        server.indexOf("handleSharedLiveRequest(request, env)"),
+  ],
+  [
+    "mise à jour score sans rechargement complet",
+    stream.includes("onUpdateRef.current(payload.summary, payload.fetchedAt)") &&
+      matchRoute.includes("queryClient.setQueryData<RemoteMatchDetail>"),
+  ],
+  [
+    "sections non invalidées à chaque score",
+    !matchRoute.includes('invalidateQueries({ queryKey: ["fixture-sections", fixtureId] })'),
+  ],
+  [
+    "score live prioritaire sur les sections plus anciennes",
+    matchRoute.includes("homeScore: summary.homeScore") &&
+      matchRoute.includes("minute: summary.minute"),
+  ],
   ["aucune clé fournisseur dans le client", !stream.includes("APIFOOTBALL_KEY")],
 ];
 

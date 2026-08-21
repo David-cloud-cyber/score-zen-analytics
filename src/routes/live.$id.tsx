@@ -205,17 +205,65 @@ function LiveMatchPage() {
   useLiveMatchStream({
     enabled: !demoMode && summary.status !== "finished",
     fixtureId,
-    onUpdate: () => {
-      void queryClient.invalidateQueries({ queryKey: ["fixture", fixtureId] });
-      void queryClient.invalidateQueries({ queryKey: ["fixture-sections", fixtureId] });
+    onUpdate: (nextSummary, fetchedAt) => {
+      if (!nextSummary) {
+        void queryClient.invalidateQueries({ queryKey: ["fixture", fixtureId] });
+        return;
+      }
+      queryClient.setQueryData<RemoteMatchDetail>(["fixture", fixtureId], (current) =>
+        current
+          ? {
+              ...current,
+              ...nextSummary,
+              meta: {
+                ...current.meta,
+                fetchedAt: fetchedAt ?? current.meta.fetchedAt,
+                stale: false,
+                state: "fresh",
+                source: "live",
+              },
+            }
+          : current,
+      );
     },
   });
   const sections = useQuery({
     ...sectionsQuery(fixtureId, demoMode),
     enabled: true,
+    // Score ticks arrive independently; detailed sections refresh at a sane
+    // cadence so one open match cannot trigger seven calls every ten seconds.
+    refetchInterval:
+      !demoMode && (summary.status === "live" || summary.status === "ht") ? 30_000 : false,
   });
-  const data = sections.data
-    ? { ...summary, ...sections.data, meta: sections.data.meta ?? summary.meta }
+  // Secondary responses also contain an identity snapshot. Keep their rich
+  // sections, but always overlay the newest lightweight summary so an older
+  // statistics response can never roll the visible score or minute backward.
+  const data: RemoteMatchDetail = sections.data
+    ? {
+        ...sections.data,
+        id: summary.id,
+        isTrending: summary.isTrending,
+        status: summary.status,
+        statusShort: summary.statusShort,
+        minute: summary.minute,
+        kickoff: summary.kickoff,
+        timeLabel: summary.timeLabel,
+        dayLabel: summary.dayLabel,
+        home: summary.home,
+        away: summary.away,
+        homeScore: summary.homeScore,
+        awayScore: summary.awayScore,
+        league: summary.league,
+        venue: summary.venue,
+        meta: {
+          ...sections.data.meta,
+          fetchedAt: summary.meta.fetchedAt,
+          stale: summary.meta.stale,
+          state: summary.meta.state,
+          source: summary.meta.source,
+          retryAfterMs: summary.meta.retryAfterMs,
+        },
+      }
     : summary;
   return <LiveMatchView m={data} />;
 }
