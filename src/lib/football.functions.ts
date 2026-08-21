@@ -655,15 +655,13 @@ export const getFixtureDetail = createServerFn({ method: "GET" })
  * primary fixture record; secondary sections are loaded after the score is
  * visible through getFixtureSections.
  */
-export const getFixtureSummary = createServerFn({ method: "GET" })
-  .inputValidator((input) => z.object({ id: z.number().int().positive() }).parse(input))
-  .handler(async ({ data }): Promise<RemoteMatchDetail> => {
+export async function loadFixtureSummary(id: number): Promise<RemoteMatchDetail> {
     const [liveSnapshot, daySnapshot] = await Promise.all([
       readSharedFixtureSnapshot("live", todayISO()),
       readSharedFixtureSnapshot("day", todayISO()),
     ]);
     for (const snapshot of [liveSnapshot, daySnapshot]) {
-      const match = snapshot?.matches.find((item) => item.id === data.id);
+      const match = snapshot?.matches.find((item) => item.id === id);
       if (match && snapshot) {
         return detailFromSummary(match, {
           fetchedAt: snapshot.fetchedAt ?? new Date().toISOString(),
@@ -684,10 +682,10 @@ export const getFixtureSummary = createServerFn({ method: "GET" })
       }
     }
 
-    const fixtures = await apiFootball<ApiFixture[]>("/fixtures", { id: data.id });
+    const fixtures = await apiFootball<ApiFixture[]>("/fixtures", { id });
     const fixture = fixtures[0];
     if (!fixture) throw new Error("Match introuvable.");
-    const cacheState = await getApiFootballCacheState("/fixtures", { id: data.id });
+    const cacheState = await getApiFootballCacheState("/fixtures", { id });
     const summary = toSummary(fixture);
     const defaults = summaryDetailDefaults({
       fetchedAt: new Date(cacheState?.storedAt ?? Date.now()).toISOString(),
@@ -703,6 +701,12 @@ export const getFixtureSummary = createServerFn({ method: "GET" })
       ],
     });
     return { ...defaults, ...summary };
+}
+
+export const getFixtureSummary = createServerFn({ method: "GET" })
+  .inputValidator((input) => z.object({ id: z.number().int().positive() }).parse(input))
+  .handler(async ({ data }): Promise<RemoteMatchDetail> => {
+    return loadFixtureSummary(data.id);
   });
 
 /**
@@ -713,7 +717,7 @@ export const getFixtureSummary = createServerFn({ method: "GET" })
 export const getFixtureSections = createServerFn({ method: "GET" })
   .inputValidator((input) => z.object({ id: z.number().int().positive() }).parse(input))
   .handler(async ({ data }): Promise<RemoteMatchDetail> => {
-    const summary = await getFixtureSummary({ data });
+    const summary = await loadFixtureSummary(data.id);
     const homeId = summary.home.id;
     const awayId = summary.away.id;
     const unavailableSections: string[] = [];

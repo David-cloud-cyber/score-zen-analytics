@@ -9,6 +9,7 @@ const shared = read("src/lib/live-football.shared.ts");
 const api = read("src/lib/apifootball.server.ts");
 const stream = read("src/hooks/use-live-fixture-stream.ts");
 const server = read("src/server.ts");
+const football = read("src/lib/football.functions.ts");
 const matchRoute = read("src/routes/live.$id.tsx");
 
 const checks = [
@@ -25,10 +26,21 @@ const checks = [
   ["accès serveur coordonné", api.includes("requestCoordinated")],
   ["repli HTTP côté fiche", stream.includes("/api/fixture/${fixtureId}/summary")],
   [
+    "repli direct depuis le calendrier partagé",
+    coordinator.includes("liveFallbackFromDay") &&
+      coordinator.includes('source: "cache"') &&
+      coordinator.includes('state: "stale"'),
+  ],
+  [
+    "résumé de fiche chargé sans détour RPC",
+    football.includes("export async function loadFixtureSummary") &&
+      server.includes("await loadFixtureSummary(id)"),
+  ],
+  [
     "binding Worker disponible avant les routes live",
-    server.includes(").__env__ = env;") &&
-      server.indexOf(").__env__ = env;") <
-        server.indexOf("handleSharedLiveRequest(request, env)"),
+    server.includes("runtime?.cloudflare?.env") &&
+      server.includes(").__env__ = runtimeEnv;") &&
+      server.includes("handleSharedLiveRequest(request, runtimeEnv)"),
   ],
   [
     "mise à jour score sans rechargement complet",

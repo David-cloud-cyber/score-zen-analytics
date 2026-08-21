@@ -363,6 +363,29 @@ export class LiveFootballCoordinator extends DurableObject<CoordinatorEnv> {
     });
   }
 
+  private async liveFallbackFromDay(
+    date: string,
+    errorCode?: FixturesPayload["errorCode"],
+    retryAfterMs?: number,
+  ): Promise<FixturesPayload | null> {
+    const dayEnvelope = await this.readEnvelope(daySnapshotKey(date));
+    if (!dayEnvelope || dayEnvelope.staleUntil <= Date.now()) return null;
+    const matches = dayEnvelope.snapshot.matches.filter(
+      (match) => match.status === "live" || match.status === "ht",
+    );
+    if (matches.length === 0) return null;
+    return {
+      ...dayEnvelope.snapshot,
+      matches,
+      source: "cache",
+      state: "stale",
+      fetchedAt: new Date(dayEnvelope.storedAt).toISOString(),
+      cacheId: LIVE_KEY,
+      errorCode,
+      retryAfterMs,
+    };
+  }
+
   private async readQuotaState(): Promise<QuotaSnapshot> {
     const value = await this.env.FOOTBALL_CACHE?.get(QUOTA_KEY, { type: "json", cacheTtl: 30 });
     if (!value || typeof value !== "object") return { updatedAt: 0, blockedUntil: 0 };
@@ -520,6 +543,19 @@ export class LiveFootballCoordinator extends DurableObject<CoordinatorEnv> {
           nextDelayMs: Math.max(LIVE_DEGRADED_REFRESH_MS, quota.blockedUntil - now),
         };
       }
+      if (mode === "live") {
+        const fallback = await this.liveFallbackFromDay(
+          date,
+          "rate_limit",
+          quota.blockedUntil - now,
+        );
+        if (fallback) {
+          return {
+            snapshot: fallback,
+            nextDelayMs: Math.max(LIVE_DEGRADED_REFRESH_MS, quota.blockedUntil - now),
+          };
+        }
+      }
       return {
         snapshot: {
           matches: [],
@@ -539,6 +575,10 @@ export class LiveFootballCoordinator extends DurableObject<CoordinatorEnv> {
         "/fixtures",
         mode === "live" ? { live: "all" } : { date },
       )) as ApiFixtureRecord[];
+      if (raw.length === 0 && mode === "live") {
+        const fallback = await this.liveFallbackFromDay(date, "empty");
+        if (fallback) return { snapshot: fallback, nextDelayMs: QUIET_REFRESH_MS };
+      }
       if (raw.length === 0 && mode === "day" && envelope && envelope.staleUntil > Date.now()) {
         return {
           snapshot: snapshotWithState(envelope, "stale", "empty"),
@@ -580,6 +620,19 @@ export class LiveFootballCoordinator extends DurableObject<CoordinatorEnv> {
           snapshot: snapshotWithState(envelope, "stale", errorCodeFromStatus(status), retryAfterMs),
           nextDelayMs: Math.max(LIVE_DEGRADED_REFRESH_MS, retryAfterMs ?? QUIET_REFRESH_MS),
         };
+      }
+      if (mode === "live") {
+        const fallback = await this.liveFallbackFromDay(
+          date,
+          errorCodeFromStatus(status),
+          retryAfterMs,
+        );
+        if (fallback) {
+          return {
+            snapshot: fallback,
+            nextDelayMs: Math.max(LIVE_DEGRADED_REFRESH_MS, retryAfterMs ?? QUIET_REFRESH_MS),
+          };
+        }
       }
       return {
         snapshot: {

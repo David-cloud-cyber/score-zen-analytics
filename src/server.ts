@@ -11,7 +11,7 @@ if (typeof globalThis.WebSocket === "undefined") {
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
 import { newIncidentId, recordServerIncident } from "./lib/incident.server";
-import { getFixtureSections, getFixtureSummary } from "./lib/football.functions";
+import { getFixtureSections, loadFixtureSummary } from "./lib/football.functions";
 import { runEditorialCycle } from "./lib/editorial.pipeline.server";
 
 type ServerEntry = {
@@ -22,12 +22,24 @@ type LiveCoordinatorNamespace = {
   getByName: (name: string) => { fetch: (request: Request) => Promise<Response> };
 };
 
+type CloudflareRuntimeRequest = Request & {
+  runtime?: { cloudflare?: { env?: unknown; context?: unknown } };
+};
+
 const LIVE_COORDINATOR_NAME = "global";
 const SHARED_LIVE_PATHS = new Set([
   "/api/fixtures/today",
   "/api/fixtures/live",
   "/api/live-stream",
 ]);
+
+function resolveRuntimeEnv(request: Request, env: unknown): unknown {
+  return (
+    env ??
+    (request as CloudflareRuntimeRequest).runtime?.cloudflare?.env ??
+    (globalThis as { __env__?: unknown }).__env__
+  );
+}
 
 async function handleSharedLiveRequest(request: Request, env: unknown): Promise<Response | null> {
   const url = new URL(request.url);
@@ -36,7 +48,7 @@ async function handleSharedLiveRequest(request: Request, env: unknown): Promise<
   // TanStack Start invokes this server entry from Nitro without forwarding the
   // Cloudflare env argument. Nitro stores it on __env__ before dispatching the
   // SSR handler, so use it as the fallback for Worker-only bindings.
-  const runtimeEnv = env ?? (globalThis as { __env__?: unknown }).__env__;
+  const runtimeEnv = resolveRuntimeEnv(request, env);
   const namespace = (runtimeEnv as { LIVE_FOOTBALL_COORDINATOR?: LiveCoordinatorNamespace } | undefined)
     ?.LIVE_FOOTBALL_COORDINATOR;
   if (!namespace) return null;
@@ -51,8 +63,8 @@ async function handleFixtureSectionRequest(request: Request): Promise<Response |
   const data = { id };
   try {
     const payload = match[2] === "summary"
-      ? await getFixtureSummary({ data })
-      : await getFixtureSections({ data });
+      ? await loadFixtureSummary(id)
+      : await getFixtureSections({ data }).catch(() => loadFixtureSummary(id));
     return new Response(JSON.stringify(payload), {
       headers: {
         "content-type": "application/json; charset=utf-8",
@@ -148,15 +160,16 @@ export default {
     // Routes handled before TanStack/Nitro still need the Worker bindings.
     // Publishing them before dispatch keeps fixture summaries on the shared
     // coordinator instead of falling back to a fragile extra provider call.
-    (globalThis as typeof globalThis & { __env__?: unknown }).__env__ = env;
+    const runtimeEnv = resolveRuntimeEnv(request, env);
+    (globalThis as typeof globalThis & { __env__?: unknown }).__env__ = runtimeEnv;
     try {
-      const sharedLiveResponse = await handleSharedLiveRequest(request, env);
+      const sharedLiveResponse = await handleSharedLiveRequest(request, runtimeEnv);
       if (sharedLiveResponse) return sharedLiveResponse;
       const fixtureSectionResponse = await handleFixtureSectionRequest(request);
       if (fixtureSectionResponse) return fixtureSectionResponse;
 
       const handler = await getServerEntry();
-      const response = await handler.fetch(request, env, ctx);
+      const response = await handler.fetch(request, runtimeEnv, ctx);
       const normalized = await normalizeCatastrophicSsrResponse(response);
       return preventHtmlAssetMismatch(normalized);
     } catch (error) {
