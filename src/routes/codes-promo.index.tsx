@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { AppShell, PageTitle } from "@/components/AppShell";
+import { AppShell } from "@/components/AppShell";
 import { PremiumCta } from "@/components/PremiumCta";
 import { BOOKMAKERS, availableBonusTypes, type BonusType } from "@/data/bookmakers";
 import { SEO_COUNTRIES } from "@/data/country-seo";
@@ -14,7 +14,7 @@ import {
 } from "@/components/promo/PromoUI";
 import { cn } from "@/lib/utils";
 import { buildRouteMeta, SPEAKABLE, ORG } from "@/lib/seo";
-import { ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight, BadgeCheck, ClipboardCheck, ShieldCheck, Sparkles } from "lucide-react";
 
 const SITE = "https://www.livefoot.fun";
 
@@ -137,7 +137,7 @@ function PromoFilters() {
   );
 
   return (
-    <section className="space-y-4" aria-label="Liste des codes promo">
+    <section id="offres" className="scroll-mt-24 space-y-4" aria-label="Liste des codes promo">
       <div className="space-y-3 rounded-xl border border-border/70 bg-surface/40 p-4">
         <div className="flex flex-wrap items-center gap-3">
           <label
@@ -213,12 +213,42 @@ function PromoHub() {
           <Breadcrumb items={[{ label: "Accueil", to: "/" }, { label: "Codes promo" }]} />
         </div>
 
-        <PageTitle eyebrow="Partenaires" title="Codes promo bookmakers" />
-
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand/20 bg-brand/5 px-4 py-3">
-          <p className="text-xs text-muted-foreground">Comparez les offres partenaires, puis analysez vos matchs avec 100 crédits mensuels Premium.</p>
-          <PremiumCta location="codes_promo_intro" compact label="Voir Premium" />
-        </div>
+        <header className="relative overflow-hidden rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-card sm:p-7">
+          <div
+            className="pointer-events-none absolute -right-16 -top-20 size-56 rounded-full bg-brand/15 blur-3xl"
+            aria-hidden
+          />
+          <div className="relative max-w-3xl">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-brand/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-brand ring-1 ring-brand/20">
+              <BadgeCheck className="size-3.5" aria-hidden /> Offres partenaires vérifiées
+            </span>
+            <h1 className="mt-4 text-3xl font-black leading-[1.05] tracking-tight text-foreground sm:text-4xl">
+              Comparez les codes promo et choisissez l’offre adaptée à votre pays
+            </h1>
+            <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
+              Copiez le code avant l’inscription, vérifiez le dépôt minimum et consultez les
+              conditions essentielles sans perdre de temps.
+            </p>
+            <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:items-center">
+              <a
+                href="#offres"
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-brand px-5 py-3 text-sm font-black text-brand-foreground shadow-sm shadow-brand/20 transition-transform hover:-translate-y-0.5"
+              >
+                Voir les offres <ArrowRight className="size-4" aria-hidden />
+              </a>
+              <PremiumCta location="codes_promo_intro" compact label="Découvrir Premium" />
+            </div>
+            <div className="mt-5 flex flex-wrap gap-x-5 gap-y-2 text-[11px] font-semibold text-muted-foreground">
+              <span className="inline-flex items-center gap-1.5">
+                <ShieldCheck className="size-3.5 text-brand" /> Conditions résumées
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <ClipboardCheck className="size-3.5 text-brand" /> Codes faciles à copier
+              </span>
+              <span>18+ · Jouez de façon responsable</span>
+            </div>
+          </div>
+        </header>
 
         <AnswerBox
           question="Quels sont les meilleurs codes promo bookmakers en 2026 ?"
@@ -249,30 +279,43 @@ function PromoHub() {
           </div>
         </section>
 
-        <div className="space-y-3 text-sm leading-relaxed text-muted-foreground">
-          <p>
-            Retrouvez ici l'ensemble des{" "}
-            <strong className="text-foreground">codes promo bookmakers</strong> négociés par
-            LiveFoot AI pour l'Afrique francophone. Chaque code débloque le bonus de bienvenue
-            maximal proposé par l'opérateur : montant supérieur à l'offre publique, sans frais et
-            sans contrepartie sur vos cotes.
-          </p>
-          <p>
-            Nous ne référençons que des plateformes qui acceptent le paiement en FCFA via Mobile
-            Money (Orange Money, MTN, Moov, Wave), qui traitent les retraits rapidement et dont le
-            service client répond en français. Pour chaque partenaire, une page complète détaille le
-            bonus, les conditions de mise, les moyens de paiement, l'application mobile et notre
-            avis, points faibles inclus.
-          </p>
-          <p>
-            Le code doit toujours être saisi{" "}
-            <strong className="text-foreground">pendant l'inscription</strong> : c'est l'erreur la
-            plus fréquente, et elle est irréversible. Copiez-le d'un clic depuis les cartes
-            ci-dessous avant d'ouvrir le site du bookmaker.
-          </p>
-        </div>
-
         <PromoFilters />
+
+        <section className="grid gap-3 sm:grid-cols-3" aria-labelledby="promo-steps-title">
+          <h2 id="promo-steps-title" className="sr-only">
+            Utiliser un code promo en trois étapes
+          </h2>
+          {[
+            [
+              "1",
+              "Choisissez",
+              "Comparez l’offre, le dépôt minimum et la disponibilité dans votre pays.",
+            ],
+            ["2", "Copiez le code", "Copiez le code LiveFoot avant d’ouvrir le site partenaire."],
+            [
+              "3",
+              "Vérifiez",
+              "Relisez les conditions affichées par le bookmaker avant tout dépôt.",
+            ],
+          ].map(([step, title, text]) => (
+            <article
+              key={step}
+              className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-card"
+            >
+              <span className="grid size-7 place-items-center rounded-full bg-brand text-xs font-black text-brand-foreground">
+                {step}
+              </span>
+              <h3 className="mt-3 text-sm font-black text-foreground">{title}</h3>
+              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{text}</p>
+            </article>
+          ))}
+        </section>
+
+        <p className="rounded-xl border border-border/70 bg-surface/50 p-4 text-xs leading-relaxed text-muted-foreground">
+          LiveFoot peut percevoir une commission si vous utilisez un lien partenaire, sans coût
+          supplémentaire pour vous. Les bonus et moyens de paiement peuvent varier selon le pays :
+          les conditions affichées sur le site du bookmaker font foi.
+        </p>
 
         <section className="space-y-3">
           <h2 className="text-lg font-black tracking-tight">Comparatif rapide</h2>

@@ -10,6 +10,8 @@ import {
   RefreshCw,
   CalendarDays,
   Flame,
+  Target,
+  ShieldCheck,
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { PremiumCta } from "@/components/PremiumCta";
@@ -29,6 +31,7 @@ import { DEMO_FAVORITES, DEMO_FIXTURES, isLocalDemo } from "@/lib/local-demo";
 import { useSession } from "@/hooks/use-session";
 import { useLiveFixtureStream } from "@/hooks/use-live-fixture-stream";
 import { TelegramCtaCard } from "@/components/TelegramCtaCard";
+import { StrategicPromoCard } from "@/components/promo/StrategicPromoCard";
 
 const fixturesQuery = (mode: "today" | "live", date?: string) =>
   queryOptions({
@@ -114,51 +117,6 @@ function HomeError({ error, reset }: { error: Error; reset: () => void }) {
       </div>
     </AppShell>
   );
-}
-
-function FixturesStatusNotice({
-  payload,
-  livePayload,
-  onRetry,
-}: {
-  payload?: FixturesPayload;
-  livePayload?: FixturesPayload;
-  onRetry: () => void;
-}) {
-  const stale = payload?.state === "stale" || livePayload?.state === "stale";
-  const liveUnavailable = livePayload?.state === "unavailable";
-  // A fresh day calendar must not hide an older live snapshot. Show the
-  // timestamp of the feed that actually triggered this notice.
-  const fetchedAt =
-    livePayload?.state === "stale" || livePayload?.state === "unavailable"
-      ? (livePayload.fetchedAt ?? payload?.fetchedAt)
-      : (payload?.fetchedAt ?? livePayload?.fetchedAt);
-  const label = fetchedAt ? formatRelativeUpdate(fetchedAt) : "dernière synchronisation disponible";
-
-  return (
-    <div className="mx-4 mb-4 rounded-xl border border-border/60 bg-card px-3 py-2.5 text-xs text-muted-foreground lg:mx-0">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <span>
-          {stale
-            ? `Matchs réels affichés — ${label}.`
-            : liveUnavailable
-              ? "Matchs du jour disponibles ; le direct se synchronise momentanément."
-              : "Actualisation momentanément indisponible."}
-        </span>
-        <button type="button" onClick={onRetry} className="font-black text-brand hover:underline">
-          Réessayer
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function formatRelativeUpdate(value: string) {
-  const elapsed = Math.max(0, Date.now() - new Date(value).getTime());
-  const minutes = Math.floor(elapsed / 60_000);
-  if (minutes < 1) return "à l'instant";
-  if (minutes === 1) return "il y a 1 minute";
-  return `il y a ${minutes} minutes`;
 }
 
 const FILTERS = [
@@ -249,9 +207,15 @@ function HomePage() {
       ),
     [favoritesQuery.data],
   );
-  const todayMatches = demoMode ? DEMO_FIXTURES : (todayPayload?.matches ?? []);
+  const todayMatches = useMemo(
+    () => (demoMode ? DEMO_FIXTURES : (todayPayload?.matches ?? [])),
+    [demoMode, todayPayload?.matches],
+  );
   const sharedLivePayload = dayOffset === 0 ? (liveStream.payload ?? livePayload) : undefined;
-  const liveMatches = demoMode ? [] : (sharedLivePayload?.matches ?? []);
+  const liveMatches = useMemo(
+    () => (demoMode ? [] : (sharedLivePayload?.matches ?? [])),
+    [demoMode, sharedLivePayload?.matches],
+  );
   const mergedMatches = useMemo(() => {
     const byId = new Map<number, RemoteMatchSummary>();
     for (const match of todayMatches) byId.set(match.id, match);
@@ -403,25 +367,11 @@ function HomePage() {
             </button>
           );
         })}
-        {isFetching && (
-          <span className="ml-2 inline-flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground">
-            <Loader2 className="size-3 animate-spin" /> Actualisation
-          </span>
-        )}
       </div>
-
-      {(todayPayload?.state === "stale" ||
-        sharedLivePayload?.state === "stale" ||
-        liveUnavailable) && (
-        <FixturesStatusNotice
-          payload={todayPayload}
-          livePayload={sharedLivePayload}
-          onRetry={() => {
-            void refetchToday();
-            void refetchLive();
-            liveStream.retry();
-          }}
-        />
+      {isFetching && (
+        <div className="-mt-2 flex items-center justify-end px-4 pb-3 text-[10px] font-semibold text-muted-foreground lg:px-0">
+          <Loader2 className="mr-1.5 size-3 animate-spin" /> Actualisation
+        </div>
       )}
 
       {/* Hero banner */}
@@ -497,6 +447,30 @@ function HomePage() {
           </Link>
         </div>
       )}
+
+      <div className="mt-4 px-4 lg:px-0">
+        <Link
+          to="/pronostics-du-jour"
+          className="group flex flex-col gap-3 rounded-2xl border border-brand/25 bg-[linear-gradient(110deg,rgba(28,211,151,0.08),transparent_55%)] p-4 sm:flex-row sm:items-center sm:justify-between"
+        >
+          <div className="flex min-w-0 items-start gap-3">
+            <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-brand/10 text-brand">
+              <Target className="size-5" />
+            </span>
+            <div>
+              <p className="text-sm font-black">Pronostics du jour</p>
+              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                Deux sélections statistiques gratuites chaque jour, avec résultats conservés dans un
+                historique transparent.
+              </p>
+            </div>
+          </div>
+          <span className="inline-flex shrink-0 items-center gap-1.5 text-xs font-black text-brand">
+            <ShieldCheck className="size-3.5" /> Voir les sélections
+            <ChevronRight className="size-4 transition-transform group-hover:translate-x-1" />
+          </span>
+        </Link>
+      </div>
 
       {/* Grouped matches */}
       <div className="mt-8 space-y-6 px-4 lg:px-0">
@@ -604,7 +578,8 @@ function HomePage() {
         ))}
       </div>
 
-      <div className="mt-8 px-4 lg:px-0">
+      <div className="mt-8 space-y-4 px-4 lg:px-0">
+        <StrategicPromoCard location="match_list" />
         <TelegramCtaCard location="home_bottom" />
       </div>
 

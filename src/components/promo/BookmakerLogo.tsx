@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { cn } from "@/lib/utils";
 
 type BookmakerLogoProps = {
@@ -13,25 +14,31 @@ export function BookmakerLogo({
   name,
   logoUrl,
   accent,
-  className = "size-12",
-  imageClassName = "inset-0 size-full",
+  className = "h-12 w-20",
+  imageClassName = "inset-1 size-[calc(100%-0.5rem)]",
 }: BookmakerLogoProps) {
   return (
     <span
       className={cn(
-        "relative grid shrink-0 place-items-center overflow-hidden rounded-xl text-sm font-black text-white",
+        "relative grid shrink-0 place-items-center overflow-hidden rounded-xl border border-slate-200 bg-white text-sm font-black text-white shadow-sm dark:border-white/15",
         className,
       )}
-      style={{ backgroundColor: accent }}
+      style={{ "--logo-fallback": accent } as CSSProperties}
     >
-      <span aria-hidden>{name.slice(0, 2).toUpperCase()}</span>
+      <span
+        aria-hidden
+        className="absolute inset-0 grid place-items-center"
+        style={{ backgroundColor: "var(--logo-fallback)" }}
+      >
+        {name.slice(0, 2).toUpperCase()}
+      </span>
       {logoUrl && (
         <img
           src={logoUrl}
           alt={`Logo ${name}`}
           loading="lazy"
           decoding="async"
-          className={cn("absolute rounded-lg object-contain", imageClassName)}
+          className={cn("absolute rounded-lg bg-white object-contain", imageClassName)}
           onError={(event) => {
             event.currentTarget.hidden = true;
           }}

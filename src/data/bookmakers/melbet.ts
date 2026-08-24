@@ -7,7 +7,7 @@ export const MELBET = defineBookmaker({
   name: "MELBET",
   code: "PREDAT",
   affiliateUrl: MELBET_AFFILIATE_URL,
-  logoUrl: "/bookmakers/melbet.svg",
+  logoUrl: "/bookmakers/melbet-wordmark.png",
   bannerUrl: "/melbet-predat-banner.svg",
   bannerLinkUrl: MELBET_AFFILIATE_URL,
   accent: "#e30613",

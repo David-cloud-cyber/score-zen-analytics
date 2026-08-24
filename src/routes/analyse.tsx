@@ -254,9 +254,10 @@ function AnalysePage() {
 
   async function onSubmit() {
     if (!user) {
-      const context = home.trim() && away.trim()
-        ? `/analyse?home=${encodeURIComponent(home.trim())}&away=${encodeURIComponent(away.trim())}`
-        : "/analyse";
+      const context =
+        home.trim() && away.trim()
+          ? `/analyse?home=${encodeURIComponent(home.trim())}&away=${encodeURIComponent(away.trim())}`
+          : "/analyse";
       navigate({
         to: "/auth",
         search: { mode: "signup", redirect: context, source: "analyse_gate" },
@@ -428,7 +429,14 @@ function AnalysePage() {
           Estimation statistique LiveFoot basée sur la forme, les absences, les confrontations
           directes et les données de marché disponibles.
         </p>
-        {!demoMode && <div className="mt-3 flex items-center justify-between gap-3 rounded-xl border border-brand/20 bg-brand/5 px-3 py-2.5"><p className="text-[11px] text-muted-foreground">100 crédits mensuels pour analyser plus de matchs.</p><PremiumCta location="analysis_form" compact label="Voir Premium" /></div>}
+        {!demoMode && (
+          <div className="mt-3 flex items-center justify-between gap-3 rounded-xl border border-brand/20 bg-brand/5 px-3 py-2.5">
+            <p className="text-[11px] text-muted-foreground">
+              100 crédits mensuels pour analyser plus de matchs.
+            </p>
+            <PremiumCta location="analysis_form" compact label="Voir Premium" />
+          </div>
+        )}
         {analysisError && (
           <div className="mt-4 flex flex-col gap-3 rounded-2xl border border-warn/30 bg-warn/5 p-4 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -447,8 +455,13 @@ function AnalysePage() {
         )}
         {live?.dataQuality?.level === "partial" && !analysisError && (
           <div className="mt-4 rounded-2xl border border-brand/25 bg-brand/5 p-3 text-xs text-muted-foreground">
-            <p className="font-semibold text-foreground">Analyse disponible avec les informations vérifiées.</p>
-            <p className="mt-1">Certaines statistiques sont encore en cours de mise à jour ; la confiance a été ajustée en conséquence.</p>
+            <p className="font-semibold text-foreground">
+              Analyse disponible avec les informations vérifiées.
+            </p>
+            <p className="mt-1">
+              Certaines statistiques sont encore en cours de mise à jour ; la confiance a été
+              ajustée en conséquence.
+            </p>
           </div>
         )}
       </div>
@@ -530,23 +543,37 @@ function AnalysePage() {
               </div>
             )}
 
-            <div>
-              <h3 className="mb-3 text-[11px] font-black uppercase tracking-widest text-muted-foreground">
-                Marchés recommandés
-              </h3>
+            <section aria-labelledby="analysis-markets-title">
+              <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
+                <div>
+                  <h3
+                    id="analysis-markets-title"
+                    className="text-[11px] font-black uppercase tracking-widest text-muted-foreground"
+                  >
+                    Marchés évalués
+                  </h3>
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    Probabilité du scénario et confiance accordée aux données disponibles.
+                  </p>
+                </div>
+                <span className="rounded-full bg-surface px-2.5 py-1 text-[10px] font-black text-muted-foreground">
+                  {Math.min(live.markets.length, 6)} marchés
+                </span>
+              </div>
               <div className="grid gap-3 sm:grid-cols-2">
                 {live.markets.slice(0, 6).map((m, i) => (
                   <MarketCard key={i} market={m} />
                 ))}
               </div>
-            </div>
+            </section>
 
             {!demoMode && (
               <div className="flex flex-col gap-3 rounded-xl border border-brand/20 bg-brand/5 p-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="text-sm font-black">Besoin de plus d'analyses ?</p>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Premium inclut 100 crédits par mois, soit environ 33 analyses, plus l'historique complet.
+                    Premium inclut 100 crédits par mois, soit environ 33 analyses, plus l'historique
+                    complet.
                   </p>
                 </div>
                 <Link
@@ -654,10 +681,13 @@ function TeamAutocompleteInput({
     query.length >= 1
       ? POPULAR_TEAMS.filter((team) => team.name.toLowerCase().includes(query))
       : [];
-  const filtered = [...remoteSuggestions, ...localSuggestions].filter(
-    (team, index, all) =>
-      all.findIndex((candidate) => candidate.name.toLowerCase() === team.name.toLowerCase()) === index,
-  ).slice(0, 8);
+  const filtered = [...remoteSuggestions, ...localSuggestions]
+    .filter(
+      (team, index, all) =>
+        all.findIndex((candidate) => candidate.name.toLowerCase() === team.name.toLowerCase()) ===
+        index,
+    )
+    .slice(0, 8);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {

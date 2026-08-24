@@ -246,6 +246,12 @@ export type AdminPredictionQuality = {
   aiEnriched: number;
   aiFallback: number;
   statisticalOnly: number;
+  aiSuccessRate: number | null;
+  averageDataQuality: number | null;
+  averageAiLatencyMs: number | null;
+  byMarket: Array<{ market: string; settled: number; won: number; hitRate: number }>;
+  byConfidence: Array<{ label: string; settled: number; won: number; hitRate: number }>;
+  engineVersions: Array<{ version: string; total: number }>;
   generatedAt: string;
 };
 
@@ -270,7 +276,7 @@ export const getAdminPredictionQuality = createServerFn({ method: "GET" }).middl
   await requireAdmin(context);
   const { data: rows, error } = await supabaseAdmin
     .from("ai_analyses")
-    .select("result, settlement_status, settlement_outcome, ai_status")
+    .select("result, settlement_status, settlement_outcome, ai_status, prediction_market, prediction_confidence, data_quality_score, ai_latency_ms, engine_version")
     .limit(10_000);
   if (error) throw new Error("ADMIN_PREDICTION_QUALITY_UNAVAILABLE");
 
@@ -283,6 +289,18 @@ export const getAdminPredictionQuality = createServerFn({ method: "GET" }).middl
   let aiEnriched = 0;
   let aiFallback = 0;
   let statisticalOnly = 0;
+  let qualityTotal = 0;
+  let qualityCount = 0;
+  let latencyTotal = 0;
+  let latencyCount = 0;
+  const byMarket = new Map<string, { settled: number; won: number }>();
+  const confidenceBuckets = [
+    { label: "45–54 %", min: 45, max: 54, settled: 0, won: 0 },
+    { label: "55–64 %", min: 55, max: 64, settled: 0, won: 0 },
+    { label: "65–74 %", min: 65, max: 74, settled: 0, won: 0 },
+    { label: "75 % et +", min: 75, max: 100, settled: 0, won: 0 },
+  ];
+  const engineVersions = new Map<string, number>();
   for (const row of rows ?? []) {
     if (row.settlement_status === "won") won += 1;
     if (row.settlement_status === "lost") lost += 1;
@@ -290,7 +308,28 @@ export const getAdminPredictionQuality = createServerFn({ method: "GET" }).middl
     if (row.ai_status === "ai_enriched") aiEnriched += 1;
     if (row.ai_status === "ai_fallback") aiFallback += 1;
     if (row.ai_status === "statistical_only") statisticalOnly += 1;
+    if (Number.isFinite(Number(row.data_quality_score))) {
+      qualityTotal += Number(row.data_quality_score);
+      qualityCount += 1;
+    }
+    if (Number.isFinite(Number(row.ai_latency_ms)) && Number(row.ai_latency_ms) > 0) {
+      latencyTotal += Number(row.ai_latency_ms);
+      latencyCount += 1;
+    }
+    const version = row.engine_version || "non renseignée";
+    engineVersions.set(version, (engineVersions.get(version) ?? 0) + 1);
     if (row.settlement_status !== "won" && row.settlement_status !== "lost") continue;
+    const market = row.prediction_market || "Autre";
+    const marketRow = byMarket.get(market) ?? { settled: 0, won: 0 };
+    marketRow.settled += 1;
+    if (row.settlement_status === "won") marketRow.won += 1;
+    byMarket.set(market, marketRow);
+    const confidence = Number(row.prediction_confidence);
+    const bucket = confidenceBuckets.find((item) => confidence >= item.min && confidence <= item.max);
+    if (bucket) {
+      bucket.settled += 1;
+      if (row.settlement_status === "won") bucket.won += 1;
+    }
     const { probability, outcomeKey } = resultProbability(row);
     if (!outcomeKey || !Number.isFinite(probability)) continue;
     const settledOutcomeIsWon = row.settlement_status === "won";
@@ -312,6 +351,19 @@ export const getAdminPredictionQuality = createServerFn({ method: "GET" }).middl
     aiEnriched,
     aiFallback,
     statisticalOnly,
+    aiSuccessRate: rows?.length ? Math.round((aiEnriched / rows.length) * 1000) / 10 : null,
+    averageDataQuality: qualityCount ? Math.round((qualityTotal / qualityCount) * 10) / 10 : null,
+    averageAiLatencyMs: latencyCount ? Math.round(latencyTotal / latencyCount) : null,
+    byMarket: [...byMarket.entries()]
+      .map(([market, value]) => ({ market, ...value, hitRate: Math.round((value.won / value.settled) * 1000) / 10 }))
+      .sort((a, b) => b.settled - a.settled),
+    byConfidence: confidenceBuckets.map(({ label, settled: count, won: bucketWon }) => ({
+      label,
+      settled: count,
+      won: bucketWon,
+      hitRate: count ? Math.round((bucketWon / count) * 1000) / 10 : 0,
+    })),
+    engineVersions: [...engineVersions.entries()].map(([version, total]) => ({ version, total })).sort((a, b) => b.total - a.total),
     generatedAt: new Date().toISOString(),
   };
 });

@@ -9,11 +9,7 @@ import {
 } from "./apifootball.server";
 import { getRuntimeBinding, type DurableObjectNamespaceBinding } from "./config.server";
 import { LIVE_COORDINATOR_NAME, type SharedFixtureMode } from "./live-football.shared";
-import {
-  rankMatches,
-  selectTrendingMatch,
-  type MatchRankingSignal,
-} from "./match-ranking";
+import { rankMatches, selectTrendingMatch, type MatchRankingSignal } from "./match-ranking";
 import type {
   ApiEvent,
   ApiH2H,
@@ -70,6 +66,8 @@ type ApiFixture = {
     date: string;
     status: { short: string; elapsed: number | null };
     venue: { name: string | null; city: string | null };
+    referee?: string | null;
+    timezone?: string;
   };
   league: {
     id: number;
@@ -259,18 +257,16 @@ export async function readSharedFixtureSnapshot(
   mode: SharedFixtureMode,
   date: string,
 ): Promise<FixturesPayload | null> {
-  const coordinator = getRuntimeBinding<DurableObjectNamespaceBinding>(
-    "LIVE_FOOTBALL_COORDINATOR",
-  );
+  const coordinator = getRuntimeBinding<DurableObjectNamespaceBinding>("LIVE_FOOTBALL_COORDINATOR");
   if (!coordinator) return null;
 
   try {
     const path = mode === "live" ? "/api/fixtures/live" : "/api/fixtures/today";
     const url = new URL(`https://livefoot.internal${path}`);
     if (mode === "day") url.searchParams.set("date", date);
-    const response = await coordinator.getByName(LIVE_COORDINATOR_NAME).fetch(
-      new Request(url, { method: "GET" }),
-    );
+    const response = await coordinator
+      .getByName(LIVE_COORDINATOR_NAME)
+      .fetch(new Request(url, { method: "GET" }));
     if (!response.ok) return null;
     const payload = (await response.json()) as FixturesPayload;
     if (!Array.isArray(payload.matches) || typeof payload.state !== "string") return null;
@@ -297,10 +293,7 @@ export const getFixtures = createServerFn({ method: "GET" })
   .handler(async ({ data }): Promise<FixturesPayload> => {
     const isLiveRequest = Boolean(data.live);
     const requestedDate = data.date ?? todayISO();
-    const shared = await readSharedFixtureSnapshot(
-      isLiveRequest ? "live" : "day",
-      requestedDate,
-    );
+    const shared = await readSharedFixtureSnapshot(isLiveRequest ? "live" : "day", requestedDate);
     if (shared) return shared;
 
     const params = isLiveRequest ? { live: "all" as const } : { date: requestedDate };
@@ -487,6 +480,7 @@ export const getFixtureDetail = createServerFn({ method: "GET" })
             formation: string;
             coach: { name: string };
             startXI: Array<{ player: { name: string; number: number; pos: string } }>;
+            substitutes?: Array<{ player: { name: string; number: number; pos: string } }>;
           }>
         >("/fixtures/lineups", { fixture: id }),
       ]);
@@ -532,6 +526,11 @@ export const getFixtureDetail = createServerFn({ method: "GET" })
               number: p.player.number,
               position: p.player.pos,
             })),
+            substitutes: (homeLineupRaw.substitutes ?? []).map((p) => ({
+              name: p.player.name,
+              number: p.player.number,
+              position: p.player.pos,
+            })),
           }
         : null;
 
@@ -543,6 +542,11 @@ export const getFixtureDetail = createServerFn({ method: "GET" })
               ? `#${awayLineupRaw.team.colors.player.primary}`
               : "#3b82f6",
             players: awayLineupRaw.startXI.map((p) => ({
+              name: p.player.name,
+              number: p.player.number,
+              position: p.player.pos,
+            })),
+            substitutes: (awayLineupRaw.substitutes ?? []).map((p) => ({
               name: p.player.name,
               number: p.player.number,
               position: p.player.pos,
@@ -606,6 +610,10 @@ export const getFixtureDetail = createServerFn({ method: "GET" })
       const injuries = {
         home: injuriesArr
           .filter((item) => item.team.id === homeId)
+          .filter(
+            (item, index, rows) =>
+              rows.findIndex((candidate) => candidate.player.id === item.player.id) === index,
+          )
           .map((item) => ({
             playerId: item.player.id,
             name: item.player.name,
@@ -616,6 +624,10 @@ export const getFixtureDetail = createServerFn({ method: "GET" })
           })),
         away: injuriesArr
           .filter((item) => item.team.id === awayId)
+          .filter(
+            (item, index, rows) =>
+              rows.findIndex((candidate) => candidate.player.id === item.player.id) === index,
+          )
           .map((item) => ({
             playerId: item.player.id,
             name: item.player.name,
@@ -656,51 +668,51 @@ export const getFixtureDetail = createServerFn({ method: "GET" })
  * visible through getFixtureSections.
  */
 export async function loadFixtureSummary(id: number): Promise<RemoteMatchDetail> {
-    const [liveSnapshot, daySnapshot] = await Promise.all([
-      readSharedFixtureSnapshot("live", todayISO()),
-      readSharedFixtureSnapshot("day", todayISO()),
-    ]);
-    for (const snapshot of [liveSnapshot, daySnapshot]) {
-      const match = snapshot?.matches.find((item) => item.id === id);
-      if (match && snapshot) {
-        return detailFromSummary(match, {
-          fetchedAt: snapshot.fetchedAt ?? new Date().toISOString(),
-          stale: snapshot.state === "stale",
-          state: snapshot.state,
-          source: snapshot.source,
-          retryAfterMs: snapshot.retryAfterMs,
-          unavailableSections: [
-            "événements",
-            "statistiques",
-            "compositions",
-            "confrontations",
-            "cotes",
-            "prédictions",
-            "absences",
-          ],
-        });
-      }
+  const [liveSnapshot, daySnapshot] = await Promise.all([
+    readSharedFixtureSnapshot("live", todayISO()),
+    readSharedFixtureSnapshot("day", todayISO()),
+  ]);
+  for (const snapshot of [liveSnapshot, daySnapshot]) {
+    const match = snapshot?.matches.find((item) => item.id === id);
+    if (match && snapshot) {
+      return detailFromSummary(match, {
+        fetchedAt: snapshot.fetchedAt ?? new Date().toISOString(),
+        stale: snapshot.state === "stale",
+        state: snapshot.state,
+        source: snapshot.source,
+        retryAfterMs: snapshot.retryAfterMs,
+        unavailableSections: [
+          "événements",
+          "statistiques",
+          "compositions",
+          "confrontations",
+          "cotes",
+          "prédictions",
+          "absences",
+        ],
+      });
     }
+  }
 
-    const fixtures = await apiFootball<ApiFixture[]>("/fixtures", { id });
-    const fixture = fixtures[0];
-    if (!fixture) throw new Error("Match introuvable.");
-    const cacheState = await getApiFootballCacheState("/fixtures", { id });
-    const summary = toSummary(fixture);
-    const defaults = summaryDetailDefaults({
-      fetchedAt: new Date(cacheState?.storedAt ?? Date.now()).toISOString(),
-      stale: cacheState?.stale ?? false,
-      unavailableSections: [
-        "événements",
-        "statistiques",
-        "compositions",
-        "confrontations",
-        "cotes",
-        "prédictions",
-        "absences",
-      ],
-    });
-    return { ...defaults, ...summary };
+  const fixtures = await apiFootball<ApiFixture[]>("/fixtures", { id });
+  const fixture = fixtures[0];
+  if (!fixture) throw new Error("Match introuvable.");
+  const cacheState = await getApiFootballCacheState("/fixtures", { id });
+  const summary = toSummary(fixture);
+  const defaults = summaryDetailDefaults({
+    fetchedAt: new Date(cacheState?.storedAt ?? Date.now()).toISOString(),
+    stale: cacheState?.stale ?? false,
+    unavailableSections: [
+      "événements",
+      "statistiques",
+      "compositions",
+      "confrontations",
+      "cotes",
+      "prédictions",
+      "absences",
+    ],
+  });
+  return { ...defaults, ...summary };
 }
 
 export const getFixtureSummary = createServerFn({ method: "GET" })
@@ -736,21 +748,29 @@ export const getFixtureSections = createServerFn({ method: "GET" })
       formation: string;
       coach: { name: string };
       startXI: Array<{ player: { name: string; number: number; pos: string } }>;
+      substitutes?: Array<{ player: { name: string; number: number; pos: string } }>;
     }>;
 
-    const [eventsResult, statsResult, lineupsResult, h2hResult, oddsResult, predictionResult, injuriesResult] =
-      await Promise.allSettled([
-        apiFootball<EventPayload[]>("/fixtures/events", { fixture: data.id }),
-        apiFootball<StatsPayload>("/fixtures/statistics", { fixture: data.id }),
-        apiFootball<LineupPayload>("/fixtures/lineups", { fixture: data.id }),
-        apiFootball<ApiFixture[]>("/fixtures/headtohead", {
-          h2h: `${homeId}-${awayId}`,
-          last: 5,
-        }),
-        apiFootball<ApiOddsResponse[]>("/odds", { fixture: data.id, bet: 1 }),
-        apiFootball<ApiPredictionResponse[]>("/predictions", { fixture: data.id }),
-        apiFootball<ApiInjuryResponse[]>("/injuries", { fixture: data.id }),
-      ]);
+    const [
+      eventsResult,
+      statsResult,
+      lineupsResult,
+      h2hResult,
+      oddsResult,
+      predictionResult,
+      injuriesResult,
+    ] = await Promise.allSettled([
+      apiFootball<EventPayload[]>("/fixtures/events", { fixture: data.id }),
+      apiFootball<StatsPayload>("/fixtures/statistics", { fixture: data.id }),
+      apiFootball<LineupPayload>("/fixtures/lineups", { fixture: data.id }),
+      apiFootball<ApiFixture[]>("/fixtures/headtohead", {
+        h2h: `${homeId}-${awayId}`,
+        last: 5,
+      }),
+      apiFootball<ApiOddsResponse[]>("/odds", { fixture: data.id, bet: 1 }),
+      apiFootball<ApiPredictionResponse[]>("/predictions", { fixture: data.id }),
+      apiFootball<ApiInjuryResponse[]>("/injuries", { fixture: data.id }),
+    ]);
 
     const eventsArr = settledValue(eventsResult, [], "événements", unavailableSections);
     if (eventsResult.status === "fulfilled") loadedSections.add("événements");
@@ -800,6 +820,11 @@ export const getFixtureSections = createServerFn({ method: "GET" })
           number: player.player.number,
           position: player.player.pos,
         })),
+        substitutes: (lineup.substitutes ?? []).map((player) => ({
+          name: player.player.name,
+          number: player.player.number,
+          position: player.player.pos,
+        })),
       };
     };
     const h2h: ApiH2H[] = h2hArr.map((item) => ({
@@ -838,22 +863,34 @@ export const getFixtureSections = createServerFn({ method: "GET" })
         }
       : null;
     const injuries = {
-      home: injuriesArr.filter((item) => item.team.id === homeId).map((item) => ({
-        playerId: item.player.id,
-        name: item.player.name,
-        photo: item.player.photo,
-        reason: item.player.reason,
-        type: item.player.type,
-        teamId: item.team.id,
-      })),
-      away: injuriesArr.filter((item) => item.team.id === awayId).map((item) => ({
-        playerId: item.player.id,
-        name: item.player.name,
-        photo: item.player.photo,
-        reason: item.player.reason,
-        type: item.player.type,
-        teamId: item.team.id,
-      })),
+      home: injuriesArr
+        .filter((item) => item.team.id === homeId)
+        .filter(
+          (item, index, rows) =>
+            rows.findIndex((candidate) => candidate.player.id === item.player.id) === index,
+        )
+        .map((item) => ({
+          playerId: item.player.id,
+          name: item.player.name,
+          photo: item.player.photo,
+          reason: item.player.reason,
+          type: item.player.type,
+          teamId: item.team.id,
+        })),
+      away: injuriesArr
+        .filter((item) => item.team.id === awayId)
+        .filter(
+          (item, index, rows) =>
+            rows.findIndex((candidate) => candidate.player.id === item.player.id) === index,
+        )
+        .map((item) => ({
+          playerId: item.player.id,
+          name: item.player.name,
+          photo: item.player.photo,
+          reason: item.player.reason,
+          type: item.player.type,
+          teamId: item.team.id,
+        })),
     };
 
     const inheritedUnavailable = summary.meta.unavailableSections.filter(
@@ -877,6 +914,231 @@ export const getFixtureSections = createServerFn({ method: "GET" })
     };
   });
 
+export type FixtureContextTeam = {
+  id: number;
+  name: string;
+  logo: string;
+  standing: {
+    rank: number;
+    points: number;
+    played: number;
+    goalDifference: number;
+    form: string;
+  } | null;
+  recent: Array<{
+    id: number;
+    date: string;
+    opponent: string;
+    result: "W" | "D" | "L" | "?";
+    score: string;
+  }>;
+  coach: { name: string; photo: string | null } | null;
+  sidelined: Array<{ id: number; name: string; photo: string; reason: string | null }>;
+  topScorers: Array<{ id: number; name: string; photo: string; goals: number; assists: number }>;
+  statistics: TeamStatisticsRow | null;
+};
+
+export type FixtureExtendedContext = {
+  home: FixtureContextTeam;
+  away: FixtureContextTeam;
+  fetchedAt: string;
+};
+
+type ApiTeamStatisticsPayload = {
+  league: { id: number; name: string; season: number };
+  team: { id: number; name: string; logo: string };
+  form?: string;
+  fixtures?: {
+    played?: TeamStatSplit;
+    wins?: TeamStatSplit;
+    draws?: TeamStatSplit;
+    loses?: TeamStatSplit;
+  };
+  goals?: {
+    for?: { average?: TeamStatAverage };
+    against?: { average?: TeamStatAverage };
+  };
+  clean_sheet?: Record<string, number | null>;
+  failed_to_score?: Record<string, number | null>;
+  lineups?: Array<{ formation: string; played: number | null }>;
+};
+
+type TeamStatSplit = { home?: number | null; away?: number | null; total?: number | null };
+type TeamStatAverage = {
+  home?: string | number | null;
+  away?: string | number | null;
+  total?: string | number | null;
+};
+
+function mapTeamStatistics(item?: ApiTeamStatisticsPayload | null): TeamStatisticsRow | null {
+  return item
+    ? {
+        league: item.league,
+        team: item.team,
+        form: item.form ?? "",
+        played: item.fixtures?.played ?? {},
+        wins: item.fixtures?.wins ?? {},
+        draws: item.fixtures?.draws ?? {},
+        loses: item.fixtures?.loses ?? {},
+        goalsForAverage: item.goals?.for?.average ?? {},
+        goalsAgainstAverage: item.goals?.against?.average ?? {},
+        cleanSheets: item.clean_sheet ?? {},
+        failedToScore: item.failed_to_score ?? {},
+        lineups: item.lineups ?? [],
+      }
+    : null;
+}
+
+/**
+ * Competition and squad context is intentionally lazy. It covers the Pro
+ * catalogue data that is useful to a match without making every visitor pay
+ * the cost of ten additional upstream calls on initial render.
+ */
+export const getFixtureExtendedContext = createServerFn({ method: "GET" })
+  .inputValidator((input) => z.object({ id: z.number().int().positive() }).parse(input))
+  .handler(async ({ data }): Promise<FixtureExtendedContext> => {
+    const summary = await loadFixtureSummary(data.id);
+    const { id: league, season } = summary.league;
+    const teamIds = [summary.home.id, summary.away.id] as const;
+
+    type StandingPayload = Array<{
+      league: {
+        standings: Array<
+          Array<{
+            rank: number;
+            team: { id: number };
+            points: number;
+            goalsDiff: number;
+            form?: string;
+            all: { played: number };
+          }>
+        >;
+      };
+    }>;
+    type CoachPayload = Array<{ id: number; name: string; photo?: string | null }>;
+    type SidelinedPayload = Array<{
+      player: { id: number; name: string; photo: string };
+      team: { id: number };
+      type: string | null;
+    }>;
+    type ScorerPayload = Array<{
+      player: { id: number; name: string; photo: string };
+      statistics: Array<{
+        team: { id: number };
+        goals: { total: number | null; assists: number | null };
+      }>;
+    }>;
+
+    const [
+      standingsResult,
+      homeFormResult,
+      awayFormResult,
+      homeCoachResult,
+      awayCoachResult,
+      homeOutResult,
+      awayOutResult,
+      scorersResult,
+      homeStatsResult,
+      awayStatsResult,
+    ] = await Promise.allSettled([
+      apiFootball<StandingPayload>("/standings", { league, season }),
+      apiFootball<ApiFixture[]>("/fixtures", { team: teamIds[0], last: 5 }),
+      apiFootball<ApiFixture[]>("/fixtures", { team: teamIds[1], last: 5 }),
+      apiFootball<CoachPayload>("/coachs", { team: teamIds[0] }),
+      apiFootball<CoachPayload>("/coachs", { team: teamIds[1] }),
+      apiFootball<SidelinedPayload>("/sidelined", { team: teamIds[0] }),
+      apiFootball<SidelinedPayload>("/sidelined", { team: teamIds[1] }),
+      apiFootball<ScorerPayload>("/players/topscorers", { league, season }),
+      apiFootball<ApiTeamStatisticsPayload>("/teams/statistics", {
+        team: teamIds[0],
+        league,
+        season,
+      }),
+      apiFootball<ApiTeamStatisticsPayload>("/teams/statistics", {
+        team: teamIds[1],
+        league,
+        season,
+      }),
+    ]);
+
+    const standings = standingsResult.status === "fulfilled" ? standingsResult.value : [];
+    const table = standings[0]?.league.standings.flat() ?? [];
+    const scorers = scorersResult.status === "fulfilled" ? scorersResult.value : [];
+    const forms = [homeFormResult, awayFormResult] as const;
+    const coaches = [homeCoachResult, awayCoachResult] as const;
+    const sidelined = [homeOutResult, awayOutResult] as const;
+    const teamStatistics = [homeStatsResult, awayStatsResult] as const;
+
+    const buildTeam = (index: 0 | 1): FixtureContextTeam => {
+      const ref = index === 0 ? summary.home : summary.away;
+      const form = forms[index].status === "fulfilled" ? forms[index].value : [];
+      const coachRows = coaches[index].status === "fulfilled" ? coaches[index].value : [];
+      const outRows = sidelined[index].status === "fulfilled" ? sidelined[index].value : [];
+      const standing = table.find((row) => row.team.id === ref.id);
+      return {
+        id: ref.id,
+        name: ref.name,
+        logo: ref.logo,
+        standing: standing
+          ? {
+              rank: standing.rank,
+              points: standing.points,
+              played: standing.all.played,
+              goalDifference: standing.goalsDiff,
+              form: standing.form ?? "",
+            }
+          : null,
+        recent: form.map((fixture) => {
+          const home = fixture.teams.home.id === ref.id;
+          const goalsFor = home ? fixture.goals.home : fixture.goals.away;
+          const goalsAgainst = home ? fixture.goals.away : fixture.goals.home;
+          const result =
+            goalsFor === null || goalsAgainst === null
+              ? "?"
+              : goalsFor > goalsAgainst
+                ? "W"
+                : goalsFor === goalsAgainst
+                  ? "D"
+                  : "L";
+          return {
+            id: fixture.fixture.id,
+            date: dayLabel(fixture.fixture.date),
+            opponent: home ? fixture.teams.away.name : fixture.teams.home.name,
+            result,
+            score: `${goalsFor ?? "—"}-${goalsAgainst ?? "—"}`,
+          };
+        }),
+        coach: coachRows[0] ? { name: coachRows[0].name, photo: coachRows[0].photo ?? null } : null,
+        sidelined: outRows.slice(0, 8).map((row) => ({
+          id: row.player.id,
+          name: row.player.name,
+          photo: row.player.photo,
+          reason: row.type,
+        })),
+        topScorers: scorers
+          .flatMap((row) =>
+            row.statistics
+              .filter((stats) => stats.team.id === ref.id)
+              .map((stats) => ({
+                id: row.player.id,
+                name: row.player.name,
+                photo: row.player.photo,
+                goals: stats.goals.total ?? 0,
+                assists: stats.goals.assists ?? 0,
+              })),
+          )
+          .sort((a, b) => b.goals - a.goals)
+          .slice(0, 3),
+        statistics:
+          teamStatistics[index].status === "fulfilled"
+            ? mapTeamStatistics(teamStatistics[index].value)
+            : null,
+      };
+    };
+
+    return { home: buildTeam(0), away: buildTeam(1), fetchedAt: new Date().toISOString() };
+  });
+
 export type StandingRow = {
   rank: number;
   teamId: number;
@@ -892,6 +1154,190 @@ export type StandingRow = {
   points: number;
   form: string;
 };
+
+export type FixtureOddsMarket = {
+  name: string;
+  selections: Array<{ label: string; odd: number }>;
+};
+
+export type FixtureMatchCenter = {
+  round: string | null;
+  roundFixtures: RemoteMatchSummary[];
+  standings: StandingRow[];
+  oddsMarkets: FixtureOddsMarket[];
+  info: {
+    referee: string | null;
+    venue: string | null;
+    city: string | null;
+    timezone: string | null;
+  };
+  unavailableSections: string[];
+  fetchedAt: string;
+};
+
+function normalizeMarketName(name: string) {
+  const value = name.trim().toLowerCase();
+  if (value === "match winner") return "Résultat du match";
+  if (value === "double chance") return "Double chance";
+  if (value.includes("goals over/under") || value === "goals over under") return "Plus/Moins 2,5";
+  if (value.includes("both teams") && value.includes("score")) return "Les deux équipes marquent";
+  return name.trim();
+}
+
+function normalizeSelectionLabel(market: string, label: string) {
+  const value = label.trim().toLowerCase();
+  if (market === "Résultat du match") {
+    if (value === "home") return "1";
+    if (value === "draw") return "N";
+    if (value === "away") return "2";
+  }
+  if (market === "Double chance") {
+    if (value === "home/draw") return "1N";
+    if (value === "home/away") return "12";
+    if (value === "draw/away") return "N2";
+  }
+  if (market === "Plus/Moins 2,5") {
+    if (value === "over 2.5") return "+2,5";
+    if (value === "under 2.5") return "-2,5";
+  }
+  if (market === "Les deux équipes marquent") {
+    if (value === "yes") return "Oui";
+    if (value === "no") return "Non";
+  }
+  return label.trim();
+}
+
+function extractOddsMarkets(rows: ApiOddsResponse[]): FixtureOddsMarket[] {
+  const accepted = new Set([
+    "Résultat du match",
+    "Double chance",
+    "Plus/Moins 2,5",
+    "Les deux équipes marquent",
+  ]);
+  const aggregates = new Map<string, Map<string, number[]>>();
+  for (const row of rows) {
+    for (const bookmaker of row.bookmakers ?? []) {
+      for (const bet of bookmaker.bets ?? []) {
+        const market = normalizeMarketName(bet.name);
+        if (!accepted.has(market)) continue;
+        const selections = aggregates.get(market) ?? new Map<string, number[]>();
+        for (const value of bet.values ?? []) {
+          const odd = Number(value.odd);
+          if (!Number.isFinite(odd) || odd <= 1) continue;
+          const label = normalizeSelectionLabel(market, value.value);
+          selections.set(label, [...(selections.get(label) ?? []), odd]);
+        }
+        aggregates.set(market, selections);
+      }
+    }
+  }
+  return [...aggregates.entries()].map(([name, selections]) => ({
+    name,
+    selections: [...selections.entries()].map(([label, values]) => ({
+      label,
+      odd: values.reduce((sum, value) => sum + value, 0) / values.length,
+    })),
+  }));
+}
+
+export const getFixtureMatchCenter = createServerFn({ method: "GET" })
+  .inputValidator((input) => z.object({ id: z.number().int().positive() }).parse(input))
+  .handler(async ({ data }): Promise<FixtureMatchCenter> => {
+    const summary = await loadFixtureSummary(data.id);
+    const unavailableSections: string[] = [];
+    const fixtureResult = await Promise.allSettled([
+      apiFootball<ApiFixture[]>("/fixtures", { id: data.id }),
+    ]);
+    const fixture = fixtureResult[0].status === "fulfilled" ? fixtureResult[0].value[0] : undefined;
+    const leagueId = fixture?.league.id ?? summary.league.id;
+    const season = fixture?.league.season ?? summary.league.season;
+    const round = fixture?.league.round ?? summary.league.round;
+    const kickoff = fixture?.fixture.date ?? summary.kickoff;
+    const roundParams = round
+      ? { league: leagueId, season, round }
+      : {
+          league: leagueId,
+          season,
+          date: kickoff.slice(0, 10),
+        };
+    const [roundResult, standingsResult, oddsResult] = await Promise.allSettled([
+      apiFootball<ApiFixture[]>("/fixtures", roundParams),
+      apiFootball<
+        Array<{
+          league: {
+            standings: Array<
+              Array<{
+                rank: number;
+                team: { id: number; name: string; logo: string };
+                points: number;
+                goalsDiff: number;
+                form?: string;
+                all: {
+                  played: number;
+                  win: number;
+                  draw: number;
+                  lose: number;
+                  goals: { for: number; against: number };
+                };
+              }>
+            >;
+          };
+        }>
+      >("/standings", { league: leagueId, season }),
+      apiFootball<ApiOddsResponse[]>("/odds", { fixture: data.id }),
+    ]);
+
+    if (roundResult.status === "rejected") unavailableSections.push("journée");
+    if (standingsResult.status === "rejected") unavailableSections.push("classement");
+    if (oddsResult.status === "rejected") unavailableSections.push("cotes");
+
+    const standingRows =
+      standingsResult.status === "fulfilled"
+        ? (standingsResult.value[0]?.league.standings[0] ?? [])
+        : [];
+    let roundFixtures =
+      roundResult.status === "fulfilled" ? await rankApiFixtures(roundResult.value) : [];
+    if (roundFixtures.length === 0) {
+      const daySnapshot = await readSharedFixtureSnapshot("day", kickoff.slice(0, 10));
+      roundFixtures =
+        daySnapshot?.matches.filter(
+          (item) =>
+            item.league.id === leagueId &&
+            (!round || !item.league.round || item.league.round === round),
+        ) ?? [];
+    }
+    if (!roundFixtures.some((item) => item.id === summary.id)) {
+      roundFixtures = [summary, ...roundFixtures];
+    }
+    return {
+      round: round ?? null,
+      roundFixtures,
+      standings: standingRows.map((row) => ({
+        rank: row.rank,
+        teamId: row.team.id,
+        team: row.team.name,
+        logo: row.team.logo,
+        played: row.all.played,
+        win: row.all.win,
+        draw: row.all.draw,
+        lose: row.all.lose,
+        goalsFor: row.all.goals.for,
+        goalsAgainst: row.all.goals.against,
+        gd: row.goalsDiff,
+        points: row.points,
+        form: row.form ?? "",
+      })),
+      oddsMarkets: oddsResult.status === "fulfilled" ? extractOddsMarkets(oddsResult.value) : [],
+      info: {
+        referee: fixture?.fixture.referee ?? null,
+        venue: fixture?.fixture.venue.name ?? summary.venue,
+        city: fixture?.fixture.venue.city ?? null,
+        timezone: fixture?.fixture.timezone ?? null,
+      },
+      unavailableSections,
+      fetchedAt: new Date().toISOString(),
+    };
+  });
 
 export const getStandings = createServerFn({ method: "GET" })
   .inputValidator((input) =>
@@ -1385,8 +1831,12 @@ export type TeamStatisticsRow = {
   league: { id: number; name: string; season: number };
   team: { id: number; name: string; logo: string };
   form: string;
-  fixtures: Record<string, Record<string, number | null>>;
-  goals: Record<string, Record<string, number | string | null>>;
+  played: TeamStatSplit;
+  wins: TeamStatSplit;
+  draws: TeamStatSplit;
+  loses: TeamStatSplit;
+  goalsForAverage: TeamStatAverage;
+  goalsAgainstAverage: TeamStatAverage;
   cleanSheets: Record<string, number | null>;
   failedToScore: Record<string, number | null>;
   lineups: Array<{ formation: string; played: number | null }>;
@@ -1404,31 +1854,8 @@ export const getTeamStatistics = createServerFn({ method: "GET" })
   )
   .handler(async ({ data }): Promise<TeamStatisticsRow | null> => {
     try {
-      const raw = await apiFootball<
-        Array<{
-          league: { id: number; name: string; season: number };
-          team: { id: number; name: string; logo: string };
-          form: string;
-          fixtures: Record<string, Record<string, number | null>>;
-          goals: Record<string, Record<string, number | string | null>>;
-          clean_sheet: Record<string, number | null>;
-          failed_to_score: Record<string, number | null>;
-          lineups: Array<{ formation: string; played: number | null }>;
-        }>
-      >("/teams/statistics", data);
-      const item = raw[0];
-      return item
-        ? {
-            league: item.league,
-            team: item.team,
-            form: item.form ?? "",
-            fixtures: item.fixtures ?? {},
-            goals: item.goals ?? {},
-            cleanSheets: item.clean_sheet ?? {},
-            failedToScore: item.failed_to_score ?? {},
-            lineups: item.lineups ?? [],
-          }
-        : null;
+      const raw = await apiFootball<ApiTeamStatisticsPayload>("/teams/statistics", data);
+      return mapTeamStatistics(raw);
     } catch {
       return null;
     }

@@ -20,7 +20,13 @@ import {
 } from "lucide-react";
 import { AppShell, PageTitle } from "@/components/AppShell";
 import { breadcrumbSchema, buildRouteMeta, faqSchema } from "@/lib/seo";
-import { PREMIUM_PLANS, PRICED_PACKS, formatXaf, type PremiumPlan, type PricedPack } from "@/lib/pricing";
+import {
+  PREMIUM_PLANS,
+  PRICED_PACKS,
+  formatXaf,
+  type PremiumPlan,
+  type PricedPack,
+} from "@/lib/pricing";
 import { createSubscriptionCheckout, createTopupCheckout } from "@/lib/payments.functions";
 import { rememberPaymentHandoff } from "@/lib/payment-handoff";
 import { getMyBalance } from "@/lib/analyses.functions";
@@ -155,15 +161,28 @@ function PremiumSubscriptionPage() {
     setBusyPlan(plan.id);
     const startedAt = Date.now();
     try {
-      track("premium_checkout_started", { plan: plan.id, location: "premium_plan_card", mode: "hosted" });
-      const res = await subCheckoutFn({ data: { planId: plan.id, checkoutRequestId: crypto.randomUUID() } });
+      track("premium_checkout_started", {
+        plan: plan.id,
+        location: "premium_plan_card",
+        mode: "hosted",
+      });
+      const res = await subCheckoutFn({
+        data: { planId: plan.id, checkoutRequestId: crypto.randomUUID() },
+      });
       if (!res.link) throw new Error("La page de paiement n'a pas pu être ouverte.");
-      if (!res.externalId || !res.transId) throw new Error("La page de paiement n'a pas pu être ouverte.");
+      if (!res.externalId || !res.transId)
+        throw new Error("La page de paiement n'a pas pu être ouverte.");
       rememberPaymentHandoff({ externalId: res.externalId, transId: res.transId });
-      track("premium_checkout_redirected", { plan: plan.id, durationMs: Date.now() - startedAt, mode: "hosted" });
+      track("premium_checkout_redirected", {
+        plan: plan.id,
+        durationMs: Date.now() - startedAt,
+        mode: "hosted",
+      });
       window.location.assign(res.link);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "La page de paiement n'a pas pu être ouverte.");
+      toast.error(
+        err instanceof Error ? err.message : "La page de paiement n'a pas pu être ouverte.",
+      );
     } finally {
       setBusyPlan(null);
     }
@@ -197,14 +216,23 @@ function PremiumSubscriptionPage() {
     const startedAt = Date.now();
     try {
       track("topup_checkout_started", { pack: pack.id, mode: "hosted" });
-      const res = await topupCheckoutFn({ data: { packId: pack.id, checkoutRequestId: crypto.randomUUID() } });
+      const res = await topupCheckoutFn({
+        data: { packId: pack.id, checkoutRequestId: crypto.randomUUID() },
+      });
       if (!res.link) throw new Error("La page de paiement n'a pas pu être ouverte.");
-      if (!res.externalId || !res.transId) throw new Error("La page de paiement n'a pas pu être ouverte.");
+      if (!res.externalId || !res.transId)
+        throw new Error("La page de paiement n'a pas pu être ouverte.");
       rememberPaymentHandoff({ externalId: res.externalId, transId: res.transId });
-      track("topup_checkout_redirected", { pack: pack.id, durationMs: Date.now() - startedAt, mode: "hosted" });
+      track("topup_checkout_redirected", {
+        pack: pack.id,
+        durationMs: Date.now() - startedAt,
+        mode: "hosted",
+      });
       window.location.assign(res.link);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "La page de paiement n'a pas pu être ouverte.");
+      toast.error(
+        err instanceof Error ? err.message : "La page de paiement n'a pas pu être ouverte.",
+      );
     } finally {
       setBusyPack(null);
     }
@@ -212,7 +240,7 @@ function PremiumSubscriptionPage() {
 
   return (
     <AppShell>
-      <PageTitle eyebrow="Offre Exclusive" title="Passer Premium" />
+      <PageTitle eyebrow="LiveFoot Premium" title="Choisir mon abonnement" />
 
       {/* Hero Banner */}
       <div className="px-4 lg:px-0">
@@ -231,13 +259,26 @@ function PremiumSubscriptionPage() {
               <Crown className="size-3.5" /> Livefoot IA Premium
             </div>
 
-            <h1 className="mt-3 text-2xl font-black leading-tight sm:text-3xl">
-              Débloquez la puissance maximale des prédictions IA
-            </h1>
+            <h2 className="mt-3 text-2xl font-black leading-tight sm:text-3xl">
+              Analysez jusqu’à 33 matchs par mois sans manquer de crédits
+            </h2>
             <p className="mt-2 text-xs leading-relaxed text-[#b7c1cb] sm:text-sm">
-              100 crédits par mois réinitialisés à chaque cycle, favoris illimités, et accès
-              exclusif aux packs de recharge pour ne jamais tomber à court.
+              Recevez 100 crédits renouvelés chaque mois, retrouvez tout votre historique et
+              centralisez vos alertes dans le Premium Intelligence Hub.
             </p>
+
+            <div className="mt-5 grid max-w-2xl gap-2 min-[430px]:grid-cols-3">
+              {[
+                ["33+", "analyses par mois"],
+                ["3", "crédits par analyse"],
+                ["100", "crédits renouvelés"],
+              ].map(([value, label]) => (
+                <div key={label} className="rounded-xl border border-white/10 bg-white/5 px-3 py-2">
+                  <span className="block text-lg font-black text-white">{value}</span>
+                  <span className="block text-[10px] font-semibold text-[#b7c1cb]">{label}</span>
+                </div>
+              ))}
+            </div>
 
             {isPremium && (
               <div
@@ -283,7 +324,7 @@ function PremiumSubscriptionPage() {
         <div className="mb-4 text-center">
           <h2 className="text-xl font-black">Choisissez votre formule</h2>
           <p className="text-xs text-muted-foreground">
-            Sans engagement · Paiement sécurisé Fapshi Mobile Money
+            Une formule claire, paiement Mobile Money sécurisé et activation après confirmation
           </p>
         </div>
 
@@ -292,7 +333,7 @@ function PremiumSubscriptionPage() {
             <div
               key={plan.id}
               className={cn(
-                "relative flex animate-rise flex-col justify-between rounded-xl border border-border/70 bg-card p-6 transition-all",
+                "relative flex animate-rise flex-col justify-between rounded-2xl border border-slate-200 bg-white p-6 text-slate-950 shadow-sm transition-all dark:border-white/10 dark:bg-card dark:text-foreground",
                 plan.badge
                   ? "ring-brand shadow-lg shadow-brand/10"
                   : "ring-black/5 dark:ring-white/5",
@@ -321,6 +362,11 @@ function PremiumSubscriptionPage() {
                 <p className="mt-2 text-xs text-muted-foreground leading-relaxed">
                   {plan.description}
                 </p>
+                <div className="mt-3 inline-flex rounded-full bg-brand/10 px-2.5 py-1 text-[10px] font-black text-brand ring-1 ring-brand/20">
+                  {plan.interval === "year"
+                    ? `${formatXaf(Math.round(plan.priceXaf / 12))}/mois · 2 mois économisés`
+                    : `Environ ${formatXaf(Math.round(plan.priceXaf / 33))} par analyse`}
+                </div>
 
                 <ul className="mt-5 space-y-2.5 text-xs font-medium">
                   <li className="flex items-center gap-2">
@@ -358,9 +404,14 @@ function PremiumSubscriptionPage() {
                   ? "Accéder au Hub"
                   : busyPlan === plan.id
                     ? "Préparation sécurisée…"
-                    : `Souscrire (${formatXaf(plan.priceXaf)})`}
+                    : plan.interval === "year"
+                      ? "Choisir l'abonnement annuel"
+                      : "Choisir l'abonnement mensuel"}
                 <ArrowRight className="size-4" />
               </button>
+              <p className="mt-2 text-center text-[10px] leading-relaxed text-muted-foreground">
+                Ouverture directe du paiement sécurisé · aucun débit avant votre confirmation
+              </p>
             </div>
           ))}
         </div>
@@ -396,7 +447,7 @@ function PremiumSubscriptionPage() {
               </tr>
               <tr>
                 <td className="p-3.5">Historique visible</td>
-                <td className="p-3.5 text-center text-muted-foreground">10 entres</td>
+                <td className="p-3.5 text-center text-muted-foreground">10 entrées</td>
                 <td className="p-3.5 text-center font-bold text-brand">Illimité</td>
               </tr>
               <tr>
@@ -478,7 +529,6 @@ function PremiumSubscriptionPage() {
           ))}
         </div>
       </section>
-
     </AppShell>
   );
 }

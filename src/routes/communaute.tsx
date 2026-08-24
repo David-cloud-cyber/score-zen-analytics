@@ -2,15 +2,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import {
-  Flame,
-  MessageCircle,
-  Radio,
-  Reply,
-  Send,
-  Trophy,
-  User,
-} from "lucide-react";
+import { Flame, MessageCircle, Radio, Reply, Send, Trophy, User } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell, PageTitle } from "@/components/AppShell";
 import { PremiumCta } from "@/components/PremiumCta";
@@ -94,22 +86,15 @@ const DEMO_MESSAGES: CommunityMessage[] = [
   },
 ];
 
-function mergeMessages(current: CommunityMessage[], incoming: CommunityMessage): CommunityMessage[] {
+function mergeMessages(
+  current: CommunityMessage[],
+  incoming: CommunityMessage,
+): CommunityMessage[] {
   if (current.some((message) => message.id === incoming.id)) return current;
   return [...current, incoming].sort(
     (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
   );
 }
-function friendlyFreshness(overview: CommunityOverview | undefined, loading: boolean): string {
-  if (loading) return "Actualisation en cours.";
-  if (!overview?.updatedAt) return "Les matchs réels seront affichés dès qu'ils seront disponibles.";
-  const updatedAt = new Date(overview.updatedAt).getTime();
-  if (!Number.isFinite(updatedAt)) return "Les matchs réels seront affichés dès qu'ils seront disponibles.";
-  const elapsed = Math.max(0, Math.round((Date.now() - updatedAt) / 60000));
-  if (overview.state === "stale") return `Dernières informations disponibles il y a ${elapsed} min.`;
-  return elapsed <= 0 ? "Les données des matchs sont à jour." : `Dernière mise à jour il y a ${elapsed} min.`;
-}
-
 function CommunautePage() {
   const demoMode = isLocalDemo();
   const { session } = useSession();
@@ -146,6 +131,7 @@ function CommunautePage() {
   const [sending, setSending] = useState(false);
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyText, setReplyText] = useState("");
+  const [mobileSection, setMobileSection] = useState<"polls" | "chat">("polls");
   const chatScrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -201,7 +187,13 @@ function CommunautePage() {
     if (demoMode) {
       if (userVotes[poll.id]) return toast.info("Vous avez déjà voté pour ce match !");
       setUserVotes((current) => ({ ...current, [poll.id]: option }));
-      setPolls((current) => current.map((item) => item.id === poll.id ? { ...item, votes: { ...item.votes, [option]: item.votes[option] + 1 } } : item));
+      setPolls((current) =>
+        current.map((item) =>
+          item.id === poll.id
+            ? { ...item, votes: { ...item.votes, [option]: item.votes[option] + 1 } }
+            : item,
+        ),
+      );
       toast.success("Vote enregistré avec succès !");
       return;
     }
@@ -220,10 +212,14 @@ function CommunautePage() {
         },
       });
       setUserVotes((current) => ({ ...current, [poll.id]: option }));
-      setPolls((current) => current.map((item) => item.id === poll.id ? { ...item, votes: result.counts } : item));
+      setPolls((current) =>
+        current.map((item) => (item.id === poll.id ? { ...item, votes: result.counts } : item)),
+      );
       toast.success("Vote enregistré avec succès !");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Votre vote n'a pas pu être enregistré.");
+      toast.error(
+        error instanceof Error ? error.message : "Votre vote n'a pas pu être enregistré.",
+      );
     } finally {
       setPendingVote(null);
     }
@@ -238,16 +234,18 @@ function CommunautePage() {
       return;
     }
     if (demoMode) {
-      setMessages((current) => mergeMessages(current, {
-        id: `demo-${Date.now()}`,
-        user_name: "Dodo Bien",
-        user_avatar: null,
-        message: value,
-        created_at: new Date().toISOString(),
-        match_id: null,
-        parent_id: null,
-        reactions: {},
-      }));
+      setMessages((current) =>
+        mergeMessages(current, {
+          id: `demo-${Date.now()}`,
+          user_name: "Dodo Bien",
+          user_avatar: null,
+          message: value,
+          created_at: new Date().toISOString(),
+          match_id: null,
+          parent_id: null,
+          reactions: {},
+        }),
+      );
       setNewMessage("");
       return;
     }
@@ -272,7 +270,18 @@ function CommunautePage() {
       return;
     }
     if (demoMode) {
-      setMessages((current) => mergeMessages(current, { id: `demo-reply-${Date.now()}`, user_name: "Dodo Bien", user_avatar: null, message: value, created_at: new Date().toISOString(), match_id: null, parent_id: parentId, reactions: {} }));
+      setMessages((current) =>
+        mergeMessages(current, {
+          id: `demo-reply-${Date.now()}`,
+          user_name: "Dodo Bien",
+          user_avatar: null,
+          message: value,
+          created_at: new Date().toISOString(),
+          match_id: null,
+          parent_id: parentId,
+          reactions: {},
+        }),
+      );
       setReplyText("");
       setReplyingTo(null);
       return;
@@ -283,7 +292,9 @@ function CommunautePage() {
       setReplyText("");
       setReplyingTo(null);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Votre réponse n'a pas pu être publiée.");
+      toast.error(
+        error instanceof Error ? error.message : "Votre réponse n'a pas pu être publiée.",
+      );
     }
   };
 
@@ -294,49 +305,97 @@ function CommunautePage() {
     }
     if (demoMode) return;
     try {
-      const reactions = await reactionFn({ data: { messageId, emoji: emoji as "👍" | "❤️" | "🔥" | "😂" | "⚽" | "👀" } });
-      setMessages((current) => current.map((item) => item.id === messageId ? { ...item, reactions } : item));
+      const reactions = await reactionFn({
+        data: { messageId, emoji: emoji as "👍" | "❤️" | "🔥" | "😂" | "⚽" | "👀" },
+      });
+      setMessages((current) =>
+        current.map((item) => (item.id === messageId ? { ...item, reactions } : item)),
+      );
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "La réaction n'a pas pu être enregistrée.");
+      toast.error(
+        error instanceof Error ? error.message : "La réaction n'a pas pu être enregistrée.",
+      );
     }
   };
 
   return (
     <AppShell>
       <div className="hidden md:block">
-      <PageTitle eyebrow="Espace public" title="Communauté Livefoot IA" />
+        <PageTitle eyebrow="Espace public" title="Communauté Livefoot IA" />
 
         <div className="score-dark-surface relative animate-rise overflow-hidden rounded-xl bg-[#181818] p-6 text-[#f7f7f7] shadow-none">
-          <div className="pointer-events-none absolute -right-16 -top-16 size-48 rounded-full bg-brand/25 blur-3xl" aria-hidden />
-          <div className="pointer-events-none absolute -bottom-16 -left-10 size-40 rounded-full bg-data/25 blur-3xl" aria-hidden />
+          <div
+            className="pointer-events-none absolute -right-16 -top-16 size-48 rounded-full bg-brand/25 blur-3xl"
+            aria-hidden
+          />
+          <div
+            className="pointer-events-none absolute -bottom-16 -left-10 size-40 rounded-full bg-data/25 blur-3xl"
+            aria-hidden
+          />
           <div className="relative">
             <div className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-brand/20 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-brand">
               <Radio className="size-3 animate-pulse" /> En direct Live
             </div>
-            <h2 className="text-xl font-black leading-tight lg:text-2xl">Pronostiquez & échangez en temps réel</h2>
+            <h2 className="text-xl font-black leading-tight lg:text-2xl">
+              Pronostiquez & échangez en temps réel
+            </h2>
             <p className="mt-2 max-w-lg text-xs leading-relaxed text-[#b7c1cb] lg:text-sm">
-              Consultez les matchs réels, partagez votre avis et comparez les tendances de la communauté.
+              Consultez les matchs réels, partagez votre avis et comparez les tendances de la
+              communauté.
             </p>
           </div>
         </div>
       </div>
 
-      <div className="space-y-6 px-4 pb-28 lg:px-0">
-
-        <TelegramCtaCard location="community_hero" compact />
-
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand/20 bg-brand/5 px-4 py-3">
-          <p className="text-xs text-muted-foreground">Approfondissez les matchs suivis par la communauté avec les analyses Premium.</p>
-          <PremiumCta location="community_intro" compact label="Voir Premium" />
+      <div className="space-y-5 px-4 pb-28 lg:px-0">
+        <div
+          className="grid grid-cols-2 gap-1 rounded-xl bg-surface p-1 md:hidden"
+          aria-label="Sections de la communauté"
+        >
+          <button
+            type="button"
+            aria-pressed={mobileSection === "polls"}
+            onClick={() => setMobileSection("polls")}
+            className={cn(
+              "min-h-10 rounded-lg px-3 text-xs font-black transition-colors",
+              mobileSection === "polls"
+                ? "bg-card text-foreground shadow-sm"
+                : "text-muted-foreground",
+            )}
+          >
+            Matchs {polls.length ? `(${polls.length})` : ""}
+          </button>
+          <button
+            type="button"
+            aria-pressed={mobileSection === "chat"}
+            onClick={() => setMobileSection("chat")}
+            className={cn(
+              "min-h-10 rounded-lg px-3 text-xs font-black transition-colors",
+              mobileSection === "chat"
+                ? "bg-card text-foreground shadow-sm"
+                : "text-muted-foreground",
+            )}
+          >
+            Discussion
+          </button>
         </div>
 
-        <div className="space-y-3" aria-live="polite">
+        <div
+          className={cn("space-y-3", mobileSection !== "polls" && "hidden md:block")}
+          aria-live="polite"
+        >
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <Flame className="size-4 text-alert" />
-              <h3 className="text-sm font-black uppercase tracking-wider">Pronostics de la communauté</h3>
+              <h3 className="text-sm font-black uppercase tracking-wider">
+                Pronostics de la communauté
+              </h3>
             </div>
-            <span className="text-right text-[11px] font-bold text-muted-foreground">{friendlyFreshness(overviewQuery.data, overviewQuery.isFetching)}</span>
+            {overviewQuery.isFetching && (
+              <span className="text-right text-[11px] font-bold text-muted-foreground">
+                Mise à jour
+              </span>
+            )}
           </div>
 
           {polls.length ? (
@@ -348,22 +407,51 @@ function CommunautePage() {
                 const awayPct = totalVotes ? Math.max(0, 100 - homePct - drawPct) : 0;
                 const selected = userVotes[poll.id];
                 return (
-                  <div key={poll.id} className="animate-rise space-y-3 rounded-xl border border-border/70 bg-card p-4 shadow-none">
+                  <div
+                    key={poll.id}
+                    className="animate-rise space-y-3 rounded-xl border border-border/70 bg-card p-4 shadow-none"
+                  >
                     <div className="flex items-center justify-between border-b border-border/60 pb-2 text-[10px] font-bold text-muted-foreground">
                       <span>{poll.league}</span>
-                      <span className="rounded-full bg-surface px-2 py-0.5">{totalVotes} vote{totalVotes > 1 ? "s" : ""}</span>
+                      <span className="rounded-full bg-surface px-2 py-0.5">
+                        {totalVotes} vote{totalVotes > 1 ? "s" : ""}
+                      </span>
                     </div>
                     <div className="flex items-center justify-between gap-2 px-2">
-                      <div className="flex min-w-0 items-center gap-2"><img src={poll.homeLogo} alt="" className="size-8 object-contain" /><span className="truncate text-xs font-bold">{poll.homeTeam}</span></div>
+                      <div className="flex min-w-0 items-center gap-2">
+                        <img src={poll.homeLogo} alt="" className="size-8 object-contain" />
+                        <span className="truncate text-xs font-bold">{poll.homeTeam}</span>
+                      </div>
                       <span className="shrink-0 text-xs font-black text-muted-foreground">VS</span>
-                      <div className="flex min-w-0 items-center gap-2"><span className="truncate text-xs font-bold">{poll.awayTeam}</span><img src={poll.awayLogo} alt="" className="size-8 object-contain" /></div>
+                      <div className="flex min-w-0 items-center gap-2">
+                        <span className="truncate text-xs font-bold">{poll.awayTeam}</span>
+                        <img src={poll.awayLogo} alt="" className="size-8 object-contain" />
+                      </div>
                     </div>
                     <div className="grid grid-cols-3 gap-2">
-                      <VoteButton label={`1 (${homePct}%)`} selected={selected === "home"} disabled={Boolean(pendingVote)} onClick={() => void handleVote(poll, "home")} />
-                      <VoteButton label={`N (${drawPct}%)`} selected={selected === "draw"} disabled={Boolean(pendingVote)} onClick={() => void handleVote(poll, "draw")} />
-                      <VoteButton label={`2 (${awayPct}%)`} selected={selected === "away"} disabled={Boolean(pendingVote)} onClick={() => void handleVote(poll, "away")} />
+                      <VoteButton
+                        label={`1 (${homePct}%)`}
+                        selected={selected === "home"}
+                        disabled={Boolean(pendingVote)}
+                        onClick={() => void handleVote(poll, "home")}
+                      />
+                      <VoteButton
+                        label={`N (${drawPct}%)`}
+                        selected={selected === "draw"}
+                        disabled={Boolean(pendingVote)}
+                        onClick={() => void handleVote(poll, "draw")}
+                      />
+                      <VoteButton
+                        label={`2 (${awayPct}%)`}
+                        selected={selected === "away"}
+                        disabled={Boolean(pendingVote)}
+                        onClick={() => void handleVote(poll, "away")}
+                      />
                     </div>
-                    <div className="flex h-2 w-full overflow-hidden rounded-full bg-surface" aria-label="Répartition des votes">
+                    <div
+                      className="flex h-2 w-full overflow-hidden rounded-full bg-surface"
+                      aria-label="Répartition des votes"
+                    >
                       <div style={{ width: `${homePct}%` }} className="bg-brand transition-all" />
                       <div style={{ width: `${drawPct}%` }} className="bg-warn transition-all" />
                       <div style={{ width: `${awayPct}%` }} className="bg-data transition-all" />
@@ -373,39 +461,179 @@ function CommunautePage() {
               })}
             </div>
           ) : (
-            <div className="rounded-xl border border-border/70 bg-card p-8 text-center text-sm text-muted-foreground">Aucun match réel à voter pour le moment.</div>
+            <div className="rounded-xl border border-border/70 bg-card p-8 text-center text-sm text-muted-foreground">
+              Aucun match réel à voter pour le moment.
+            </div>
           )}
         </div>
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div
+          className={cn(
+            "grid grid-cols-1 gap-5 lg:grid-cols-3",
+            mobileSection !== "chat" && "hidden md:grid",
+          )}
+        >
           <div className="flex h-[460px] flex-col rounded-xl border border-border/70 bg-card shadow-none lg:col-span-2">
             <div className="flex items-center justify-between border-b border-border/60 px-5 py-3.5">
-              <div className="flex items-center gap-2"><MessageCircle className="size-4 text-brand" /><h3 className="text-xs font-black uppercase tracking-wider">Chat live général</h3></div>
-              <span className="flex items-center gap-1.5 text-[10px] font-bold text-emerald-500"><span className="size-2 rounded-full bg-emerald-500" /> En ligne</span>
-            </div>
-            <div ref={chatScrollRef} className="flex-1 space-y-3 overflow-y-auto p-4" aria-live="polite">
-              {messages.length ? messages.filter((message) => !message.parent_id).map((message) => {
-                const replies = messages.filter((child) => child.parent_id === message.id);
-                return <div key={message.id} className="space-y-2">
-                  <MessageBubble message={message} onReply={() => { setReplyingTo(message.id); setReplyText(""); }} onReaction={(emoji) => void handleReaction(message.id, emoji)} />
-                  {replies.map((reply) => <div key={reply.id} className="ml-8"><MessageBubble message={reply} onReply={() => { setReplyingTo(message.id); setReplyText(""); }} onReaction={(emoji) => void handleReaction(reply.id, emoji)} compact /></div>)}
-                  {replyingTo === message.id && <form onSubmit={(event) => void handleReply(event, message.id)} className="ml-8 flex gap-2 rounded-xl bg-surface p-2"><input autoFocus value={replyText} maxLength={500} onChange={(event) => setReplyText(event.target.value)} placeholder="Répondre..." className="min-w-0 flex-1 bg-transparent px-2 text-xs text-foreground outline-none placeholder:text-muted-foreground" /><button type="submit" disabled={!replyText.trim()} className="grid size-8 shrink-0 place-items-center rounded-lg bg-foreground text-background disabled:opacity-40" aria-label="Publier la réponse"><Send className="size-3.5" /></button></form>}
-                </div>;
-              }) : <p className="py-12 text-center text-xs text-muted-foreground">Aucun message pour le moment.</p>}
-            </div>
-            <form onSubmit={(event) => void handleSendMessage(event)} className="border-t border-border/60 p-3">
-              <div className="flex items-center gap-2 rounded-2xl bg-surface px-3 py-2 ring-1 ring-black/5 focus-within:ring-2 focus-within:ring-brand dark:ring-white/10">
-                <input type="text" value={newMessage} maxLength={500} onChange={(event) => setNewMessage(event.target.value)} placeholder={session ? "Écrivez un message..." : "Connectez-vous pour discuter..."} className="min-w-0 flex-1 bg-transparent text-xs text-foreground outline-none placeholder:text-muted-foreground" aria-label="Message" />
-                <button type="submit" disabled={!newMessage.trim() || sending} aria-label="Envoyer le message" className="grid size-8 shrink-0 place-items-center rounded-xl bg-foreground text-background transition-transform hover:opacity-90 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand disabled:cursor-not-allowed disabled:opacity-40"><Send className="size-3.5" /></button>
+              <div className="flex items-center gap-2">
+                <MessageCircle className="size-4 text-brand" />
+                <h3 className="text-xs font-black uppercase tracking-wider">Chat live général</h3>
               </div>
-              <p className="mt-2 text-[10px] text-muted-foreground">{session ? "Votre message sera visible par la communauté." : "La lecture est publique. Connectez-vous pour participer."}</p>
+              <span className="flex items-center gap-1.5 text-[10px] font-bold text-emerald-500">
+                <span className="size-2 rounded-full bg-emerald-500" /> En ligne
+              </span>
+            </div>
+            <div
+              ref={chatScrollRef}
+              className="flex-1 space-y-3 overflow-y-auto p-4"
+              aria-live="polite"
+            >
+              {messages.length ? (
+                messages
+                  .filter((message) => !message.parent_id)
+                  .map((message) => {
+                    const replies = messages.filter((child) => child.parent_id === message.id);
+                    return (
+                      <div key={message.id} className="space-y-2">
+                        <MessageBubble
+                          message={message}
+                          onReply={() => {
+                            setReplyingTo(message.id);
+                            setReplyText("");
+                          }}
+                          onReaction={(emoji) => void handleReaction(message.id, emoji)}
+                        />
+                        {replies.map((reply) => (
+                          <div key={reply.id} className="ml-8">
+                            <MessageBubble
+                              message={reply}
+                              onReply={() => {
+                                setReplyingTo(message.id);
+                                setReplyText("");
+                              }}
+                              onReaction={(emoji) => void handleReaction(reply.id, emoji)}
+                              compact
+                            />
+                          </div>
+                        ))}
+                        {replyingTo === message.id && (
+                          <form
+                            onSubmit={(event) => void handleReply(event, message.id)}
+                            className="ml-8 flex gap-2 rounded-xl bg-surface p-2"
+                          >
+                            <input
+                              autoFocus
+                              value={replyText}
+                              maxLength={500}
+                              onChange={(event) => setReplyText(event.target.value)}
+                              placeholder="Répondre..."
+                              className="min-w-0 flex-1 bg-transparent px-2 text-xs text-foreground outline-none placeholder:text-muted-foreground"
+                            />
+                            <button
+                              type="submit"
+                              disabled={!replyText.trim()}
+                              className="grid size-8 shrink-0 place-items-center rounded-lg bg-foreground text-background disabled:opacity-40"
+                              aria-label="Publier la réponse"
+                            >
+                              <Send className="size-3.5" />
+                            </button>
+                          </form>
+                        )}
+                      </div>
+                    );
+                  })
+              ) : (
+                <p className="py-12 text-center text-xs text-muted-foreground">
+                  Aucun message pour le moment.
+                </p>
+              )}
+            </div>
+            <form
+              onSubmit={(event) => void handleSendMessage(event)}
+              className="border-t border-border/60 p-3"
+            >
+              <div className="flex items-center gap-2 rounded-2xl bg-surface px-3 py-2 ring-1 ring-black/5 focus-within:ring-2 focus-within:ring-brand dark:ring-white/10">
+                <input
+                  type="text"
+                  value={newMessage}
+                  maxLength={500}
+                  onChange={(event) => setNewMessage(event.target.value)}
+                  placeholder={
+                    session ? "Écrivez un message..." : "Connectez-vous pour discuter..."
+                  }
+                  className="min-w-0 flex-1 bg-transparent text-xs text-foreground outline-none placeholder:text-muted-foreground"
+                  aria-label="Message"
+                />
+                <button
+                  type="submit"
+                  disabled={!newMessage.trim() || sending}
+                  aria-label="Envoyer le message"
+                  className="grid size-8 shrink-0 place-items-center rounded-xl bg-foreground text-background transition-transform hover:opacity-90 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <Send className="size-3.5" />
+                </button>
+              </div>
+              <p className="mt-2 text-[10px] text-muted-foreground">
+                {session
+                  ? "Votre message sera visible par la communauté."
+                  : "La lecture est publique. Connectez-vous pour participer."}
+              </p>
             </form>
           </div>
 
-          <div className="space-y-4 rounded-xl border border-border/70 bg-card p-5 shadow-none">
-            <div className="flex items-center justify-between border-b border-border/60 pb-3"><div className="flex items-center gap-2"><Trophy className="size-4 text-warn" /><h3 className="text-xs font-black uppercase tracking-wider">Top pronostiqueurs</h3></div><span className="text-[10px] font-bold text-muted-foreground">Résultats réels</span></div>
-            {leaderboard.length ? <ul className="space-y-2.5">{leaderboard.map((user) => <li key={`${user.rank}-${user.name}`} className="flex items-center justify-between rounded-2xl bg-surface p-2.5 text-xs ring-1 ring-black/5 dark:ring-white/5"><div className="flex min-w-0 items-center gap-2.5"><span className="grid size-6 place-items-center rounded-full bg-foreground text-[10px] font-black text-background">{user.rank}</span><div className="min-w-0 truncate"><div className="truncate font-bold">{user.name}</div><div className="text-[9px] text-muted-foreground">{user.settled} analyse{user.settled > 1 ? "s" : ""} réglée{user.settled > 1 ? "s" : ""}</div></div></div><div className="shrink-0 text-right"><div className="font-black text-brand">{user.wins} réussite{user.wins > 1 ? "s" : ""}</div></div></li>)}</ul> : <div className="rounded-2xl bg-surface p-4 text-center text-xs text-muted-foreground">Le classement sera disponible après les premières analyses réglées.</div>}
-            <div className="rounded-2xl bg-brand/10 p-3 text-center text-[11px] font-bold text-brand">Partagez des avis utiles et respectueux avec les autres passionnés.</div>
+          <div className="hidden space-y-4 rounded-xl border border-border/70 bg-card p-5 shadow-none lg:block">
+            <div className="flex items-center justify-between border-b border-border/60 pb-3">
+              <div className="flex items-center gap-2">
+                <Trophy className="size-4 text-warn" />
+                <h3 className="text-xs font-black uppercase tracking-wider">Top pronostiqueurs</h3>
+              </div>
+              <span className="text-[10px] font-bold text-muted-foreground">Résultats réels</span>
+            </div>
+            {leaderboard.length ? (
+              <ul className="space-y-2.5">
+                {leaderboard.map((user) => (
+                  <li
+                    key={`${user.rank}-${user.name}`}
+                    className="flex items-center justify-between rounded-2xl bg-surface p-2.5 text-xs ring-1 ring-black/5 dark:ring-white/5"
+                  >
+                    <div className="flex min-w-0 items-center gap-2.5">
+                      <span className="grid size-6 place-items-center rounded-full bg-foreground text-[10px] font-black text-background">
+                        {user.rank}
+                      </span>
+                      <div className="min-w-0 truncate">
+                        <div className="truncate font-bold">{user.name}</div>
+                        <div className="text-[9px] text-muted-foreground">
+                          {user.settled} analyse{user.settled > 1 ? "s" : ""} réglée
+                          {user.settled > 1 ? "s" : ""}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <div className="font-black text-brand">
+                        {user.wins} réussite{user.wins > 1 ? "s" : ""}
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div className="rounded-2xl bg-surface p-4 text-center text-xs text-muted-foreground">
+                Le classement sera disponible après les premières analyses réglées.
+              </div>
+            )}
+            <div className="rounded-2xl bg-brand/10 p-3 text-center text-[11px] font-bold text-brand">
+              Partagez des avis utiles et respectueux avec les autres passionnés.
+            </div>
+          </div>
+        </div>
+
+        <div className="grid gap-3 border-t border-border/60 pt-5 md:grid-cols-2">
+          <TelegramCtaCard location="community_footer" compact />
+          <div className="flex flex-col justify-between gap-3 rounded-xl border border-brand/20 bg-brand/5 p-4">
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              Approfondissez un match avec les analyses et l’historique Premium.
+            </p>
+            <PremiumCta location="community_footer" compact label="Découvrir Premium" />
           </div>
         </div>
       </div>
@@ -413,21 +641,104 @@ function CommunautePage() {
   );
 }
 
-function VoteButton({ label, selected, disabled, onClick }: { label: string; selected?: boolean; disabled?: boolean; onClick: () => void }) {
-  return <button type="button" aria-pressed={selected} disabled={disabled} onClick={onClick} className={cn("rounded-2xl bg-surface px-1 py-2 text-center text-xs font-black text-foreground transition-all ring-1 ring-black/5 hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand dark:ring-white/10 disabled:cursor-not-allowed disabled:opacity-50", selected && "bg-foreground text-background ring-foreground shadow-md")}>{label}</button>;
+function VoteButton({
+  label,
+  selected,
+  disabled,
+  onClick,
+}: {
+  label: string;
+  selected?: boolean;
+  disabled?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      aria-pressed={selected}
+      disabled={disabled}
+      onClick={onClick}
+      className={cn(
+        "rounded-2xl bg-surface px-1 py-2 text-center text-xs font-black text-foreground transition-all ring-1 ring-black/5 hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand dark:ring-white/10 disabled:cursor-not-allowed disabled:opacity-50",
+        selected && "bg-foreground text-background ring-foreground shadow-md",
+      )}
+    >
+      {label}
+    </button>
+  );
 }
 
-function MessageBubble({ message, onReply, onReaction, compact = false }: { message: CommunityMessage; onReply: () => void; onReaction: (emoji: string) => void; compact?: boolean }) {
+function MessageBubble({
+  message,
+  onReply,
+  onReaction,
+  compact = false,
+}: {
+  message: CommunityMessage;
+  onReply: () => void;
+  onReaction: (emoji: string) => void;
+  compact?: boolean;
+}) {
   const emojis = ["👍", "❤️", "🔥", "😂", "⚽", "👀"];
-  return <div className={cn("flex items-start gap-3 text-xs", compact && "text-[11px]")}>
-    <div className="grid size-8 shrink-0 place-items-center rounded-full bg-surface font-black text-brand ring-1 ring-black/5 dark:ring-white/10"><User className="size-4" /></div>
-    <div className="min-w-0 flex-1 rounded-2xl bg-surface p-3 ring-1 ring-black/5 dark:ring-white/5">
-      <div className="mb-1 flex items-center justify-between gap-2"><span className="truncate font-bold text-foreground">{message.user_name}</span><span className="shrink-0 text-[9px] text-muted-foreground">{new Date(message.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span></div>
-      <p className="break-words leading-relaxed text-muted-foreground">{message.message}</p>
-      <div className="mt-2 flex flex-wrap items-center gap-1.5">
-        {emojis.map((emoji) => <button key={emoji} type="button" onClick={() => onReaction(emoji)} className="rounded-full bg-card px-1.5 py-0.5 text-[11px] ring-1 ring-border/60 hover:ring-brand" aria-label={`Réagir ${emoji}`}><span>{emoji}</span>{message.reactions?.[emoji] ? <span className="ml-1 text-[10px] font-bold text-muted-foreground">{message.reactions[emoji]}</span> : null}</button>)}
-        <button type="button" onClick={onReply} className="ml-auto inline-flex items-center gap-1 rounded-full bg-card px-2 py-1 text-[10px] font-bold text-muted-foreground ring-1 ring-border/60 hover:text-foreground"><Reply className="size-3" /> Répondre</button>
+  const activeReactions = emojis.filter((emoji) => Boolean(message.reactions?.[emoji]));
+  return (
+    <div className={cn("flex items-start gap-3 text-xs", compact && "text-[11px]")}>
+      <div className="grid size-8 shrink-0 place-items-center rounded-full bg-surface font-black text-brand ring-1 ring-black/5 dark:ring-white/10">
+        <User className="size-4" />
+      </div>
+      <div className="min-w-0 flex-1 rounded-2xl bg-surface p-3 ring-1 ring-black/5 dark:ring-white/5">
+        <div className="mb-1 flex items-center justify-between gap-2">
+          <span className="truncate font-bold text-foreground">{message.user_name}</span>
+          <span className="shrink-0 text-[9px] text-muted-foreground">
+            {new Date(message.created_at).toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
+          </span>
+        </div>
+        <p className="break-words leading-relaxed text-muted-foreground">{message.message}</p>
+        <div className="mt-2 flex flex-wrap items-center gap-1.5">
+          {activeReactions.map((emoji) => (
+            <button
+              key={emoji}
+              type="button"
+              onClick={() => onReaction(emoji)}
+              className="rounded-full bg-card px-2 py-1 text-[11px] ring-1 ring-border/60 hover:ring-brand"
+              aria-label={`Réagir ${emoji}`}
+            >
+              <span>{emoji}</span>
+              <span className="ml-1 text-[10px] font-bold text-muted-foreground">
+                {message.reactions?.[emoji]}
+              </span>
+            </button>
+          ))}
+          <details className="group">
+            <summary className="cursor-pointer list-none rounded-full bg-card px-2 py-1 text-[10px] font-bold text-muted-foreground ring-1 ring-border/60 hover:text-foreground">
+              Réagir
+            </summary>
+            <div className="mt-2 flex flex-wrap gap-1.5 rounded-xl bg-card p-2 ring-1 ring-border/60">
+              {emojis.map((emoji) => (
+                <button
+                  key={emoji}
+                  type="button"
+                  onClick={() => onReaction(emoji)}
+                  className="grid size-8 place-items-center rounded-lg bg-surface text-sm hover:ring-1 hover:ring-brand"
+                  aria-label={`Réagir ${emoji}`}
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
+          </details>
+          <button
+            type="button"
+            onClick={onReply}
+            className="ml-auto inline-flex items-center gap-1 rounded-full bg-card px-2 py-1 text-[10px] font-bold text-muted-foreground ring-1 ring-border/60 hover:text-foreground"
+          >
+            <Reply className="size-3" /> Répondre
+          </button>
+        </div>
       </div>
     </div>
-  </div>;
+  );
 }

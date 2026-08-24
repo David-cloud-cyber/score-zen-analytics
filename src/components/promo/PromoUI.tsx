@@ -118,11 +118,11 @@ export function AffiliateButton({
 /** Carte bookmaker affichée sur le hub. */
 export function PromoCodeCard({ b }: { b: Bookmaker }) {
   return (
-    <article className="animate-rise overflow-hidden rounded-xl border border-border/70 bg-surface/50">
+    <article className="animate-rise overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-transform hover:-translate-y-0.5 dark:border-white/10 dark:bg-card">
       <div className="flex items-start justify-between gap-3 border-b border-border/60 p-4">
         <div className="flex items-center gap-3">
           <BookmakerLogo name={b.name} logoUrl={b.logoUrl} accent={b.accent} />
-          <div>
+          <div className="min-w-0">
             <h3 className="text-base font-black leading-tight">{b.name}</h3>
             {b.rating && b.reviewCount ? (
               <RatingStars rating={b.rating} count={b.reviewCount} />
@@ -133,33 +133,44 @@ export function PromoCodeCard({ b }: { b: Bookmaker }) {
             )}
           </div>
         </div>
-        <span className="rounded-full bg-warn/15 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-warn">
-          Partenaire
+        <span className="shrink-0 rounded-full bg-brand/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-brand ring-1 ring-brand/20">
+          Vérifié
         </span>
       </div>
 
       <div className="space-y-3 p-4">
-        <p className="text-lg font-black leading-tight">{b.bonusHeadline}</p>
+        <p className="text-lg font-black leading-tight text-foreground">{b.bonusHeadline}</p>
         <p className="text-xs text-muted-foreground">{b.tagline}</p>
         <BonusTypeBadges types={b.bonusTypes} />
 
-        <div className="flex flex-wrap items-center gap-2">
-          <CopyCodeButton code={b.code} />
-          <span className="text-[11px] text-muted-foreground">Dépôt min. {b.minDeposit}</span>
+        <div className="rounded-xl border border-brand/20 bg-brand/5 p-3">
+          <span className="mb-2 block text-[10px] font-black uppercase tracking-[0.16em] text-muted-foreground">
+            Code à saisir pendant l'inscription
+          </span>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <CopyCodeButton code={b.code} />
+            <span className="text-[11px] font-semibold text-foreground">
+              Dépôt min. {b.minDeposit}
+            </span>
+          </div>
         </div>
 
         <div className="flex flex-col gap-2 sm:flex-row">
           <AffiliateButton href={b.affiliateUrl} className="flex-1">
-            Récupérer le bonus
+            S'inscrire avec {b.code}
           </AffiliateButton>
           <Link
             to="/codes-promo/$slug"
             params={{ slug: b.slug }}
-            className="inline-flex flex-1 items-center justify-center gap-1 rounded-xl border border-border bg-card px-5 py-3 text-sm font-bold transition-colors hover:bg-surface"
+            className="inline-flex flex-1 items-center justify-center gap-1 rounded-xl border border-slate-200 bg-slate-50 px-5 py-3 text-sm font-bold text-slate-900 transition-colors hover:bg-slate-100 dark:border-white/10 dark:bg-surface dark:text-foreground dark:hover:bg-surface/80"
           >
-            Lire l'analyse <ChevronRight className="size-4" aria-hidden />
+            Voir les conditions <ChevronRight className="size-4" aria-hidden />
           </Link>
         </div>
+        <p className="text-[10px] leading-relaxed text-muted-foreground">
+          Offre soumise aux conditions du partenaire · 18+ · Vérifiée le{" "}
+          {new Date(b.updatedAt).toLocaleDateString("fr-FR")}
+        </p>
       </div>
     </article>
   );

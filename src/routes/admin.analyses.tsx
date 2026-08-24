@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import type { ReactNode } from "react";
-import { BarChart3, BrainCircuit, Target } from "lucide-react";
+import { Activity, BarChart3, BrainCircuit, Clock3, Target } from "lucide-react";
 import { AdminCard, AdminLoading, AdminSection } from "@/components/AdminShell";
 import { getAdminAnalyses, getAdminPredictionQuality } from "@/lib/admin.functions";
 import { isLocalDemo } from "@/lib/local-demo";
@@ -43,7 +43,7 @@ function AdminAnalysesPage() {
       }]
     : query.data?.analyses ?? [];
   const quality = demo
-    ? { total: 1, settled: 1, won: 1, lost: 0, unresolvable: 0, hitRate: 100, brierScore: 0.048, logLoss: 0.22, aiEnriched: 1, aiFallback: 0, statisticalOnly: 0 }
+    ? { total: 1, settled: 1, won: 1, lost: 0, unresolvable: 0, hitRate: 100, brierScore: 0.048, logLoss: 0.22, aiEnriched: 1, aiFallback: 0, statisticalOnly: 0, aiSuccessRate: 100, averageDataQuality: 92, averageAiLatencyMs: 1450, byMarket: [{ market: "1X2", settled: 1, won: 1, hitRate: 100 }], byConfidence: [{ label: "75 % et +", settled: 1, won: 1, hitRate: 100 }], engineVersions: [{ version: "v2.1.0", total: 1 }] }
     : qualityQuery.data;
 
   return (
@@ -52,12 +52,26 @@ function AdminAnalysesPage() {
       title="Analyses & prédictions"
       description="Suivez la qualité réelle des analyses enregistrées et de leur règlement."
     >
-      <div className="mb-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="mb-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
         <QualityCard icon={<Target className="size-4" />} label="Taux de réussite" value={quality?.hitRate == null ? "—" : `${quality.hitRate}%`} />
         <QualityCard icon={<BarChart3 className="size-4" />} label="Analyses réglées" value={quality?.settled ?? "—"} />
         <QualityCard icon={<BrainCircuit className="size-4" />} label="Enrichies par l’IA" value={quality?.aiEnriched ?? "—"} />
         <QualityCard icon={<BarChart3 className="size-4" />} label="Brier score" value={quality?.brierScore ?? "—"} />
+        <QualityCard icon={<Activity className="size-4" />} label="Qualité moyenne" value={quality?.averageDataQuality == null ? "—" : `${quality.averageDataQuality}%`} />
+        <QualityCard icon={<Clock3 className="size-4" />} label="Latence IA" value={quality?.averageAiLatencyMs == null ? "—" : `${quality.averageAiLatencyMs} ms`} />
       </div>
+
+      {quality && <div className="mb-4 grid gap-4 lg:grid-cols-2">
+        <AdminCard>
+          <p className="text-xs font-black uppercase tracking-wider">Calibration par confiance</p>
+          <p className="mt-1 text-xs text-muted-foreground">Une confiance élevée doit produire un meilleur taux réel, sinon le moteur est à recalibrer.</p>
+          <div className="mt-4 space-y-3">{quality.byConfidence.map((bucket) => <div key={bucket.label}><div className="flex items-center justify-between text-xs"><span className="font-bold">{bucket.label}</span><span className="text-muted-foreground">{bucket.settled} réglée(s) · {bucket.hitRate}%</span></div><div className="mt-1.5 h-2 overflow-hidden rounded-full bg-surface"><div className="h-full rounded-full bg-brand" style={{ width: `${bucket.hitRate}%` }} /></div></div>)}</div>
+        </AdminCard>
+        <AdminCard>
+          <p className="text-xs font-black uppercase tracking-wider">Performance par marché</p>
+          <div className="mt-4 space-y-2">{quality.byMarket.slice(0, 6).map((market) => <div key={market.market} className="flex items-center justify-between rounded-xl bg-surface px-3 py-2 text-xs"><span className="font-black">{market.market}</span><span className="text-muted-foreground">{market.won}/{market.settled} · <strong className="text-foreground">{market.hitRate}%</strong></span></div>)}{!quality.byMarket.length && <p className="text-xs text-muted-foreground">Les performances apparaîtront après le règlement des analyses.</p>}</div>
+        </AdminCard>
+      </div>}
 
       {!demo && (query.isLoading || qualityQuery.isLoading) ? <AdminLoading /> : (
         <AdminCard className="overflow-x-auto p-0">
@@ -71,7 +85,7 @@ function AdminAnalysesPage() {
                   <td className="p-3 font-black">{row.home_team} <span className="text-muted-foreground">vs</span> {row.away_team}</td>
                   <td className="p-3">{row.prediction_market ?? "—"}<p className="text-[10px] text-muted-foreground">{row.prediction_pick ?? "—"}</p></td>
                   <td className="p-3 text-brand">{row.prediction_confidence ?? "—"}%</td>
-                  <td className="p-3 font-black">{row.ai_status ?? "—"}<p className="text-[10px] font-normal text-muted-foreground">{row.ai_latency_ms ? `${row.ai_latency_ms} ms` : ""}</p></td>
+                  <td className="p-3 font-black">{aiStatusLabel(row.ai_status)}<p className="text-[10px] font-normal text-muted-foreground">{row.ai_latency_ms ? `${row.ai_latency_ms} ms` : ""}</p></td>
                   <td className="p-3">{row.data_quality_score == null ? "—" : `${row.data_quality_score}%`}</td>
                   <td className="p-3 font-black">{row.settlement_status}</td>
                   <td className="p-3">{row.final_score ?? "—"}</td>
@@ -89,4 +103,12 @@ function AdminAnalysesPage() {
 
 function QualityCard({ icon, label, value }: { icon: ReactNode; label: string; value: ReactNode }) {
   return <AdminCard className="p-4"><div className="flex items-center gap-2 text-brand">{icon}<span className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">{label}</span></div><p className="mt-2 text-xl font-black">{value}</p></AdminCard>;
+}
+
+function aiStatusLabel(status: string | null) {
+  if (status === "ai_enriched") return "IA enrichie";
+  if (status === "ai_fallback") return "IA de secours";
+  if (status === "statistical_only") return "Statistique";
+  if (status === "no_recommendation") return "Abstention";
+  return "—";
 }

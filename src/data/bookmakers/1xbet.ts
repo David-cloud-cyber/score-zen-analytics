@@ -7,7 +7,7 @@ export const ONEXBET = defineBookmaker({
   name: "1xBet",
   code: "LIVEMONDE",
   affiliateUrl: ONEXBET_AFFILIATE_URL,
-  logoUrl: "/bookmakers/1xbet.svg",
+  logoUrl: "/bookmakers/1xbet-wordmark.png",
   bannerLinkUrl: ONEXBET_AFFILIATE_URL,
   accent: "#1d4ed8",
   tagline: "Bonus de 200 % sur le premier dépôt jusqu'à 130 000 XAF avec LIVEMONDE*",

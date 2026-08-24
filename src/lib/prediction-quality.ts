@@ -5,14 +5,11 @@
  * It is safe to use from server functions and from pure verification scripts.
  */
 
-export const PREDICTION_ENGINE_VERSION = "v2.0.0";
-export const PREDICTION_CALIBRATION_VERSION = "guarded-v1";
+export const PREDICTION_ENGINE_VERSION = "v2.2.0";
+export const PREDICTION_CALIBRATION_VERSION = "observed-evidence-v3";
 
 export type PredictionAiStatus =
-  | "ai_enriched"
-  | "ai_fallback"
-  | "statistical_only"
-  | "no_recommendation";
+  "ai_enriched" | "ai_fallback" | "statistical_only" | "no_recommendation";
 
 export type PredictionMetadata = {
   engineVersion: string;
@@ -74,6 +71,55 @@ export function aiBlendWeight(params: {
   if (params.divergence > 10) return 0.18;
   if (params.dataQuality === "partial") return 0.2;
   return params.aiStatus === "ai_fallback" ? 0.24 : 0.3;
+}
+
+export function probabilityDivergence(left: ProbabilityTriplet, right: ProbabilityTriplet): number {
+  const a = normalizeProbabilityTriplet(left);
+  const b = normalizeProbabilityTriplet(right);
+  return (Math.abs(a.home - b.home) + Math.abs(a.draw - b.draw) + Math.abs(a.away - b.away)) / 3;
+}
+
+/**
+ * Agreement is deliberately asymmetric: conflicting independent sources
+ * reduce confidence faster than matching sources increase it.
+ */
+export function evidenceAgreementScore(params: {
+  model: ProbabilityTriplet;
+  market?: ProbabilityTriplet | null;
+  provider?: ProbabilityTriplet | null;
+}): { score: number; divergence: number; sources: number } {
+  const comparisons = [params.market, params.provider]
+    .filter((value): value is ProbabilityTriplet => Boolean(value))
+    .map((value) => probabilityDivergence(params.model, value));
+  if (!comparisons.length) return { score: 62, divergence: 0, sources: 1 };
+  const divergence = comparisons.reduce((sum, value) => sum + value, 0) / comparisons.length;
+  return {
+    score: Math.round(Math.max(20, Math.min(96, 96 - divergence * 3.4))),
+    divergence: Math.round(divergence * 10) / 10,
+    sources: comparisons.length + 1,
+  };
+}
+
+export function calibratedQualityScore(params: {
+  baseQuality: number;
+  agreementScore: number;
+  sourceCount: number;
+}): number {
+  const base = Math.max(0, Math.min(100, params.baseQuality));
+  const agreement = Math.max(0, Math.min(100, params.agreementScore));
+  const conflictPenalty = Math.max(0, 58 - agreement) * 0.42;
+  const agreementBonus = Math.max(0, agreement - 72) * Math.min(0.12, params.sourceCount * 0.035);
+  return Math.round(Math.max(25, Math.min(100, base - conflictPenalty + agreementBonus)));
+}
+
+export function shouldRecommendMarket(params: {
+  confidence: number;
+  qualityScore: number;
+  divergence?: number;
+}): boolean {
+  const divergence = params.divergence ?? 0;
+  const minimumConfidence = params.qualityScore >= 72 ? 53 : params.qualityScore >= 52 ? 56 : 60;
+  return params.qualityScore >= 42 && params.confidence >= minimumConfidence && divergence <= 20;
 }
 
 export function brierScore(probability: number, outcome: boolean): number {

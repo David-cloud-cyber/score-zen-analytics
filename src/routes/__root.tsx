@@ -282,6 +282,10 @@ function RootComponent() {
     });
   }, [router]);
 
+  useEffect(() => {
+    if ("serviceWorker" in navigator) void navigator.serviceWorker.register("/sw.js").catch(() => undefined);
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>

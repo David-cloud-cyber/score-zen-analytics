@@ -80,6 +80,7 @@ export type ApiLineup = {
   coach: string;
   color: string;
   players: ApiLineupPlayer[];
+  substitutes?: ApiLineupPlayer[];
 };
 
 export type ApiH2H = {

@@ -17,12 +17,18 @@ import {
   type PredictionAiStatus,
   type PredictionMetadata,
 } from "./prediction-quality";
+import { normalizeAiCandidate } from "./prediction-ai-normalize";
 
 const ANALYSIS_COST = 3;
 
 // Cache mémoire court : protège le quota API tout en conservant une fraîcheur
 // adaptée aux matchs live, aux fixtures identifiés et aux requêtes manuelles.
-type CacheEntry = { at: number; ttlMs: number; result: AnalysisResult; metadata: PredictionMetadata };
+type CacheEntry = {
+  at: number;
+  ttlMs: number;
+  result: AnalysisResult;
+  metadata: PredictionMetadata;
+};
 const analysisCache = new Map<string, CacheEntry>();
 const teamContextInflight = new Map<string, Promise<TeamContext | null>>();
 const fixtureIdentityInflight = new Map<string, Promise<FixtureIdentity | null>>();
@@ -102,6 +108,7 @@ const resultSchema = z
         z.object({
           label: z.string(),
           pick: z.string(),
+          probability: z.number().finite().min(0).max(100).optional(),
           confidence: z.number().finite().min(0).max(100),
           risk: z.enum(["bas", "moyen", "eleve"]),
           rationale: z.string(),
@@ -127,8 +134,16 @@ const resultSchema = z
         message: "Les probabilités doivent totaliser exactement 100.",
       });
     }
-    const publicText = [value.aiText, ...(value.keyFactors ?? []), ...value.markets.map((market) => `${market.label} ${market.pick} ${market.rationale}`)].join(" ");
-    if (/(openrouter|gemini|deepseek|qwen|llama|api[- ]?football|quota|endpoint|websocket|prompt système|clé api)/i.test(publicText)) {
+    const publicText = [
+      value.aiText,
+      ...(value.keyFactors ?? []),
+      ...value.markets.map((market) => `${market.label} ${market.pick} ${market.rationale}`),
+    ].join(" ");
+    if (
+      /(openrouter|gemini|deepseek|qwen|llama|api[- ]?football|quota|endpoint|websocket|prompt système|clé api)/i.test(
+        publicText,
+      )
+    ) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["aiText"],
@@ -154,6 +169,20 @@ type TeamContext = TeamPredictionContext & {
   unavailableSections: string[];
 };
 
+type TeamStatisticsPayload = {
+  fixtures?: {
+    played?: { home?: number; away?: number; total?: number };
+    wins?: { home?: number; away?: number; total?: number };
+    draws?: { home?: number; away?: number; total?: number };
+  };
+  goals?: {
+    for?: { average?: { home?: string; away?: string; total?: string } };
+    against?: { average?: { home?: string; away?: string; total?: string } };
+  };
+  clean_sheet?: { home?: number; away?: number; total?: number };
+  failed_to_score?: { home?: number; away?: number; total?: number };
+};
+
 type HeadToHeadContext = H2HMatch & {
   date: string;
   home: string;
@@ -165,6 +194,9 @@ type FixtureIdentity = {
   awayId: number;
   homeName: string;
   awayName: string;
+  leagueId: number | null;
+  season: number | null;
+  status: string | null;
 };
 
 async function fetchFixtureIdentity(matchId?: string): Promise<FixtureIdentity | null> {
@@ -188,11 +220,16 @@ async function resolveFixtureIdentity(fixtureId: number): Promise<FixtureIdentit
     id: number;
     home: { id: number; name: string };
     away: { id: number; name: string };
+    league: { id: number; season: number };
+    statusShort: string;
   }): FixtureIdentity => ({
     homeId: fixture.home.id,
     awayId: fixture.away.id,
     homeName: fixture.home.name,
     awayName: fixture.away.name,
+    leagueId: fixture.league.id,
+    season: fixture.league.season,
+    status: fixture.statusShort,
   });
 
   try {
@@ -216,11 +253,16 @@ async function resolveFixtureIdentity(fixtureId: number): Promise<FixtureIdentit
         awayId: cachedFixture.teams.away.id,
         homeName: cachedFixture.teams.home.name,
         awayName: cachedFixture.teams.away.name,
+        leagueId: Number(cachedFixture.league?.id) || null,
+        season: Number(cachedFixture.league?.season) || null,
+        status: cachedFixture.fixture?.status?.short ?? null,
       };
     }
 
     const fixtures = await apiFootball<
       Array<{
+        fixture: { status: { short: string } };
+        league: { id: number; season: number };
         teams: {
           home: { id: number; name: string };
           away: { id: number; name: string };
@@ -234,6 +276,9 @@ async function resolveFixtureIdentity(fixtureId: number): Promise<FixtureIdentit
       awayId: fixture.teams.away.id,
       homeName: fixture.teams.home.name,
       awayName: fixture.teams.away.name,
+      leagueId: fixture.league.id,
+      season: fixture.league.season,
+      status: fixture.fixture.status.short,
     };
   } catch {
     return null;
@@ -252,13 +297,18 @@ function identityTeamContext(id: number, name: string): TeamContext {
     rank: null,
     points: null,
     goalsDiff: null,
+    season: null,
     rankInfo: null,
     dataQuality: "identity",
     unavailableSections: ["forme", "blessures", "classement"],
   };
 }
 
-async function fetchTeamContext(teamName: string, teamId?: number): Promise<TeamContext | null> {
+async function fetchTeamContext(
+  teamName: string,
+  teamId?: number,
+  competition?: { leagueId: number | null; season: number | null },
+): Promise<TeamContext | null> {
   const identityFallback = teamId && teamName.trim() ? identityTeamContext(teamId, teamName) : null;
   try {
     const { apiFootball } = await import("./apifootball.server");
@@ -271,40 +321,66 @@ async function fetchTeamContext(teamName: string, teamId?: number): Promise<Team
     // Forme récente : 10 derniers matchs pour séparer domicile / extérieur
     // Sources indépendantes en parallèle : l'algorithme et l'IA reçoivent le
     // même snapshot normalisé, jamais des données client ou des clés API.
-    const [fixturesResult, injuriesResult, standingsResult] = await Promise.allSettled([
-      apiFootball<
-        Array<{
-          fixture: { date: string };
-          league: { name: string };
-          teams: { home: { id: number; name: string }; away: { id: number; name: string } };
-          goals: { home: number | null; away: number | null };
-        }>
-      >("/fixtures", { team: t.id, last: 10 }),
-      apiFootball<Array<{ player: { name: string; reason: string } }>>("/injuries", {
-        team: t.id,
-        season: seasonYear,
-      }),
-      apiFootball<
-        Array<{
-          league: {
-            standings: Array<
+    const [fixturesResult, injuriesResult, standingsResult, statisticsResult] =
+      await Promise.allSettled([
+        apiFootball<
+          Array<{
+            fixture: { date: string };
+            league: { id: number; name: string };
+            teams: { home: { id: number; name: string }; away: { id: number; name: string } };
+            goals: { home: number | null; away: number | null };
+          }>
+        >("/fixtures", { team: t.id, last: 14 }),
+        apiFootball<Array<{ player: { name: string; reason: string } }>>("/injuries", {
+          team: t.id,
+          season: competition?.season ?? seasonYear,
+        }),
+        competition?.leagueId && competition.season
+          ? apiFootball<
               Array<{
-                team: { id: number };
-                rank: number;
-                points: number;
-                goalsDiff: number;
-                form: string;
+                league: {
+                  standings: Array<
+                    Array<{
+                      team: { id: number };
+                      rank: number;
+                      points: number;
+                      goalsDiff: number;
+                      form: string;
+                    }>
+                  >;
+                };
               }>
-            >;
-          };
-        }>
-      >("/standings", { team: t.id, season: seasonYear }),
-    ]);
+            >("/standings", {
+              league: competition.leagueId,
+              season: competition.season,
+            })
+          : Promise.resolve([]),
+        competition?.leagueId && competition.season
+          ? apiFootball<TeamStatisticsPayload>("/teams/statistics", {
+              team: t.id,
+              league: competition.leagueId,
+              season: competition.season,
+            })
+          : Promise.resolve(null),
+      ]);
 
     const unavailableSections: string[] = [];
-    const fixtures = fixturesResult.status === "fulfilled" ? fixturesResult.value : (unavailableSections.push("forme"), []);
-    const injuries = injuriesResult.status === "fulfilled" ? injuriesResult.value : (unavailableSections.push("blessures"), []);
-    const standingsRaw = standingsResult.status === "fulfilled" ? standingsResult.value : (unavailableSections.push("classement"), []);
+    const fixtures =
+      fixturesResult.status === "fulfilled"
+        ? fixturesResult.value
+        : (unavailableSections.push("forme"), []);
+    const injuries =
+      injuriesResult.status === "fulfilled"
+        ? injuriesResult.value
+        : (unavailableSections.push("blessures"), []);
+    const standingsRaw =
+      standingsResult.status === "fulfilled"
+        ? standingsResult.value
+        : (unavailableSections.push("classement"), []);
+    const teamStatistics =
+      statisticsResult.status === "fulfilled"
+        ? statisticsResult.value
+        : (unavailableSections.push("statistiques_saison"), null);
 
     const formAll: string[] = [];
     const formHome: string[] = [];
@@ -327,6 +403,7 @@ async function fetchTeamContext(teamName: string, teamId?: number): Promise<Team
         goalsFor: gf,
         goalsAgainst: ga,
         result: r === "V" ? "W" : r === "N" ? "D" : r === "D" ? "L" : "?",
+        sameCompetition: Boolean(competition?.leagueId && f.league.id === competition.leagueId),
       });
     }
 
@@ -337,9 +414,43 @@ async function fetchTeamContext(teamName: string, teamId?: number): Promise<Team
     const standing = standingsRaw
       .flatMap((row) => row.league.standings.flat())
       .find((row) => row.team.id === t.id);
+    if (recent.filter((match) => match.result !== "?").length < 5) {
+      unavailableSections.push("forme");
+    }
+    if (competition?.leagueId && !standing) unavailableSections.push("classement");
     const rankInfo = standing
       ? `Rang ${standing.rank} · ${standing.points} pts · diff buts ${standing.goalsDiff > 0 ? "+" : ""}${standing.goalsDiff} · forme officielle ${standing.form}`
       : null;
+
+    const readNumber = (value: unknown): number | null => {
+      const parsed = Number(value);
+      return Number.isFinite(parsed) ? parsed : null;
+    };
+    const buildSeasonSplit = (scope: "home" | "away" | "total") => {
+      const played = readNumber(teamStatistics?.fixtures?.played?.[scope]) ?? 0;
+      const wins = readNumber(teamStatistics?.fixtures?.wins?.[scope]) ?? 0;
+      const draws = readNumber(teamStatistics?.fixtures?.draws?.[scope]) ?? 0;
+      const cleanSheets = readNumber(teamStatistics?.clean_sheet?.[scope]);
+      const failedToScore = readNumber(teamStatistics?.failed_to_score?.[scope]);
+      return {
+        played,
+        goalsFor: readNumber(teamStatistics?.goals?.for?.average?.[scope]),
+        goalsAgainst: readNumber(teamStatistics?.goals?.against?.average?.[scope]),
+        pointsPerMatch: played > 0 ? (wins * 3 + draws) / played : null,
+        cleanSheetRate: played > 0 && cleanSheets !== null ? cleanSheets / played : null,
+        failedToScoreRate: played > 0 && failedToScore !== null ? failedToScore / played : null,
+      };
+    };
+    const season = teamStatistics
+      ? {
+          overall: buildSeasonSplit("total"),
+          home: buildSeasonSplit("home"),
+          away: buildSeasonSplit("away"),
+        }
+      : null;
+    if (competition?.leagueId && (!season || season.overall.played < 3)) {
+      unavailableSections.push("statistiques_saison");
+    }
 
     return {
       id: t.id,
@@ -352,20 +463,31 @@ async function fetchTeamContext(teamName: string, teamId?: number): Promise<Team
       rank: standing?.rank ?? null,
       points: standing?.points ?? null,
       goalsDiff: standing?.goalsDiff ?? null,
+      season,
       rankInfo,
-      dataQuality: unavailableSections.length ? "partial" : "complete",
-      unavailableSections,
+      dataQuality:
+        (recent.filter((match) => match.result !== "?").length >= 5 ||
+          (season?.overall.played ?? 0) >= 5) &&
+        (!competition?.leagueId || Boolean(standing))
+          ? "complete"
+          : "partial",
+      unavailableSections: [...new Set(unavailableSections)],
     };
   } catch {
     return identityFallback;
   }
 }
 
-function fetchTeamContextDeduped(teamName: string, teamId?: number): Promise<TeamContext | null> {
-  const key = teamId ? `id:${teamId}` : `name:${teamName.trim().toLowerCase()}`;
+function fetchTeamContextDeduped(
+  teamName: string,
+  teamId?: number,
+  competition?: { leagueId: number | null; season: number | null },
+): Promise<TeamContext | null> {
+  const competitionKey = `${competition?.leagueId ?? "any"}:${competition?.season ?? seasonYear}`;
+  const key = `${teamId ? `id:${teamId}` : `name:${teamName.trim().toLowerCase()}`}@${competitionKey}`;
   const existing = teamContextInflight.get(key);
   if (existing) return existing;
-  const pending = fetchTeamContext(teamName, teamId);
+  const pending = fetchTeamContext(teamName, teamId, competition);
   teamContextInflight.set(key, pending);
   // Ne pas laisser la promesse de nettoyage produire un rejet non géré si la
   // récupération échoue avant que le consommateur ne l'ait observée.
@@ -539,7 +661,9 @@ function numericStat(value: number | string | null | undefined) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-async function fetchProviderPrediction(fixtureId?: number): Promise<MatchSignals["providerPrediction"]> {
+async function fetchProviderPrediction(
+  fixtureId?: number,
+): Promise<MatchSignals["providerPrediction"]> {
   if (!Number.isInteger(fixtureId) || !fixtureId || fixtureId <= 0) return null;
   try {
     const { apiFootball } = await import("./apifootball.server");
@@ -553,7 +677,11 @@ async function fetchProviderPrediction(fixtureId?: number): Promise<MatchSignals
     >("/predictions", { fixture: fixtureId });
     const prediction = rows[0]?.predictions;
     const parsePercent = (value?: string) => {
-      const parsed = Number(String(value ?? "").replace("%", "").trim());
+      const parsed = Number(
+        String(value ?? "")
+          .replace("%", "")
+          .trim(),
+      );
       return Number.isFinite(parsed) && parsed >= 0 && parsed <= 100 ? parsed : null;
     };
     const home = parsePercent(prediction?.percent?.home);
@@ -672,7 +800,7 @@ async function callSmartAIRouter(
     const orderedModels = isPremium
       ? [models.premium, models.standard, models.fallback]
       : [models.standard, models.fallback, models.premium];
-    const deadline = Date.now() + 6_500;
+    const deadline = Date.now() + 10_500;
 
     for (const model of [...new Set(orderedModels)]) {
       const remaining = deadline - Date.now();
@@ -684,10 +812,10 @@ async function callSmartAIRouter(
           model,
           systemPrompt,
           userPrompt,
-          timeoutMs: Math.min(4_200, remaining - 250),
+          timeoutMs: Math.min(6_500, remaining - 250),
         });
         return {
-          result: resultSchema.parse(raw),
+          result: resultSchema.parse(normalizeAiCandidate(raw)),
           status: attempts === 1 ? "ai_enriched" : "ai_fallback",
           latencyMs: Date.now() - startedAt,
         };
@@ -705,10 +833,10 @@ async function callSmartAIRouter(
         apiKey: geminiKey,
         systemPrompt,
         userPrompt,
-        timeoutMs: Math.min(3_200, Math.max(800, 6_500 - (Date.now() - startedAt))),
+        timeoutMs: Math.min(4_500, Math.max(800, 10_500 - (Date.now() - startedAt))),
       });
       return {
-        result: resultSchema.parse(raw),
+        result: resultSchema.parse(normalizeAiCandidate(raw)),
         status: "ai_fallback",
         latencyMs: Date.now() - startedAt,
       };
@@ -722,7 +850,7 @@ async function callSmartAIRouter(
     try {
       const { requestOpenRouterJson } = await import("./ai-gateway.server");
       for (const model of ["deepseek/deepseek-r1:free", "meta-llama/llama-3.3-70b-instruct:free"]) {
-        const remaining = 6_500 - (Date.now() - startedAt);
+        const remaining = 10_500 - (Date.now() - startedAt);
         if (remaining < 800) break;
         try {
           const raw = await requestOpenRouterJson({
@@ -730,15 +858,18 @@ async function callSmartAIRouter(
             model,
             systemPrompt,
             userPrompt,
-            timeoutMs: Math.min(2_400, Math.max(800, remaining - 200)),
+            timeoutMs: Math.min(3_500, Math.max(800, remaining - 200)),
           });
           return {
-            result: resultSchema.parse(raw),
+            result: resultSchema.parse(normalizeAiCandidate(raw)),
             status: "ai_fallback",
             latencyMs: Date.now() - startedAt,
           };
         } catch (err) {
-          console.warn("OpenRouter failover unavailable:", err instanceof Error ? err.message : err);
+          console.warn(
+            "OpenRouter failover unavailable:",
+            err instanceof Error ? err.message : err,
+          );
         }
       }
     } catch (err) {
@@ -831,22 +962,48 @@ export const runAnalysis = createServerFn({ method: "POST" })
     // Pour un lien de fiche match, l'API connaît déjà les IDs fiables des deux
     // équipes. Les réutiliser évite les recherches textuelles fragiles (et plus lentes).
     const fixtureIdentity = await fetchFixtureIdentity(data.matchId);
+    const terminalStatuses = new Set(["FT", "AET", "PEN"]);
+    const unavailableStatuses = new Set(["CANC", "PST", "ABD", "AWD", "WO"]);
+    const fixtureStatus = fixtureIdentity?.status?.toUpperCase() ?? null;
+    if (fixtureStatus && terminalStatuses.has(fixtureStatus)) {
+      throw new Error(
+        "Cette rencontre est déjà terminée. Choisissez un match à venir ou en direct.",
+      );
+    }
+    if (fixtureStatus && unavailableStatuses.has(fixtureStatus)) {
+      throw new Error("Cette rencontre ne peut pas être analysée dans son état actuel.");
+    }
+    const competition = fixtureIdentity
+      ? { leagueId: fixtureIdentity.leagueId, season: fixtureIdentity.season }
+      : undefined;
     const [homeResult, awayResult, liveResult] = await Promise.allSettled([
-      fetchTeamContextDeduped(fixtureIdentity?.homeName ?? data.home, fixtureIdentity?.homeId),
-      fetchTeamContextDeduped(fixtureIdentity?.awayName ?? data.away, fixtureIdentity?.awayId),
+      fetchTeamContextDeduped(
+        fixtureIdentity?.homeName ?? data.home,
+        fixtureIdentity?.homeId,
+        competition,
+      ),
+      fetchTeamContextDeduped(
+        fixtureIdentity?.awayName ?? data.away,
+        fixtureIdentity?.awayId,
+        competition,
+      ),
       fetchLiveSnapshot(data.matchId),
     ]);
     const homeCtx =
       homeResult.status === "fulfilled"
-        ? homeResult.value ??
-          (fixtureIdentity ? identityTeamContext(fixtureIdentity.homeId, fixtureIdentity.homeName) : null)
+        ? (homeResult.value ??
+          (fixtureIdentity
+            ? identityTeamContext(fixtureIdentity.homeId, fixtureIdentity.homeName)
+            : null))
         : fixtureIdentity
           ? identityTeamContext(fixtureIdentity.homeId, fixtureIdentity.homeName)
           : null;
     const awayCtx =
       awayResult.status === "fulfilled"
-        ? awayResult.value ??
-          (fixtureIdentity ? identityTeamContext(fixtureIdentity.awayId, fixtureIdentity.awayName) : null)
+        ? (awayResult.value ??
+          (fixtureIdentity
+            ? identityTeamContext(fixtureIdentity.awayId, fixtureIdentity.awayName)
+            : null))
         : fixtureIdentity
           ? identityTeamContext(fixtureIdentity.awayId, fixtureIdentity.awayName)
           : null;
@@ -857,7 +1014,16 @@ export const runAnalysis = createServerFn({ method: "POST" })
         "Le match n’a pas pu être identifié avec suffisamment d’informations vérifiées.",
       );
     }
-    if (homeCtx.dataQuality === "identity" && awayCtx.dataQuality === "identity") {
+    // Une fiche réelle peut être identifiée alors que les sections secondaires
+    // sont momentanément indisponibles (quota, timeout ou fournisseur lent).
+    // Dans ce cas on produit une projection explicitement partielle et
+    // prudente au lieu de masquer toute l'analyse. Une saisie manuelle sans
+    // identité vérifiée reste bloquée pour ne jamais inventer d'équipe.
+    if (
+      homeCtx.dataQuality === "identity" &&
+      awayCtx.dataQuality === "identity" &&
+      !fixtureIdentity
+    ) {
       throw new Error(
         "Le match n’a pas pu être identifié avec suffisamment d’informations vérifiées.",
       );
@@ -874,10 +1040,13 @@ export const runAnalysis = createServerFn({ method: "POST" })
           )
         : Promise.resolve(null),
       fetchCommunitySnapshot(data.matchId),
-      fetchProviderPrediction(Number.isInteger(Number(data.matchId)) ? Number(data.matchId) : undefined),
+      fetchProviderPrediction(
+        Number.isInteger(Number(data.matchId)) ? Number(data.matchId) : undefined,
+      ),
     ]);
     const providerPrediction =
-      requestedProviderPrediction ?? (bookmakerOdds?.fixtureId ? await fetchProviderPrediction(bookmakerOdds.fixtureId) : null);
+      requestedProviderPrediction ??
+      (bookmakerOdds?.fixtureId ? await fetchProviderPrediction(bookmakerOdds.fixtureId) : null);
     // Lors d'une saisie manuelle, les cotes permettent souvent d'identifier le
     // fixture : on complète alors le snapshot par statistiques et compositions.
     const analysisLiveSnapshot =
@@ -901,14 +1070,23 @@ export const runAnalysis = createServerFn({ method: "POST" })
     const competitionId = analysisLiveSnapshot?.competitionId ?? null;
     const competitionImportance =
       competitionId === null ? 0 : majorCompetitions.has(competitionId) ? 1 : 0.55;
+    const homeObservedMatches = homeCtx.recent.filter(
+      (match) => match.goalsFor !== null && match.goalsAgainst !== null && match.result !== "?",
+    ).length;
+    const awayObservedMatches = awayCtx.recent.filter(
+      (match) => match.goalsFor !== null && match.goalsAgainst !== null && match.result !== "?",
+    ).length;
+    const homeSeasonMatches = homeCtx.season?.overall.played ?? 0;
+    const awaySeasonMatches = awayCtx.season?.overall.played ?? 0;
     const coverage =
       [
-        homeCtx.dataQuality === "complete",
-        awayCtx.dataQuality === "complete",
+        homeObservedMatches >= 5 || homeSeasonMatches >= 5,
+        awayObservedMatches >= 5 || awaySeasonMatches >= 5,
         h2h.length >= 3,
         bookmakerOdds,
         analysisLiveSnapshot,
-      ].filter(Boolean).length / 5;
+        providerPrediction,
+      ].filter(Boolean).length / 6;
     const isPartial = homeCtx.dataQuality !== "complete" || awayCtx.dataQuality !== "complete";
     const dataQuality = {
       level: isPartial || coverage < 0.8 ? ("partial" as const) : ("complete" as const),
@@ -923,8 +1101,8 @@ export const runAnalysis = createServerFn({ method: "POST" })
     ];
     const availableSections = [
       "identite_match",
-      ...(homeCtx.dataQuality === "complete" ? ["forme_domicile"] : []),
-      ...(awayCtx.dataQuality === "complete" ? ["forme_exterieur"] : []),
+      ...(homeObservedMatches >= 3 ? ["forme_domicile"] : []),
+      ...(awayObservedMatches >= 3 ? ["forme_exterieur"] : []),
       ...(h2h.length >= 3 ? ["confrontations"] : []),
       ...(bookmakerOdds ? ["cotes"] : []),
       ...(analysisLiveSnapshot ? ["statistiques_live", "evenements"] : []),
@@ -933,6 +1111,9 @@ export const runAnalysis = createServerFn({ method: "POST" })
         : []),
       ...(communitySnapshot ? ["votes_communautaires"] : []),
       ...(providerPrediction ? ["projection_fournisseur"] : []),
+      ...((homeCtx.season?.overall.played ?? 0) >= 3 && (awayCtx.season?.overall.played ?? 0) >= 3
+        ? ["statistiques_saison"]
+        : []),
     ];
     const signals: MatchSignals = {
       community: communitySnapshot,
@@ -974,6 +1155,9 @@ export const runAnalysis = createServerFn({ method: "POST" })
             homeCtx.rankInfo ? `Classement : ${homeCtx.rankInfo}` : null,
             `Forme globale (5 derniers) : ${homeCtx.form.join(" | ") || "n/d"}`,
             `Forme à DOMICILE (5 derniers) : ${homeCtx.formHome.join(" | ") || "n/d"}`,
+            homeCtx.season?.home.played
+              ? `Saison à domicile (${homeCtx.season.home.played} matchs) : ${homeCtx.season.home.goalsFor?.toFixed(2) ?? "n/d"} but(s) marqué(s), ${homeCtx.season.home.goalsAgainst?.toFixed(2) ?? "n/d"} encaissé(s), ${homeCtx.season.home.pointsPerMatch?.toFixed(2) ?? "n/d"} point(s)/match.`
+              : null,
             `Blessures/absents : ${homeCtx.injuries.join(", ") || "aucune donnée"}`,
           ]
             .filter(Boolean)
@@ -985,6 +1169,9 @@ export const runAnalysis = createServerFn({ method: "POST" })
             awayCtx.rankInfo ? `Classement : ${awayCtx.rankInfo}` : null,
             `Forme globale (5 derniers) : ${awayCtx.form.join(" | ") || "n/d"}`,
             `Forme à l'EXTÉRIEUR (5 derniers) : ${awayCtx.formAway.join(" | ") || "n/d"}`,
+            awayCtx.season?.away.played
+              ? `Saison à l'extérieur (${awayCtx.season.away.played} matchs) : ${awayCtx.season.away.goalsFor?.toFixed(2) ?? "n/d"} but(s) marqué(s), ${awayCtx.season.away.goalsAgainst?.toFixed(2) ?? "n/d"} encaissé(s), ${awayCtx.season.away.pointsPerMatch?.toFixed(2) ?? "n/d"} point(s)/match.`
+              : null,
             `Blessures/absents : ${awayCtx.injuries.join(", ") || "aucune donnée"}`,
           ]
             .filter(Boolean)
@@ -1011,6 +1198,14 @@ export const runAnalysis = createServerFn({ method: "POST" })
       live: analysisLiveSnapshot,
       signals,
     });
+    const engineDataQuality = basePrediction.dataQuality ?? { level: "partial" as const, score: 0 };
+    const effectiveDataQuality = {
+      level:
+        engineDataQuality.level === "partial" || dataQuality.level === "partial"
+          ? ("partial" as const)
+          : ("complete" as const),
+      score: Math.min(dataQuality.score, engineDataQuality.score),
+    };
     const snapshotForAI = {
       home: homeCtx && {
         name: homeCtx.name,
@@ -1019,6 +1214,7 @@ export const runAnalysis = createServerFn({ method: "POST" })
         goalsDiff: homeCtx.goalsDiff,
         recent: homeCtx.recent,
         injuries: homeCtx.injuries,
+        season: homeCtx.season,
       },
       away: awayCtx && {
         name: awayCtx.name,
@@ -1027,13 +1223,14 @@ export const runAnalysis = createServerFn({ method: "POST" })
         goalsDiff: awayCtx.goalsDiff,
         recent: awayCtx.recent,
         injuries: awayCtx.injuries,
+        season: awayCtx.season,
       },
       h2h,
       odds: bookmakerOdds,
       live: analysisLiveSnapshot,
       signals,
       providerPrediction,
-      dataQuality,
+      dataQuality: effectiveDataQuality,
       statisticalProjection: basePrediction,
     };
 
@@ -1043,7 +1240,7 @@ export const runAnalysis = createServerFn({ method: "POST" })
       "Méthode : croise séparément la force globale, la forme récente, la forme à domicile de l'équipe qui reçoit, la forme à l'extérieur de l'équipe visiteuse, les absences, les confrontations directes et le marché. Donne davantage de poids aux données récentes et comparables, sans surinterpréter un échantillon court.\n" +
       "Calibration : lorsque des cotes sont disponibles, convertis-les en probabilités implicites, tiens compte de la marge et utilise-les comme ancre de marché. Explique tout écart important dans aiText. Sans cotes, ne prétends pas qu'il existe un consensus.\n" +
       "Probabilités : home, draw et away sont des nombres entiers compris entre 0 et 100 et leur somme doit être exactement 100. Le score probable doit rester plausible et cohérent avec le niveau de buts attendu.\n" +
-      "Marchés : retourne 5 objets maximum couvrant 1X2 ou Double Chance, BTTS, Over/Under 2.5 et, seulement si les données le permettent, corners ou cartons. Une recommandation n'est jamais une garantie de gain.\n" +
+      "Marchés : retourne entre 4 et 6 objets distincts couvrant issue du match, double chance, Over/Under 2.5, une ligne de buts prudente, BTTS et but d'équipe. En direct, corners ou cartons peuvent remplacer les marchés les moins documentés. Ajoute probability (0 à 100) lorsqu'elle est calculable. Une recommandation n'est jamais une garantie de gain.\n" +
       "Confiance : nombre entre 0 et 85. Risque : exactement bas, moyen ou eleve. La confiance baisse si les équipes sont mal identifiées, si l'historique est faible ou si des données clés manquent.\n" +
       "Couverture : si le champ dataQuality indique partial, conserve une confiance prudente et précise que certaines statistiques sont en cours de mise à jour ; ne transforme jamais une valeur par défaut en fait observé.\n" +
       "aiText : 3 à 4 phrases utiles et nuancées. keyFactors : 3 à 5 phrases courtes, chacune reliée à un fait fourni. N'affiche jamais de nom de modèle, de fournisseur, de clé technique ou de promesse de gain.\n" +
@@ -1054,7 +1251,7 @@ export const runAnalysis = createServerFn({ method: "POST" })
       `Analyse la rencontre ${data.home} vs ${data.away}.\n\n` +
       `Données à utiliser :\n${contextBlock}\n\n` +
       `Snapshot structuré complet (source de vérité) :\n${JSON.stringify(snapshotForAI)}\n\n` +
-      `Produis l'analyse structurée demandée au format JSON avec les champs: probabilities (home, draw, away), probableScore, markets (array de objets), aiText, keyFactors (array).`;
+      `Produis l'analyse structurée demandée au format JSON avec les champs: probabilities (home, draw, away), probableScore, markets (array de 4 à 6 objets avec label, pick, probability, confidence, risk, rationale), aiText, keyFactors (array).`;
 
     // 3. Routeur hybride : l'IA améliore le calcul si elle répond à temps ; le
     // moteur statistique conserve seul la continuité de service en cas d'échec.
@@ -1064,7 +1261,7 @@ export const runAnalysis = createServerFn({ method: "POST" })
     try {
       const aiRun = await withTimeout(
         callSmartAIRouter(systemPrompt, userPrompt, isPremium),
-        7_000,
+        12_000,
         "Le délai d'enrichissement IA est dépassé.",
       );
       enriched = { ...aiRun.result, keyFactors: aiRun.result.keyFactors ?? [] };
@@ -1083,25 +1280,35 @@ export const runAnalysis = createServerFn({ method: "POST" })
     );
     const result = resultSchema.parse({
       ...blended,
-      dataQuality,
-      markets: blended.markets.map((market) =>
-        dataQuality.level === "partial"
-          ? { ...market, confidence: Math.min(market.confidence, 64), risk: "eleve" as const }
-          : market,
-      ),
+      dataQuality: effectiveDataQuality,
+      markets: blended.markets.map((market) => {
+        if (effectiveDataQuality.level !== "partial") return market;
+        const confidence = Math.min(market.confidence, 64);
+        return {
+          ...market,
+          confidence,
+          risk: confidence >= 58 ? ("moyen" as const) : ("eleve" as const),
+        };
+      }),
       aiText:
-        dataQuality.level === "partial"
+        effectiveDataQuality.level === "partial"
           ? `Certaines statistiques sont encore en cours de mise à jour. ${blended.aiText}`
           : blended.aiText,
     });
+
+    if (result.markets.every((market) => market.pick === "Aucune recommandation fiable")) {
+      throw new Error(
+        "Les informations vérifiées ne permettent pas encore une recommandation fiable. Aucun crédit n’a été débité.",
+      );
+    }
 
     const metadata = predictionMetadataFor({
       aiStatus,
       dataQualityLevel:
         homeCtx.dataQuality === "identity" && awayCtx.dataQuality === "identity"
           ? "identity"
-          : dataQuality.level,
-      dataQualityScore: dataQuality.score,
+          : effectiveDataQuality.level,
+      dataQualityScore: effectiveDataQuality.score,
       aiLatencyMs,
       availableSections,
       unavailableSections,

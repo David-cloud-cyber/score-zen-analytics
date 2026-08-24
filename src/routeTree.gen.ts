@@ -22,6 +22,7 @@ import { Route as EnRouteImport } from './routes/en'
 import { Route as MentionsLegalesRouteImport } from './routes/mentions-legales'
 import { Route as PolitiqueEditorialeRouteImport } from './routes/politique-editoriale'
 import { Route as PremiumRouteImport } from './routes/premium'
+import { Route as PronosticsDuJourRouteImport } from './routes/pronostics-du-jour'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as SupportRouteImport } from './routes/support'
 import { Route as VipRouteImport } from './routes/vip'
@@ -34,11 +35,13 @@ import { Route as AdminAuditRouteImport } from './routes/admin.audit'
 import { Route as AdminCommunauteRouteImport } from './routes/admin.communaute'
 import { Route as AdminContenusRouteImport } from './routes/admin.contenus'
 import { Route as AdminExportsRouteImport } from './routes/admin.exports'
+import { Route as AdminMarketingRouteImport } from './routes/admin.marketing'
 import { Route as AdminPaiementsRouteImport } from './routes/admin.paiements'
 import { Route as AdminParametresRouteImport } from './routes/admin.parametres'
 import { Route as AdminSupportRouteImport } from './routes/admin.support'
 import { Route as AdminUtilisateursRouteImport } from './routes/admin.utilisateurs'
 import { Route as AdminVipRouteImport } from './routes/admin.vip'
+import { Route as ApiPushClickRouteImport } from './routes/api/push-click'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as BlogIndexRouteImport } from './routes/blog.index'
 import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
@@ -59,6 +62,7 @@ import { Route as LiveIdRouteImport } from './routes/live.$id'
 import { Route as MatchIdRouteImport } from './routes/match.$id'
 import { Route as PremiumHistoriqueRouteImport } from './routes/premium.historique'
 import { Route as PremiumTableauDeBordRouteImport } from './routes/premium.tableau-de-bord'
+import { Route as PronosticsHistoriqueRouteImport } from './routes/pronostics.historique'
 import { Route as ApiPublicAppErrorRouteImport } from './routes/api/public/app-error'
 import { Route as ApiPublicConversionEventRouteImport } from './routes/api/public/conversion-event'
 import { Route as ApiPublicFapshiWebhookRouteImport } from './routes/api/public/fapshi-webhook'
@@ -130,6 +134,11 @@ const PremiumRoute = PremiumRouteImport.update({
   path: '/premium',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PronosticsDuJourRoute = PronosticsDuJourRouteImport.update({
+  id: '/pronostics-du-jour',
+  path: '/pronostics-du-jour',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
   path: '/sitemap.xml',
@@ -190,6 +199,11 @@ const AdminExportsRoute = AdminExportsRouteImport.update({
   path: '/exports',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminMarketingRoute = AdminMarketingRouteImport.update({
+  id: '/marketing',
+  path: '/marketing',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminPaiementsRoute = AdminPaiementsRouteImport.update({
   id: '/paiements',
   path: '/paiements',
@@ -214,6 +228,11 @@ const AdminVipRoute = AdminVipRouteImport.update({
   id: '/vip',
   path: '/vip',
   getParentRoute: () => AdminRoute,
+} as any)
+const ApiPushClickRoute = ApiPushClickRouteImport.update({
+  id: '/api/push-click',
+  path: '/api/push-click',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthCallbackRoute = AuthCallbackRouteImport.update({
   id: '/callback',
@@ -315,6 +334,11 @@ const PremiumTableauDeBordRoute = PremiumTableauDeBordRouteImport.update({
   path: '/tableau-de-bord',
   getParentRoute: () => PremiumRoute,
 } as any)
+const PronosticsHistoriqueRoute = PronosticsHistoriqueRouteImport.update({
+  id: '/pronostics/historique',
+  path: '/pronostics/historique',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicAppErrorRoute = ApiPublicAppErrorRouteImport.update({
   id: '/api/public/app-error',
   path: '/api/public/app-error',
@@ -361,6 +385,7 @@ export interface FileRoutesByFullPath {
   '/mentions-legales': typeof MentionsLegalesRoute
   '/politique-editoriale': typeof PolitiqueEditorialeRoute
   '/premium': typeof PremiumRouteWithChildren
+  '/pronostics-du-jour': typeof PronosticsDuJourRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/support': typeof SupportRoute
   '/vip': typeof VipRoute
@@ -372,11 +397,13 @@ export interface FileRoutesByFullPath {
   '/admin/communaute': typeof AdminCommunauteRoute
   '/admin/contenus': typeof AdminContenusRoute
   '/admin/exports': typeof AdminExportsRoute
+  '/admin/marketing': typeof AdminMarketingRoute
   '/admin/paiements': typeof AdminPaiementsRoute
   '/admin/parametres': typeof AdminParametresRoute
   '/admin/support': typeof AdminSupportRoute
   '/admin/utilisateurs': typeof AdminUtilisateursRoute
   '/admin/vip': typeof AdminVipRoute
+  '/api/push-click': typeof ApiPushClickRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/blog/football': typeof BlogFootballRoute
@@ -394,6 +421,7 @@ export interface FileRoutesByFullPath {
   '/match/$id': typeof MatchIdRoute
   '/premium/historique': typeof PremiumHistoriqueRoute
   '/premium/tableau-de-bord': typeof PremiumTableauDeBordRoute
+  '/pronostics/historique': typeof PronosticsHistoriqueRoute
   '/admin/': typeof AdminIndexRoute
   '/blog/': typeof BlogIndexRoute
   '/codes-promo/': typeof CodesPromoIndexRoute
@@ -414,6 +442,7 @@ export interface FileRoutesByTo {
   '/mentions-legales': typeof MentionsLegalesRoute
   '/politique-editoriale': typeof PolitiqueEditorialeRoute
   '/premium': typeof PremiumRouteWithChildren
+  '/pronostics-du-jour': typeof PronosticsDuJourRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/support': typeof SupportRoute
   '/vip': typeof VipRoute
@@ -425,11 +454,13 @@ export interface FileRoutesByTo {
   '/admin/communaute': typeof AdminCommunauteRoute
   '/admin/contenus': typeof AdminContenusRoute
   '/admin/exports': typeof AdminExportsRoute
+  '/admin/marketing': typeof AdminMarketingRoute
   '/admin/paiements': typeof AdminPaiementsRoute
   '/admin/parametres': typeof AdminParametresRoute
   '/admin/support': typeof AdminSupportRoute
   '/admin/utilisateurs': typeof AdminUtilisateursRoute
   '/admin/vip': typeof AdminVipRoute
+  '/api/push-click': typeof ApiPushClickRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/blog/football': typeof BlogFootballRoute
@@ -447,6 +478,7 @@ export interface FileRoutesByTo {
   '/match/$id': typeof MatchIdRoute
   '/premium/historique': typeof PremiumHistoriqueRoute
   '/premium/tableau-de-bord': typeof PremiumTableauDeBordRoute
+  '/pronostics/historique': typeof PronosticsHistoriqueRoute
   '/admin': typeof AdminIndexRoute
   '/blog': typeof BlogIndexRoute
   '/codes-promo': typeof CodesPromoIndexRoute
@@ -473,6 +505,7 @@ export interface FileRoutesById {
   '/mentions-legales': typeof MentionsLegalesRoute
   '/politique-editoriale': typeof PolitiqueEditorialeRoute
   '/premium': typeof PremiumRouteWithChildren
+  '/pronostics-du-jour': typeof PronosticsDuJourRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/support': typeof SupportRoute
   '/vip': typeof VipRoute
@@ -484,11 +517,13 @@ export interface FileRoutesById {
   '/admin/communaute': typeof AdminCommunauteRoute
   '/admin/contenus': typeof AdminContenusRoute
   '/admin/exports': typeof AdminExportsRoute
+  '/admin/marketing': typeof AdminMarketingRoute
   '/admin/paiements': typeof AdminPaiementsRoute
   '/admin/parametres': typeof AdminParametresRoute
   '/admin/support': typeof AdminSupportRoute
   '/admin/utilisateurs': typeof AdminUtilisateursRoute
   '/admin/vip': typeof AdminVipRoute
+  '/api/push-click': typeof ApiPushClickRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/blog/football': typeof BlogFootballRoute
@@ -506,6 +541,7 @@ export interface FileRoutesById {
   '/match/$id': typeof MatchIdRoute
   '/premium/historique': typeof PremiumHistoriqueRoute
   '/premium/tableau-de-bord': typeof PremiumTableauDeBordRoute
+  '/pronostics/historique': typeof PronosticsHistoriqueRoute
   '/admin/': typeof AdminIndexRoute
   '/blog/': typeof BlogIndexRoute
   '/codes-promo/': typeof CodesPromoIndexRoute
@@ -532,6 +568,7 @@ export interface FileRouteTypes {
     | '/mentions-legales'
     | '/politique-editoriale'
     | '/premium'
+    | '/pronostics-du-jour'
     | '/sitemap.xml'
     | '/support'
     | '/vip'
@@ -543,11 +580,13 @@ export interface FileRouteTypes {
     | '/admin/communaute'
     | '/admin/contenus'
     | '/admin/exports'
+    | '/admin/marketing'
     | '/admin/paiements'
     | '/admin/parametres'
     | '/admin/support'
     | '/admin/utilisateurs'
     | '/admin/vip'
+    | '/api/push-click'
     | '/auth/callback'
     | '/blog/$slug'
     | '/blog/football'
@@ -565,6 +604,7 @@ export interface FileRouteTypes {
     | '/match/$id'
     | '/premium/historique'
     | '/premium/tableau-de-bord'
+    | '/pronostics/historique'
     | '/admin/'
     | '/blog/'
     | '/codes-promo/'
@@ -585,6 +625,7 @@ export interface FileRouteTypes {
     | '/mentions-legales'
     | '/politique-editoriale'
     | '/premium'
+    | '/pronostics-du-jour'
     | '/sitemap.xml'
     | '/support'
     | '/vip'
@@ -596,11 +637,13 @@ export interface FileRouteTypes {
     | '/admin/communaute'
     | '/admin/contenus'
     | '/admin/exports'
+    | '/admin/marketing'
     | '/admin/paiements'
     | '/admin/parametres'
     | '/admin/support'
     | '/admin/utilisateurs'
     | '/admin/vip'
+    | '/api/push-click'
     | '/auth/callback'
     | '/blog/$slug'
     | '/blog/football'
@@ -618,6 +661,7 @@ export interface FileRouteTypes {
     | '/match/$id'
     | '/premium/historique'
     | '/premium/tableau-de-bord'
+    | '/pronostics/historique'
     | '/admin'
     | '/blog'
     | '/codes-promo'
@@ -643,6 +687,7 @@ export interface FileRouteTypes {
     | '/mentions-legales'
     | '/politique-editoriale'
     | '/premium'
+    | '/pronostics-du-jour'
     | '/sitemap.xml'
     | '/support'
     | '/vip'
@@ -654,11 +699,13 @@ export interface FileRouteTypes {
     | '/admin/communaute'
     | '/admin/contenus'
     | '/admin/exports'
+    | '/admin/marketing'
     | '/admin/paiements'
     | '/admin/parametres'
     | '/admin/support'
     | '/admin/utilisateurs'
     | '/admin/vip'
+    | '/api/push-click'
     | '/auth/callback'
     | '/blog/$slug'
     | '/blog/football'
@@ -676,6 +723,7 @@ export interface FileRouteTypes {
     | '/match/$id'
     | '/premium/historique'
     | '/premium/tableau-de-bord'
+    | '/pronostics/historique'
     | '/admin/'
     | '/blog/'
     | '/codes-promo/'
@@ -702,11 +750,14 @@ export interface RootRouteChildren {
   MentionsLegalesRoute: typeof MentionsLegalesRoute
   PolitiqueEditorialeRoute: typeof PolitiqueEditorialeRoute
   PremiumRoute: typeof PremiumRouteWithChildren
+  PronosticsDuJourRoute: typeof PronosticsDuJourRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   SupportRoute: typeof SupportRoute
   VipRoute: typeof VipRoute
+  ApiPushClickRoute: typeof ApiPushClickRoute
   LiveIdRoute: typeof LiveIdRoute
   MatchIdRoute: typeof MatchIdRoute
+  PronosticsHistoriqueRoute: typeof PronosticsHistoriqueRoute
   ApiPublicAppErrorRoute: typeof ApiPublicAppErrorRoute
   ApiPublicConversionEventRoute: typeof ApiPublicConversionEventRoute
   ApiPublicFapshiWebhookRoute: typeof ApiPublicFapshiWebhookRoute
@@ -806,6 +857,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PremiumRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/pronostics-du-jour': {
+      id: '/pronostics-du-jour'
+      path: '/pronostics-du-jour'
+      fullPath: '/pronostics-du-jour'
+      preLoaderRoute: typeof PronosticsDuJourRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/sitemap.xml': {
       id: '/sitemap.xml'
       path: '/sitemap.xml'
@@ -890,6 +948,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminExportsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/marketing': {
+      id: '/admin/marketing'
+      path: '/marketing'
+      fullPath: '/admin/marketing'
+      preLoaderRoute: typeof AdminMarketingRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/paiements': {
       id: '/admin/paiements'
       path: '/paiements'
@@ -924,6 +989,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/vip'
       preLoaderRoute: typeof AdminVipRouteImport
       parentRoute: typeof AdminRoute
+    }
+    '/api/push-click': {
+      id: '/api/push-click'
+      path: '/api/push-click'
+      fullPath: '/api/push-click'
+      preLoaderRoute: typeof ApiPushClickRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/auth/callback': {
       id: '/auth/callback'
@@ -1065,6 +1137,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PremiumTableauDeBordRouteImport
       parentRoute: typeof PremiumRoute
     }
+    '/pronostics/historique': {
+      id: '/pronostics/historique'
+      path: '/pronostics/historique'
+      fullPath: '/pronostics/historique'
+      preLoaderRoute: typeof PronosticsHistoriqueRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/app-error': {
       id: '/api/public/app-error'
       path: '/api/public/app-error'
@@ -1130,6 +1209,7 @@ interface AdminRouteChildren {
   AdminCommunauteRoute: typeof AdminCommunauteRoute
   AdminContenusRoute: typeof AdminContenusRoute
   AdminExportsRoute: typeof AdminExportsRoute
+  AdminMarketingRoute: typeof AdminMarketingRoute
   AdminPaiementsRoute: typeof AdminPaiementsRoute
   AdminParametresRoute: typeof AdminParametresRoute
   AdminSupportRoute: typeof AdminSupportRoute
@@ -1145,6 +1225,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminCommunauteRoute: AdminCommunauteRoute,
   AdminContenusRoute: AdminContenusRoute,
   AdminExportsRoute: AdminExportsRoute,
+  AdminMarketingRoute: AdminMarketingRoute,
   AdminPaiementsRoute: AdminPaiementsRoute,
   AdminParametresRoute: AdminParametresRoute,
   AdminSupportRoute: AdminSupportRoute,
@@ -1262,11 +1343,14 @@ const rootRouteChildren: RootRouteChildren = {
   MentionsLegalesRoute: MentionsLegalesRoute,
   PolitiqueEditorialeRoute: PolitiqueEditorialeRoute,
   PremiumRoute: PremiumRouteWithChildren,
+  PronosticsDuJourRoute: PronosticsDuJourRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   SupportRoute: SupportRoute,
   VipRoute: VipRoute,
+  ApiPushClickRoute: ApiPushClickRoute,
   LiveIdRoute: LiveIdRoute,
   MatchIdRoute: MatchIdRoute,
+  PronosticsHistoriqueRoute: PronosticsHistoriqueRoute,
   ApiPublicAppErrorRoute: ApiPublicAppErrorRoute,
   ApiPublicConversionEventRoute: ApiPublicConversionEventRoute,
   ApiPublicFapshiWebhookRoute: ApiPublicFapshiWebhookRoute,

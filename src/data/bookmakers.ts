@@ -29,7 +29,7 @@ export const BOOKMAKERS: Bookmaker[] = [
     name: "1win",
     code: "PREDAT",
     affiliateUrl: "https://lkfg.pro/a66a894d",
-    logoUrl: "/bookmakers/1win.svg",
+    logoUrl: "/bookmakers/1win-wordmark.png",
     bannerUrl: "/1win-predat-banner.svg",
     bannerLinkUrl: "https://one-vv0931.com/?p=iezl",
     accent: "#0b7cff",

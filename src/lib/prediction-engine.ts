@@ -1,4 +1,10 @@
-import { aiBlendWeight, guardProbabilities } from "./prediction-quality";
+import {
+  aiBlendWeight,
+  calibratedQualityScore,
+  evidenceAgreementScore,
+  guardProbabilities,
+  shouldRecommendMarket,
+} from "./prediction-quality.ts";
 
 /**
  * Moteur statistique déterministe utilisé pour chaque analyse.
@@ -11,6 +17,7 @@ export type MatchSample = {
   goalsFor: number | null;
   goalsAgainst: number | null;
   result: "W" | "D" | "L" | "?";
+  sameCompetition?: boolean;
 };
 
 export type TeamPredictionContext = {
@@ -21,7 +28,23 @@ export type TeamPredictionContext = {
   rank: number | null;
   points: number | null;
   goalsDiff: number | null;
+  season: TeamSeasonProfile | null;
   dataQuality?: "complete" | "partial" | "identity";
+};
+
+export type TeamSeasonSplit = {
+  played: number;
+  goalsFor: number | null;
+  goalsAgainst: number | null;
+  pointsPerMatch: number | null;
+  cleanSheetRate: number | null;
+  failedToScoreRate: number | null;
+};
+
+export type TeamSeasonProfile = {
+  overall: TeamSeasonSplit;
+  home: TeamSeasonSplit;
+  away: TeamSeasonSplit;
 };
 
 export type H2HMatch = { homeGoals: number | null; awayGoals: number | null };
@@ -94,6 +117,7 @@ export type StatisticalPrediction = {
   markets: Array<{
     label: string;
     pick: string;
+    probability?: number;
     confidence: number;
     risk: "bas" | "moyen" | "eleve";
     rationale: string;
@@ -132,15 +156,38 @@ function poisson(lambda: number, value: number) {
 
 function metricsFor(
   team: TeamPredictionContext,
-  preferredVenue: boolean,
+  preferredVenue: boolean | null,
   defaults: TeamMetrics,
 ): TeamMetrics {
   const complete = team.recent.filter(
     (match) => match.goalsFor !== null && match.goalsAgainst !== null && match.result !== "?",
   );
-  const venue = complete.filter((match) => match.isHome === preferredVenue);
-  const sample = venue.length >= 3 ? venue : complete;
-  if (!sample.length) return defaults;
+  const venue =
+    preferredVenue === null
+      ? complete
+      : complete.filter((match) => match.isHome === preferredVenue);
+  const sample = preferredVenue !== null && venue.length >= 3 ? venue : complete;
+  const seasonSplit =
+    preferredVenue === true
+      ? team.season?.home
+      : preferredVenue === false
+        ? team.season?.away
+        : team.season?.overall;
+  const hasSeasonSample = Boolean(
+    seasonSplit &&
+    seasonSplit.played >= 3 &&
+    seasonSplit.goalsFor !== null &&
+    seasonSplit.goalsAgainst !== null,
+  );
+  const seasonMetrics: TeamMetrics | null = hasSeasonSample
+    ? {
+        goalsFor: seasonSplit!.goalsFor!,
+        goalsAgainst: seasonSplit!.goalsAgainst!,
+        points: seasonSplit!.pointsPerMatch ?? defaults.points,
+        reliability: clamp(seasonSplit!.played / 12, 0.45, 0.92),
+      }
+    : null;
+  if (!sample.length) return seasonMetrics ?? defaults;
 
   // API-Football retourne les derniers matchs dans un ordre récent : les données
   // les plus fraîches reçoivent une pondération plus forte, sans effacer la saison.
@@ -149,18 +196,31 @@ function metricsFor(
   let goalsAgainst = 0;
   let points = 0;
   sample.slice(0, 8).forEach((match, index) => {
-    const weight = Math.exp(-index * 0.23);
+    const competitionWeight = match.sameCompetition ? 1.15 : 1;
+    const weight = Math.exp(-index * 0.23) * competitionWeight;
     weightTotal += weight;
     goalsFor += (match.goalsFor ?? 0) * weight;
     goalsAgainst += (match.goalsAgainst ?? 0) * weight;
     points += (match.result === "W" ? 3 : match.result === "D" ? 1 : 0) * weight;
   });
 
-  return {
+  const recentMetrics = {
     goalsFor: goalsFor / weightTotal,
     goalsAgainst: goalsAgainst / weightTotal,
     points: points / weightTotal,
     reliability: clamp(sample.length / 6, 0.35, 1),
+  };
+  if (!seasonMetrics) return recentMetrics;
+
+  // La forme récente reste prioritaire, mais la saison stabilise les petits
+  // échantillons et évite qu'un seul score atypique ne déforme la projection.
+  const recentWeight = clamp(sample.length / 8, 0.48, 0.72);
+  return {
+    goalsFor: recentMetrics.goalsFor * recentWeight + seasonMetrics.goalsFor * (1 - recentWeight),
+    goalsAgainst:
+      recentMetrics.goalsAgainst * recentWeight + seasonMetrics.goalsAgainst * (1 - recentWeight),
+    points: recentMetrics.points * recentWeight + seasonMetrics.points * (1 - recentWeight),
+    reliability: clamp(recentMetrics.reliability * 0.65 + seasonMetrics.reliability * 0.35, 0.4, 1),
   };
 }
 
@@ -183,7 +243,8 @@ function providerProbabilities(snapshot: MatchSignals["providerPrediction"]) {
     snapshot.draw === undefined ||
     snapshot.away === null ||
     snapshot.away === undefined
-  ) return null;
+  )
+    return null;
   return normalize({ home: snapshot.home, draw: snapshot.draw, away: snapshot.away });
 }
 
@@ -293,16 +354,22 @@ export function buildStatisticalPrediction(context: PredictionContext): Statisti
     goalsFor: 1.42,
     goalsAgainst: 1.18,
     points: 1.48,
-    reliability: 0.35,
+    reliability: 0.12,
   });
   const awayMetrics = metricsFor(context.away, false, {
     goalsFor: 1.16,
     goalsAgainst: 1.36,
     points: 1.18,
-    reliability: 0.35,
+    reliability: 0.12,
   });
-  const homeAll = metricsFor(context.home, true, homeMetrics);
-  const awayAll = metricsFor(context.away, false, awayMetrics);
+  const homeAll = metricsFor(context.home, null, homeMetrics);
+  const awayAll = metricsFor(context.away, null, awayMetrics);
+  const observedHomeMatches = context.home.recent.filter(
+    (match) => match.goalsFor !== null && match.goalsAgainst !== null && match.result !== "?",
+  ).length;
+  const observedAwayMatches = context.away.recent.filter(
+    (match) => match.goalsFor !== null && match.goalsAgainst !== null && match.result !== "?",
+  ).length;
 
   // Attaque/défense récentes + avantage domicile. Les bornes empêchent un petit
   // échantillon ou un score atypique de produire des probabilités extrêmes.
@@ -350,8 +417,12 @@ export function buildStatisticalPrediction(context: PredictionContext): Statisti
   homeExpected = clamp(homeExpected, 0.25, 3.5);
   awayExpected = clamp(awayExpected, 0.2, 3.25);
 
+  const activeLiveStatuses = new Set(["1H", "HT", "2H", "ET", "BT", "P", "INT", "LIVE"]);
   const live =
-    context.live?.minute && context.live.minute > 0 && context.live.minute < 120
+    context.live?.minute &&
+    context.live.minute > 0 &&
+    context.live.minute < 120 &&
+    activeLiveStatuses.has(context.live.status.toUpperCase())
       ? context.live
       : null;
   const remainingRatio = live ? clamp((95 - live.minute!) / 95, 0.02, 1) : 1;
@@ -367,7 +438,10 @@ export function buildStatisticalPrediction(context: PredictionContext): Statisti
     live?.homeScore ?? 0,
     live?.awayScore ?? 0,
   );
+  const independentModel = normalize(probabilities);
   const market = oddsProbabilities(context.odds);
+  const provider = providerProbabilities(context.signals?.providerPrediction);
+  const agreement = evidenceAgreementScore({ model: independentModel, market, provider });
   if (market && !live) {
     // Les cotes sont un signal de consensus, pas une vérité : elles calibrent
     // modérément le modèle indépendant au lieu de le remplacer.
@@ -396,7 +470,6 @@ export function buildStatisticalPrediction(context: PredictionContext): Statisti
       away: probabilities.away * (1 - communityWeight) + community.away * communityWeight,
     };
   }
-  const provider = providerProbabilities(context.signals?.providerPrediction);
   if (provider && !live) {
     // Ce signal peut être corrélé au marché : il reste secondaire.
     const providerWeight = context.odds ? 0.04 : 0.08;
@@ -406,9 +479,22 @@ export function buildStatisticalPrediction(context: PredictionContext): Statisti
       away: probabilities.away * (1 - providerWeight) + provider.away * providerWeight,
     };
   }
-  const dataQuality = clamp(
-    (homeMetrics.reliability + awayMetrics.reliability) / 2 +
+  const observedFormQuality = clamp(
+    (Math.min(observedHomeMatches, 8) + Math.min(observedAwayMatches, 8)) / 16,
+    0,
+    1,
+  );
+  const seasonSampleQuality = clamp(
+    (Math.min(context.home.season?.overall.played ?? 0, 12) +
+      Math.min(context.away.season?.overall.played ?? 0, 12)) /
+      24,
+    0,
+    1,
+  );
+  const rawDataQuality = clamp(
+    Math.max(observedFormQuality, seasonSampleQuality * 0.82) * 0.62 +
       (context.odds ? 0.1 : 0) +
+      (provider ? 0.08 : 0) +
       (live && live.homeLineupConfirmed && live.awayLineupConfirmed ? 0.1 : 0) +
       (context.signals?.competition?.importance ?? 0) * 0.06 +
       (community ? 0.04 : 0) -
@@ -420,7 +506,13 @@ export function buildStatisticalPrediction(context: PredictionContext): Statisti
   // Shrink extreme probabilities when the evidence is thin. This guard keeps
   // the deterministic baseline conservative before the AI is allowed to
   // enrich it.
-  const normalized = guardProbabilities(normalize(probabilities), dataQuality * 100);
+  const qualityScore = calibratedQualityScore({
+    baseQuality: rawDataQuality * 100,
+    agreementScore: agreement.score,
+    sourceCount: agreement.sources,
+  });
+  const dataQuality = qualityScore / 100;
+  const normalized = guardProbabilities(normalize(probabilities), qualityScore);
   const finalHomeExpected = homeExpected + (live?.homeScore ?? 0);
   const finalAwayExpected = awayExpected + (live?.awayScore ?? 0);
   const probableScore = mostLikelyScore(
@@ -438,12 +530,27 @@ export function buildStatisticalPrediction(context: PredictionContext): Statisti
   const winnerName =
     winner === "home" ? context.home.name : winner === "away" ? context.away.name : "Match nul";
   const winnerProbability = normalized[winner];
-  const bttsYes = (1 - Math.exp(-homeExpected)) * (1 - Math.exp(-awayExpected));
+  const homeWillScore = (live?.homeScore ?? 0) > 0 ? 1 : 1 - Math.exp(-homeExpected);
+  const awayWillScore = (live?.awayScore ?? 0) > 0 ? 1 : 1 - Math.exp(-awayExpected);
+  const bttsYes = homeWillScore * awayWillScore;
+  const bttsNo = 1 - bttsYes;
   const over15 = totalGoalsProbability(
     homeExpected,
     awayExpected,
     1.5 - (live ? live.homeScore + live.awayScore : 0),
     true,
+  );
+  const over25 = totalGoalsProbability(
+    homeExpected,
+    awayExpected,
+    2.5 - (live ? live.homeScore + live.awayScore : 0),
+    true,
+  );
+  const under25 = totalGoalsProbability(
+    homeExpected,
+    awayExpected,
+    2.5 - (live ? live.homeScore + live.awayScore : 0),
+    false,
   );
   const under35 = totalGoalsProbability(
     homeExpected,
@@ -451,12 +558,23 @@ export function buildStatisticalPrediction(context: PredictionContext): Statisti
     3.5 - (live ? live.homeScore + live.awayScore : 0),
     false,
   );
-  const doubleChance =
-    winner === "home"
-      ? normalized.home + normalized.draw
-      : winner === "away"
-        ? normalized.away + normalized.draw
-        : normalized.draw + Math.max(normalized.home, normalized.away);
+  const doubleChanceOptions = [
+    {
+      pick: `${context.home.name} ou nul`,
+      probability: normalized.home + normalized.draw,
+    },
+    {
+      pick: `${context.away.name} ou nul`,
+      probability: normalized.away + normalized.draw,
+    },
+    {
+      pick: `${context.home.name} ou ${context.away.name}`,
+      probability: normalized.home + normalized.away,
+    },
+  ];
+  const doubleChance = doubleChanceOptions.reduce((best, option) =>
+    option.probability > best.probability ? option : best,
+  );
 
   const livePrefix = live
     ? `À la ${live.minute}e minute, le score et les statistiques live sont intégrés. `
@@ -470,6 +588,11 @@ export function buildStatisticalPrediction(context: PredictionContext): Statisti
         `Forme pondérée : ${context.home.name} ${homeMetrics.points.toFixed(2)} point(s)/match à domicile, ${context.away.name} ${awayMetrics.points.toFixed(2)} à l'extérieur.`,
         `Projection de buts : ${finalHomeExpected.toFixed(2)} pour ${context.home.name} et ${finalAwayExpected.toFixed(2)} pour ${context.away.name}.`,
       ];
+  if (context.home.season?.overall.played || context.away.season?.overall.played) {
+    keyFactors.push(
+      `Repères saisonniers : ${context.home.name} ${context.home.season?.overall.goalsFor?.toFixed(2) ?? "n/d"} but(s)/match, ${context.away.name} ${context.away.season?.overall.goalsFor?.toFixed(2) ?? "n/d"}.`,
+    );
+  }
   keyFactors.push(
     context.odds
       ? `Consensus de marché intégré avec ${context.odds.sources} source(s) de cotes, sans le laisser dominer le modèle.`
@@ -498,6 +621,13 @@ export function buildStatisticalPrediction(context: PredictionContext): Statisti
       `Projection fournisseur intégrée comme signal secondaire${context.signals?.providerPrediction?.advice ? ` : ${context.signals.providerPrediction.advice}` : "."}`,
     );
   }
+  if (agreement.sources > 1) {
+    keyFactors.push(
+      agreement.divergence <= 8
+        ? "Les sources indépendantes disponibles convergent vers une lecture proche du match."
+        : "Les sources disponibles divergent ; la confiance a été réduite automatiquement.",
+    );
+  }
   if (live && (live.homeCorners !== undefined || live.awayCorners !== undefined)) {
     keyFactors.push(
       `Rythme live : ${live.homeCorners ?? 0}-${live.awayCorners ?? 0} corners et ${live.homeYellowCards ?? 0}-${live.awayYellowCards ?? 0} cartons jaunes.`,
@@ -505,50 +635,126 @@ export function buildStatisticalPrediction(context: PredictionContext): Statisti
   }
 
   const marketConfidence = (probability: number) => confidenceFrom(probability, dataQuality, live);
-  const markets: StatisticalPrediction["markets"] = [
+  const hasIndependentEvidence = observedHomeMatches >= 3 && observedAwayMatches >= 3;
+  const hasSeasonEvidence =
+    (context.home.season?.overall.played ?? 0) >= 5 &&
+    (context.away.season?.overall.played ?? 0) >= 5;
+  const hasExternalEvidence = Boolean(market || provider || live);
+  const evidenceIsActionable = hasIndependentEvidence || hasSeasonEvidence || hasExternalEvidence;
+  const winnerConfidence = marketConfidence(winnerProbability / 100);
+  const doubleChanceConfidence = marketConfidence(doubleChance.probability / 100);
+  const total25Probability = Math.max(over25, under25);
+  const total25Pick = over25 >= under25 ? "Plus de 2,5 buts" : "Moins de 2,5 buts";
+  const total25Confidence = marketConfidence(total25Probability);
+  const prudentTotalProbability = Math.max(over15, under35);
+  const prudentTotalPick = over15 >= under35 ? "Plus de 1,5 buts" : "Moins de 3,5 buts";
+  const prudentTotalConfidence = marketConfidence(prudentTotalProbability);
+  const bttsProbability = Math.max(bttsYes, bttsNo);
+  const bttsConfidence = marketConfidence(bttsProbability);
+  const teamGoalOptions = [
+    {
+      pick: `${context.home.name} marque au moins un but`,
+      probability: homeWillScore,
+    },
+    {
+      pick: `${context.away.name} marque au moins un but`,
+      probability: awayWillScore,
+    },
+  ];
+  const teamGoal = teamGoalOptions.reduce((best, option) =>
+    option.probability > best.probability ? option : best,
+  );
+  const teamGoalConfidence = marketConfidence(teamGoal.probability);
+  const candidateMarkets: StatisticalPrediction["markets"] = [
     {
       label: "Issue du match",
       pick: winnerName,
-      confidence: marketConfidence(winnerProbability / 100),
-      risk: riskFor(marketConfidence(winnerProbability / 100)),
+      probability: winnerProbability,
+      confidence: winnerConfidence,
+      risk: riskFor(winnerConfidence),
       rationale: `${livePrefix}Le modèle donne ${winnerProbability}% à cette issue après pondération de la forme, du terrain et des données disponibles.`,
     },
     {
       label: "Double chance",
-      pick:
-        winner === "home"
-          ? `${context.home.name} ou nul`
-          : winner === "away"
-            ? `${context.away.name} ou nul`
-            : "Match nul ou issue la plus probable",
-      confidence: marketConfidence(doubleChance / 100),
-      risk: riskFor(marketConfidence(doubleChance / 100)),
-      rationale: `La couverture de deux issues porte la probabilité estimée à ${doubleChance}%.`,
+      pick: doubleChance.pick,
+      probability: doubleChance.probability,
+      confidence: doubleChanceConfidence,
+      risk: riskFor(doubleChanceConfidence),
+      rationale: `La combinaison des deux issues les plus solides atteint une probabilité estimée de ${doubleChance.probability}%.`,
     },
     {
-      label: "Total de buts",
-      pick: over15 >= 0.56 ? "Plus de 1,5 buts" : "Moins de 3,5 buts",
-      confidence: marketConfidence(Math.max(over15, under35)),
-      risk: riskFor(marketConfidence(Math.max(over15, under35))),
-      rationale: `La projection de score ${probableScore} repose sur un total attendu d'environ ${(finalHomeExpected + finalAwayExpected).toFixed(2)} buts.`,
+      label: "Plus/Moins de 2,5 buts",
+      pick: total25Pick,
+      probability: round(total25Probability * 100),
+      confidence: total25Confidence,
+      risk: riskFor(total25Confidence),
+      rationale: `La ligne de 2,5 buts est évaluée à partir d'un total attendu d'environ ${(finalHomeExpected + finalAwayExpected).toFixed(2)} buts.`,
+    },
+    {
+      label: "Total de buts prudent",
+      pick: prudentTotalPick,
+      probability: round(prudentTotalProbability * 100),
+      confidence: prudentTotalConfidence,
+      risk: riskFor(prudentTotalConfidence),
+      rationale: `La projection de score ${probableScore} soutient cette ligne plus prudente sans la présenter comme certaine.`,
     },
     {
       label: "Les deux équipes marquent",
       pick: bttsYes >= 0.5 ? "Oui" : "Non",
-      confidence: marketConfidence(bttsYes >= 0.5 ? bttsYes : 1 - bttsYes),
-      risk: riskFor(marketConfidence(bttsYes >= 0.5 ? bttsYes : 1 - bttsYes)),
-      rationale: `La probabilité statistique que les deux équipes marquent est estimée à ${round(bttsYes * 100)}%.`,
+      probability: round(bttsProbability * 100),
+      confidence: bttsConfidence,
+      risk: riskFor(bttsConfidence),
+      rationale: `Les deux équipes marquent est estimé à ${round(bttsYes * 100)}% contre ${round(bttsNo * 100)}% pour le scénario contraire.`,
+    },
+    {
+      label: "But d'équipe",
+      pick: teamGoal.pick,
+      probability: round(teamGoal.probability * 100),
+      confidence: teamGoalConfidence,
+      risk: riskFor(teamGoalConfidence),
+      rationale: `La capacité offensive et la résistance adverse donnent ${round(teamGoal.probability * 100)}% à cette équipe pour marquer au moins une fois.`,
     },
   ];
+  const markets = candidateMarkets.map((item, index) => {
+    const primary = index === 0;
+    const recommended = shouldRecommendMarket({
+      confidence: item.confidence,
+      qualityScore,
+      divergence: agreement.divergence,
+    });
+    if (!evidenceIsActionable) {
+      return {
+        ...item,
+        pick: "Aucune recommandation fiable",
+        probability: undefined,
+        confidence: Math.min(item.confidence, 48),
+        risk: "eleve" as const,
+        rationale:
+          "La forme récente et les signaux externes disponibles ne suffisent pas encore pour produire un choix fiable.",
+      };
+    }
+    if (recommended || (!primary && (item.probability ?? 0) >= 55)) return item;
+    return {
+      ...item,
+      pick: "Aucune issue suffisamment forte",
+      probability: undefined,
+      confidence: Math.min(item.confidence, 54),
+      risk: "eleve" as const,
+      rationale:
+        "Les signaux disponibles ne convergent pas assez pour recommander une issue simple avec prudence.",
+    };
+  });
 
+  const liveMarkets: StatisticalPrediction["markets"] = [];
   if (live && (live.homeCorners ?? 0) + (live.awayCorners ?? 0) > 0) {
     const totalCorners = (live.homeCorners ?? 0) + (live.awayCorners ?? 0);
     const cornerConfidence = marketConfidence(
       clamp(0.52 + Math.min(totalCorners, 12) * 0.018, 0.5, 0.78),
     );
-    markets.push({
+    liveMarkets.push({
       label: "Corners live",
       pick: totalCorners >= 7 ? "Plus de 8,5 corners" : "Plus de 5,5 corners",
+      probability: round(clamp(0.52 + Math.min(totalCorners, 12) * 0.018, 0.5, 0.78) * 100),
       confidence: cornerConfidence,
       risk: riskFor(cornerConfidence),
       rationale: `Le match compte ${totalCorners} corner(s) actuellement ; ce marché reste conditionné au rythme observé et à la minute de jeu.`,
@@ -560,13 +766,17 @@ export function buildStatisticalPrediction(context: PredictionContext): Statisti
     const cardConfidence = marketConfidence(
       clamp(0.5 + Math.min(totalCards, 6) * 0.025, 0.5, 0.72),
     );
-    markets.push({
+    liveMarkets.push({
       label: "Cartons live",
       pick: totalCards >= 3 ? "Plus de 3,5 cartons" : "Marché cartons à surveiller",
+      probability: round(clamp(0.5 + Math.min(totalCards, 6) * 0.025, 0.5, 0.72) * 100),
       confidence: cardConfidence,
       risk: riskFor(cardConfidence),
       rationale: `Les événements live recensent ${totalCards} carton(s) ; l'arbitre et le contexte disciplinaire restent à confirmer.`,
     });
+  }
+  if (liveMarkets.length) {
+    markets.splice(6 - liveMarkets.length, liveMarkets.length, ...liveMarkets);
   }
 
   return {
@@ -577,7 +787,7 @@ export function buildStatisticalPrediction(context: PredictionContext): Statisti
     keyFactors: keyFactors.slice(0, 5),
     dataQuality: {
       level: partialContext ? "partial" : "complete",
-      score: Math.round(dataQuality * 100),
+      score: qualityScore,
     },
   };
 }
@@ -606,34 +816,42 @@ export function blendPredictions(
     draw: base.probabilities.draw * (1 - aiWeight) + enriched.probabilities.draw * aiWeight,
     away: base.probabilities.away * (1 - aiWeight) + enriched.probabilities.away * aiWeight,
   });
-  const enrichedMarkets = enriched.markets.slice(0, 6).map((market, index) => {
-    const baseline = base.markets[index];
+  const marketKey = (label: string) =>
+    label
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, " ")
+      .trim();
+  const pickKey = marketKey;
+  const enrichedMarkets = base.markets.slice(0, 6).map((baseline) => {
+    const baselineKey = marketKey(baseline.label);
+    const market =
+      enriched.markets.find((candidate) => marketKey(candidate.label) === baselineKey) ?? baseline;
     const confidence = clamp(
-      round(
-        (baseline?.confidence ?? market.confidence) * (1 - aiWeight) + market.confidence * aiWeight,
-      ),
+      round(baseline.confidence * (1 - aiWeight) + market.confidence * aiWeight),
       45,
       85,
     );
     return {
-      ...market,
+      ...baseline,
       confidence,
       risk: riskFor(confidence),
       rationale:
-        market.rationale ||
-        baseline?.rationale ||
-        "Projection calculée à partir des données disponibles.",
+        pickKey(market.pick) === pickKey(baseline.pick)
+          ? market.rationale
+          : baseline.rationale || "Projection calculée à partir des données disponibles.",
     };
   });
   return {
     probabilities,
-    probableScore: enriched.probableScore || base.probableScore,
+    // Le score et les choix restent issus du moteur déterministe : l'IA
+    // enrichit l'explication et ajuste modérément les probabilités, sans
+    // pouvoir substituer un marché contradictoire ou un score halluciné.
+    probableScore: base.probableScore,
     markets: enrichedMarkets.length >= 4 ? enrichedMarkets : base.markets,
     aiText: enriched.aiText?.trim() || base.aiText,
-    keyFactors:
-      (enriched.keyFactors?.filter(Boolean).slice(0, 5) ?? []).length >= 2
-        ? enriched.keyFactors.slice(0, 5)
-        : base.keyFactors,
+    keyFactors: base.keyFactors,
     dataQuality: base.dataQuality,
   };
 }

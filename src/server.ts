@@ -13,6 +13,8 @@ import { renderErrorPage } from "./lib/error-page";
 import { newIncidentId, recordServerIncident } from "./lib/incident.server";
 import { getFixtureSections, loadFixtureSummary } from "./lib/football.functions";
 import { runEditorialCycle } from "./lib/editorial.pipeline.server";
+import { dispatchMarketingPushCampaigns } from "./lib/push-marketing.server";
+import { ensureDailyPredictionsDeduped } from "./lib/daily-predictions.server";
 
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
@@ -198,5 +200,11 @@ export async function scheduled(
   ctx: { waitUntil: (promise: Promise<unknown>) => void },
 ) {
   (globalThis as typeof globalThis & { __env__?: unknown }).__env__ = env;
-  ctx.waitUntil(runEditorialCycle());
+  ctx.waitUntil(
+    Promise.allSettled([
+      runEditorialCycle(),
+      dispatchMarketingPushCampaigns(),
+      ensureDailyPredictionsDeduped(),
+    ]),
+  );
 }

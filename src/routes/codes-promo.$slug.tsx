@@ -389,14 +389,14 @@ function BookmakerArticle() {
         </div>
 
         {/* Hero */}
-        <header className="space-y-4 rounded-3xl border border-border/70 bg-surface/50 p-5">
+        <header className="space-y-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-card">
           <div className="flex items-center gap-3">
             <BookmakerLogo
               name={b.name}
               logoUrl={b.logoUrl}
               accent={b.accent}
-              className="size-14 rounded-2xl text-base"
-              imageClassName="inset-0 size-full rounded-2xl"
+              className="h-16 w-28 rounded-2xl text-base"
+              imageClassName="inset-1 size-[calc(100%-0.5rem)] rounded-xl"
             />
             <div>
               <h1 className="text-[26px] font-black leading-tight tracking-tight lg:text-4xl">
@@ -417,7 +417,7 @@ function BookmakerArticle() {
 
           <div className="flex flex-wrap items-center gap-3">
             <CopyCodeButton code={b.code} size="lg" />
-            <AffiliateButton href={b.affiliateUrl}>Récupérer le bonus</AffiliateButton>
+            <AffiliateButton href={b.affiliateUrl}>S'inscrire avec {b.code}</AffiliateButton>
             <Link
               to="/analyse"
               search={{ home: "", away: "" }}

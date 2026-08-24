@@ -6,7 +6,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { applyReferral } from "@/lib/referral.functions";
-import livefootIcon from "@/assets/livefoot-icon.png.asset.json";
 import { track } from "@/lib/analytics";
 
 const searchSchema = z.object({
@@ -49,7 +48,9 @@ function safeRedirect(value: string | undefined) {
 function AuthPage() {
   const navigate = useNavigate();
   const { redirect, ref, mode: requestedMode, plan, source } = useSearch({ from: "/auth" });
-  const [mode, setMode] = useState<"signin" | "signup">(requestedMode ?? (ref ? "signup" : "signin"));
+  const [mode, setMode] = useState<"signin" | "signup">(
+    requestedMode ?? (ref ? "signup" : "signin"),
+  );
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
@@ -172,7 +173,7 @@ function AuthPage() {
       <div className="w-full max-w-md">
         <Link to="/" className="mb-8 flex items-center justify-center gap-2.5">
           <img
-            src={livefootIcon.url}
+            src="/livefoot-brand-v2.svg"
             alt="Livefoot IA"
             className="size-10 shrink-0 rounded-xl object-contain"
             width={40}
@@ -253,10 +254,13 @@ function AuthPage() {
             <button
               type="submit"
               disabled={loading}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-foreground py-3.5 text-sm font-bold text-background shadow-md transition-transform active:scale-[0.98] disabled:opacity-50"
+              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#f8fafc] py-3.5 text-sm font-bold text-[#071019] shadow-md transition-transform hover:bg-[#e5edf3] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70 dark:bg-[#181818] dark:text-white dark:hover:bg-[#252525]"
             >
               {loading ? (
-                <Loader2 className="size-4 animate-spin" />
+                <>
+                  <Loader2 className="size-4 animate-spin" />
+                  <span>{mode === "signin" ? "Connexion…" : "Création…"}</span>
+                </>
               ) : (
                 <>
                   {mode === "signin" ? "Se connecter" : "Créer mon compte"}{" "}

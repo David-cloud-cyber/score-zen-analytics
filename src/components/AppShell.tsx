@@ -11,13 +11,14 @@ import {
   Search,
   Sparkles,
   Star,
+  Target,
   Ticket,
   User,
   Users,
   LifeBuoy,
   X,
 } from "lucide-react";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import { SearchProvider, SmartSearchTrigger, useSearchDialog } from "@/components/SmartSearch";
@@ -32,7 +33,11 @@ import { PremiumPrompt } from "@/components/PremiumPrompt";
 import { PremiumCta } from "@/components/PremiumCta";
 import { DEMO_PROFILE, isLocalDemo } from "@/lib/local-demo";
 import { isPremiumActive } from "@/lib/premium-status";
-import { requestPremiumPrompt, resetPremiumPrompt, usePremiumPrompt } from "@/hooks/use-premium-prompt";
+import {
+  requestPremiumPrompt,
+  resetPremiumPrompt,
+  usePremiumPrompt,
+} from "@/hooks/use-premium-prompt";
 
 const NAV = [
   {
@@ -53,21 +58,50 @@ const NAV = [
     icon: Users,
     match: (p: string) => p.startsWith("/communaute"),
   },
-  { to: "/blog", label: "Blog football", icon: FileText, match: (p: string) => p.startsWith("/blog") },
+  {
+    to: "/blog",
+    label: "Blog football",
+    icon: FileText,
+    match: (p: string) => p.startsWith("/blog"),
+  },
   { to: "/favoris", label: "Favoris", icon: Star, match: (p: string) => p.startsWith("/favoris") },
   { to: "/profil", label: "Profil", icon: User, match: (p: string) => p.startsWith("/profil") },
 ] as const;
 
 const MOBILE_NAV = [NAV[0], NAV[1], NAV[2], NAV[5]] as const;
 
+const DAILY_PREDICTIONS_NAV = {
+  to: "/pronostics-du-jour",
+  label: "Pronostics du jour",
+  icon: Target,
+  match: (p: string) => p.startsWith("/pronostics"),
+} as const;
+
+const subscribeToHydration = () => () => {};
+
+function useHydrated() {
+  return useSyncExternalStore(subscribeToHydration, () => true, () => false);
+}
+
 const SIDEBAR_GROUPS = [
   {
     label: "LiveFoot",
-    items: [NAV[0], NAV[1]],
+    items: [NAV[0], NAV[1], DAILY_PREDICTIONS_NAV],
   },
   {
     label: "Mon espace",
-    items: [NAV[4], NAV[2], NAV[3], NAV[5], { to: "/support", label: "Support", icon: LifeBuoy, match: (p: string) => p.startsWith("/support") }],
+    items: [
+      NAV[4],
+      NAV[2],
+      NAV[3],
+      NAV[5],
+      {
+        to: "/support",
+        label: "Support",
+        icon: LifeBuoy,
+        match: (p: string) => p.startsWith("/support"),
+      },
+    ],
   },
   {
     label: "Partenaires",
@@ -103,7 +137,12 @@ function GlobalPremiumPrompt() {
   const { user } = useSession();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const { stage, dismiss } = usePremiumPrompt(user?.id);
-  const blocked = ["/auth", "/premium", "/support", "/admin"].some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)) || pathname.startsWith("/live/") || pathname.startsWith("/match/");
+  const blocked =
+    ["/auth", "/premium", "/support", "/admin"].some(
+      (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+    ) ||
+    pathname.startsWith("/live/") ||
+    pathname.startsWith("/match/");
 
   useEffect(() => {
     if (blocked && stage) dismiss();
@@ -184,7 +223,7 @@ export function AppShell({
             sidebarCollapsed ? "lg:pl-[72px]" : "lg:pl-[250px]",
           )}
         >
-          <div className="mx-auto flex min-h-screen max-w-[440px] flex-col border-x border-border/60 bg-background lg:max-w-none lg:border-x-0">
+          <div className="mx-auto flex min-h-screen max-w-[440px] flex-col border-x border-border/60 bg-background md:max-w-[760px] lg:max-w-none lg:border-x-0">
             {!hideHeader && <TopBar onMenuOpen={() => setMobileNavOpen(true)} />}
             <main
               id="main-content"
@@ -302,7 +341,9 @@ function DesktopSidebar({
                         )}
                         strokeWidth={active ? 2.6 : 2}
                       />
-                      <span className={cn("sidebar-nav-label", collapsed && "sr-only")}>{item.label}</span>
+                      <span className={cn("sidebar-nav-label", collapsed && "sr-only")}>
+                        {item.label}
+                      </span>
                       {active && (
                         <span
                           className={cn(
@@ -382,7 +423,9 @@ function DesktopSidebar({
               {initials}
             </div>
             <div className={cn("min-w-0 flex-1", collapsed && "hidden")}>
-              <div className="sidebar-profile-name truncate text-xs font-bold text-[#fdfdfd]">{displayName}</div>
+              <div className="sidebar-profile-name truncate text-xs font-bold text-[#fdfdfd]">
+                {displayName}
+              </div>
               <div className="sidebar-profile-meta text-[10px] text-[#888888]">Mon profil</div>
             </div>
           </Link>
@@ -468,7 +511,7 @@ function MobileDrawer({ pathname, onClose }: { pathname: string; onClose: () => 
 function MobileBottomNav({ pathname }: { pathname: string }) {
   return (
     <nav
-      className="fixed bottom-0 left-1/2 z-40 w-full max-w-[440px] -translate-x-1/2 border-t border-border/60 bg-background/95 pb-6 pt-2 backdrop-blur-xl lg:hidden"
+      className="fixed bottom-0 left-1/2 z-40 w-full max-w-[440px] -translate-x-1/2 border-t border-border/60 bg-background/95 pb-[max(env(safe-area-inset-bottom),0.35rem)] pt-1 backdrop-blur-xl md:max-w-[520px] lg:hidden"
       aria-label="Navigation principale"
     >
       <ul className="grid grid-cols-4">
@@ -481,13 +524,13 @@ function MobileBottomNav({ pathname }: { pathname: string }) {
                 to={item.to}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex flex-col items-center gap-1 py-2 text-[10px] font-semibold uppercase tracking-wider transition-colors",
+                  "flex min-h-14 flex-col items-center justify-center gap-0.5 py-1 text-[9px] font-semibold uppercase tracking-[0.08em] transition-colors",
                   active ? "text-brand" : "text-muted-foreground hover:text-foreground",
                 )}
               >
                 <span
                   className={cn(
-                    "grid size-9 place-items-center rounded-full transition-all",
+                    "grid size-8 place-items-center rounded-full transition-all",
                     active && "scale-105 bg-brand/10",
                   )}
                 >
@@ -506,6 +549,7 @@ function MobileBottomNav({ pathname }: { pathname: string }) {
 export function TopBar({ onMenuOpen }: { onMenuOpen?: () => void }) {
   const { setOpen } = useSearchDialog();
   const { user } = useSession();
+  const hydrated = useHydrated();
   const { data: profile, refetch: refetchProfile } = useQuery({
     queryKey: ["me", "balance"],
     queryFn: () => (isLocalDemo() ? Promise.resolve(DEMO_PROFILE) : getMyBalance()),
@@ -536,11 +580,15 @@ export function TopBar({ onMenuOpen }: { onMenuOpen?: () => void }) {
     window.addEventListener("livefoot:analysis-completed", handleAnalysisCompleted);
     return () => window.removeEventListener("livefoot:analysis-completed", handleAnalysisCompleted);
   }, [refetchProfile]);
-  const premiumActive = isPremiumActive(profile);
+  const premiumActive = hydrated && isPremiumActive(profile);
+  const creditBalance =
+    hydrated && profile ? Math.max(0, Math.trunc(Number(profile.credits ?? 0))) : null;
+  const creditLabel =
+    creditBalance === null ? "…" : creditBalance > 999 ? "999+" : String(creditBalance);
 
   return (
-    <header className="sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-border/60 bg-background/90 px-3 py-3 backdrop-blur-xl lg:px-8 lg:py-3">
-      <div className="flex items-center gap-2 lg:hidden">
+    <header className="sticky top-0 z-30 flex min-w-0 items-center justify-between gap-2 border-b border-border/60 bg-background/90 px-2.5 py-2.5 backdrop-blur-xl sm:gap-3 sm:px-3 sm:py-3 lg:px-8 lg:py-3">
+      <div className="flex min-w-0 items-center gap-1.5 lg:hidden sm:gap-2">
         <button
           type="button"
           onClick={onMenuOpen}
@@ -549,15 +597,15 @@ export function TopBar({ onMenuOpen }: { onMenuOpen?: () => void }) {
         >
           <Menu className="size-4" />
         </button>
-        <Link to="/" className="flex items-center gap-2">
-          <div className="grid size-10 place-items-center overflow-hidden rounded-lg">
+        <Link to="/" className="flex min-w-0 items-center gap-1.5 sm:gap-2">
+          <div className="grid size-9 shrink-0 place-items-center overflow-hidden rounded-lg sm:size-10">
             <LiveFootMark collapsed />
           </div>
-          <div className="flex flex-col leading-none">
-            <span className="text-[15px] font-bold tracking-tight">
+          <div className="flex min-w-0 flex-col leading-none">
+            <span className="whitespace-nowrap text-[13px] font-bold tracking-tight sm:text-[15px]">
               LiveFoot <span className="text-brand">IA</span>
             </span>
-            <span className="text-[9px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
+            <span className="hidden text-[9px] font-medium uppercase tracking-[0.16em] text-muted-foreground min-[410px]:block">
               Scores · Analyse
             </span>
           </div>
@@ -568,14 +616,25 @@ export function TopBar({ onMenuOpen }: { onMenuOpen?: () => void }) {
         <SmartSearchTrigger />
       </div>
 
-      <div className="flex items-center gap-2">
-        {isLocalDemo() && (
+      <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+        {hydrated && isLocalDemo() && (
           <span className="hidden rounded-full bg-brand/10 px-2 py-1 text-[10px] font-black uppercase tracking-wider text-brand ring-1 ring-brand/20 sm:inline-flex">
             Démo locale
           </span>
         )}
-        {!premiumActive && <PremiumCta location="header" compact label={user ? "Premium" : "Voir Premium"} />}
-        <PremiumStatusBadge profile={profile} compact className="hidden sm:inline-flex" />
+        {!premiumActive && (
+          <PremiumCta
+            location="header"
+            compact
+            mobileIconOnly
+            label={hydrated && user ? "Premium" : "Voir Premium"}
+          />
+        )}
+        <PremiumStatusBadge
+          profile={hydrated ? profile : null}
+          compact
+          className="hidden sm:inline-flex"
+        />
         <button
           onClick={() => setOpen(true)}
           className="grid size-9 place-items-center rounded-full bg-surface ring-1 ring-black/5 transition-transform hover:scale-105 active:scale-95 lg:hidden dark:ring-white/10"
@@ -585,10 +644,17 @@ export function TopBar({ onMenuOpen }: { onMenuOpen?: () => void }) {
         </button>
         <Link
           to="/profil"
-          className="flex items-center gap-1.5 rounded-full bg-surface px-2.5 py-1 ring-1 ring-black/5 lg:hidden dark:ring-white/10"
+          aria-label={
+            creditBalance === null
+              ? "Consulter mon solde de crédits"
+              : `Solde : ${creditBalance} crédits`
+          }
+          title={creditBalance === null ? "Solde de crédits" : `${creditBalance} crédits`}
+          className="inline-flex h-9 min-w-9 shrink-0 items-center justify-center gap-1 rounded-full bg-surface px-2 ring-1 ring-black/5 lg:hidden dark:ring-white/10 sm:gap-1.5 sm:px-2.5"
         >
           <Coins className="size-3.5 text-brand" aria-hidden />
-          <span className="text-xs font-bold tabular-nums">Crédits</span>
+          <span className="text-[11px] font-black tabular-nums text-foreground">{creditLabel}</span>
+          <span className="sr-only"> crédits</span>
         </Link>
         <NotificationPopover />
       </div>
