@@ -13,7 +13,7 @@ const KEY = "scorezen-theme";
 
 function resolve(t: Theme): "light" | "dark" {
   if (t === "auto") {
-    if (typeof window === "undefined") return "light";
+    if (typeof window === "undefined") return "dark";
     return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
   }
   return t;
@@ -26,12 +26,12 @@ function apply(mode: "light" | "dark") {
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>("auto");
-  const [resolved, setResolved] = useState<"light" | "dark">("light");
+  const [theme, setThemeState] = useState<Theme>("dark");
+  const [resolved, setResolved] = useState<"light" | "dark">("dark");
 
   useEffect(() => {
     const stored = (typeof localStorage !== "undefined" && localStorage.getItem(KEY)) as Theme | null;
-    const t: Theme = stored === "light" || stored === "dark" || stored === "auto" ? stored : "auto";
+    const t: Theme = stored === "light" || stored === "dark" || stored === "auto" ? stored : "dark";
     setThemeState(t);
     const r = resolve(t);
     setResolved(r);
@@ -63,11 +63,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
 export function useTheme(): ThemeCtx {
   const ctx = useContext(Ctx);
-  if (!ctx) return { theme: "auto", resolved: "light", setTheme: () => {} };
+  if (!ctx) return { theme: "dark", resolved: "dark", setTheme: () => {} };
   return ctx;
 }
 
 // Injected before hydration to avoid flash of wrong theme.
 export const THEME_INIT_SCRIPT = `
-(function(){try{var s=localStorage.getItem('scorezen-theme')||localStorage.getItem('livefoot-theme');var t=(s==='light'||s==='dark')?s:(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');if(t==='dark')document.documentElement.classList.add('dark');document.documentElement.style.colorScheme=t;}catch(e){}})();
+(function(){try{var s=localStorage.getItem('scorezen-theme')||localStorage.getItem('livefoot-theme');var t=(s==='light'||s==='dark'||s==='auto')?s:'dark';var r=t==='auto'?(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'):t;if(r==='dark')document.documentElement.classList.add('dark');document.documentElement.style.colorScheme=r;}catch(e){}})();
 `.trim();
