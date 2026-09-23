@@ -45,9 +45,6 @@ import { TelegramCtaCard } from "@/components/TelegramCtaCard";
 import { ReferralCta } from "@/components/ReferralCta";
 import { PaymentRecoveryPrompt } from "@/components/PaymentRecoveryPrompt";
 import { getLatestFailedPayment } from "@/lib/payment-recovery";
-import { getActivePaymentProvider } from "@/lib/payments.functions";
-import { RelayitCheckoutDialog } from "@/components/RelayitCheckoutDialog";
-import type { RelayitCheckoutDetails } from "@/lib/relayit.server";
 
 export const Route = createFileRoute("/premium")({
   validateSearch: (search): { plan?: "premium_monthly" | "premium_yearly" } => {
@@ -126,12 +123,6 @@ function PremiumSubscriptionPage() {
     enabled: Boolean(user) && !demoMode,
     staleTime: 15_000,
   });
-  const { data: paymentProvider } = useQuery({
-    queryKey: ["payment-provider"],
-    queryFn: getActivePaymentProvider,
-    staleTime: 60_000,
-  });
-
   const isPremium = isPremiumActive(profile);
   const premiumExpiry = formatPremiumExpiry(profile?.premium_until);
   const premiumDays = premiumDaysRemaining(profile?.premium_until);
@@ -141,14 +132,8 @@ function PremiumSubscriptionPage() {
   // rendu dans l'Outlet, sinon le parent recouvre l'interface enfant.
   const [busyPlan, setBusyPlan] = useState<string | null>(null);
   const [busyPack, setBusyPack] = useState<string | null>(null);
-  const [relayitIntent, setRelayitIntent] = useState<
-    | { type: "subscription"; plan: PremiumPlan }
-    | { type: "pack"; pack: PricedPack }
-    | null
-  >(null);
   const subCheckoutFn = useServerFn(createSubscriptionCheckout);
   const topupCheckoutFn = useServerFn(createTopupCheckout);
-  const paymentProviderFn = useServerFn(getActivePaymentProvider);
 
   useEffect(() => {
     track("premium_view", {
@@ -182,14 +167,10 @@ function PremiumSubscriptionPage() {
       return;
     }
 
-    void (async () => {
-      const provider = paymentProvider?.provider ?? (await paymentProviderFn()).provider;
-      if (provider === "relayit") setRelayitIntent({ type: "subscription", plan });
-      else void startSubscriptionPayment(plan);
-    })().catch(() => toast.error("Impossible de préparer le paiement. Réessayez."));
+    void startSubscriptionPayment(plan);
   };
 
-  const startSubscriptionPayment = async (plan: PremiumPlan, relayit?: RelayitCheckoutDetails) => {
+  const startSubscriptionPayment = async (plan: PremiumPlan) => {
     setBusyPlan(plan.id);
     const startedAt = Date.now();
     try {
@@ -199,7 +180,7 @@ function PremiumSubscriptionPage() {
         mode: "hosted",
       });
       const res = await subCheckoutFn({
-        data: { planId: plan.id, checkoutRequestId: crypto.randomUUID(), ...(relayit ? { relayit } : {}) },
+        data: { planId: plan.id, checkoutRequestId: crypto.randomUUID() },
       });
       if (!res.link) throw new Error("La page de paiement n'a pas pu être ouverte.");
       if (!res.externalId) throw new Error("La page de paiement n'a pas pu être ouverte.");
@@ -241,20 +222,16 @@ function PremiumSubscriptionPage() {
 
     const pack = PRICED_PACKS.find((item) => item.id === packId);
     if (!pack) return;
-    void (async () => {
-      const provider = paymentProvider?.provider ?? (await paymentProviderFn()).provider;
-      if (provider === "relayit") setRelayitIntent({ type: "pack", pack });
-      else void startTopupPayment(pack);
-    })().catch(() => toast.error("Impossible de préparer le paiement. Réessayez."));
+    void startTopupPayment(pack);
   };
 
-  const startTopupPayment = async (pack: PricedPack, relayit?: RelayitCheckoutDetails) => {
+  const startTopupPayment = async (pack: PricedPack) => {
     setBusyPack(pack.id);
     const startedAt = Date.now();
     try {
       track("topup_checkout_started", { pack: pack.id, mode: "hosted" });
       const res = await topupCheckoutFn({
-        data: { packId: pack.id, checkoutRequestId: crypto.randomUUID(), ...(relayit ? { relayit } : {}) },
+        data: { packId: pack.id, checkoutRequestId: crypto.randomUUID() },
       });
       if (!res.link) throw new Error("La page de paiement n'a pas pu être ouverte.");
       if (!res.externalId) throw new Error("La page de paiement n'a pas pu être ouverte.");
@@ -275,20 +252,6 @@ function PremiumSubscriptionPage() {
       setBusyPack(null);
     }
   };
-
-  const submitRelayitDetails = async (details: RelayitCheckoutDetails) => {
-    if (!relayitIntent) return;
-    const started = relayitIntent.type === "subscription"
-      ? await startSubscriptionPayment(relayitIntent.plan, details)
-      : await startTopupPayment(relayitIntent.pack, details);
-    if (started) setRelayitIntent(null);
-  };
-
-  const initialRelayitPhone = typeof user?.phone === "string"
-    ? user.phone
-    : typeof user?.user_metadata?.phone === "string"
-      ? user.user_metadata.phone
-      : "";
 
   return (
     <AppShell>
@@ -463,7 +426,7 @@ function PremiumSubscriptionPage() {
                 {isPremium
                   ? "Accéder au Hub"
                   : busyPlan === plan.id
-                    ? "Préparation sécurisée…"
+                    ? "Ouverture du paiement…"
                     : plan.interval === "year"
                       ? "Choisir l'abonnement annuel"
                       : "Choisir l'abonnement mensuel"}
@@ -573,7 +536,7 @@ function PremiumSubscriptionPage() {
                 )}
               >
                 {busyPack === pack.id
-                  ? "Préparation sécurisée…"
+                  ? "Ouverture du paiement…"
                   : isPremium
                     ? "Acheter"
                     : "🔒 Débloquer avec Premium"}
@@ -601,13 +564,6 @@ function PremiumSubscriptionPage() {
           ))}
         </div>
       </section>
-      <RelayitCheckoutDialog
-        open={relayitIntent !== null}
-        busy={relayitIntent?.type === "subscription" ? busyPlan !== null : busyPack !== null}
-        initialPhone={initialRelayitPhone}
-        onClose={() => setRelayitIntent(null)}
-        onSubmit={submitRelayitDetails}
-      />
     </AppShell>
   );
 }

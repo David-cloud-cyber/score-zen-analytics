@@ -23,8 +23,6 @@ import {
 import { AppShell, PageTitle } from "@/components/AppShell";
 import { PRICED_PACKS, formatXaf, type PricedPack } from "@/lib/pricing";
 import { createTopupCheckout, verifyTopup, verifyCheckout, getMyPayments, getActivePaymentProvider } from "@/lib/payments.functions";
-import { RelayitCheckoutDialog } from "@/components/RelayitCheckoutDialog";
-import type { RelayitCheckoutDetails } from "@/lib/relayit.server";
 import { clearPaymentHandoff, readPaymentHandoff, rememberPaymentHandoff } from "@/lib/payment-handoff";
 import { getMyBalance, getMyAnalysisHistory } from "@/lib/analyses.functions";
 import { getMyReferralDetails } from "@/lib/referral.functions";
@@ -127,7 +125,6 @@ function ProfilPage() {
   });
 
   const [showTopup, setShowTopup] = useState(false);
-  const [relayitPack, setRelayitPack] = useState<PricedPack | null>(null);
   const [flash, setFlash] = useState<string | null>(null);
   const [referralCopied, setReferralCopied] = useState(false);
 
@@ -149,7 +146,6 @@ function ProfilPage() {
 
   const [busyPack, setBusyPack] = useState<string | null>(null);
   const checkoutFn = useServerFn(createTopupCheckout);
-  const paymentProviderFn = useServerFn(getActivePaymentProvider);
   const { data: paymentProvider } = useQuery({
     queryKey: ["payment-provider"],
     queryFn: getActivePaymentProvider,
@@ -205,17 +201,13 @@ function ProfilPage() {
       return;
     }
     setShowTopup(false);
-    void (async () => {
-      const provider = paymentProvider?.provider ?? (await paymentProviderFn()).provider;
-      if (provider === "relayit") setRelayitPack(pack);
-      else void startTopupPayment(pack);
-    })().catch(() => toast.error("Impossible de préparer le paiement. Réessayez."));
+    void startTopupPayment(pack);
   };
 
-  const startTopupPayment = async (pack: PricedPack, relayit?: RelayitCheckoutDetails) => {
+  const startTopupPayment = async (pack: PricedPack) => {
     setBusyPack(pack.id);
     try {
-      const res = await checkoutFn({ data: { packId: pack.id, checkoutRequestId: crypto.randomUUID(), ...(relayit ? { relayit } : {}) } });
+      const res = await checkoutFn({ data: { packId: pack.id, checkoutRequestId: crypto.randomUUID() } });
       if (!res.link) throw new Error("La page de paiement n'a pas pu être ouverte.");
       if (!res.externalId) throw new Error("La page de paiement n'a pas pu être ouverte.");
       rememberPaymentHandoff({ externalId: res.externalId, transId: res.transId ?? null });
@@ -228,16 +220,6 @@ function ProfilPage() {
       setBusyPack(null);
     }
   };
-
-  const submitRelayitDetails = async (details: RelayitCheckoutDetails) => {
-    if (relayitPack && await startTopupPayment(relayitPack, details)) setRelayitPack(null);
-  };
-
-  const initialRelayitPhone = typeof user?.phone === "string"
-    ? user.phone
-    : typeof user?.user_metadata?.phone === "string"
-      ? user.user_metadata.phone
-      : "";
 
   const handleVerify = async (transId: string) => {
     if (demoMode) {
@@ -747,13 +729,6 @@ function ProfilPage() {
           provider={paymentProvider?.provider}
         />
       )}
-      <RelayitCheckoutDialog
-        open={relayitPack !== null}
-        busy={busyPack !== null}
-        initialPhone={initialRelayitPhone}
-        onClose={() => setRelayitPack(null)}
-        onSubmit={submitRelayitDetails}
-      />
     </AppShell>
   );
 }

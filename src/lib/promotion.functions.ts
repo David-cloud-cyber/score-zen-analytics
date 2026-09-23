@@ -124,12 +124,6 @@ export const getPromoOffer = createServerFn({ method: "GET" })
 
 const checkoutInput = z.object({
   checkoutRequestId: z.string().uuid(),
-  relayit: z.object({
-    country: z.string().regex(/^[A-Z]{2}$/),
-    currency: z.enum(["XAF", "XOF"]),
-    network: z.string().trim().min(2).max(40),
-    phone: z.string().trim().regex(/^\+[1-9][0-9]{7,14}$/),
-  }).optional(),
 });
 
 function appOrigin() {
@@ -147,9 +141,6 @@ export const createPromoCheckout = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => checkoutInput.parse(input))
   .handler(async ({ data, context }) => {
-    if (preferredPaymentProvider() === "relayit" && !data.relayit) {
-      throw new Error("Indiquez votre pays, votre réseau et votre numéro Mobile Money pour continuer avec Relayit.");
-    }
     const campaign = await loadActiveCampaign();
     if (!campaign) throw new Error("Cette offre n'est plus disponible.");
 
@@ -224,10 +215,6 @@ export const createPromoCheckout = createServerFn({ method: "POST" })
               amountXaf: campaign.priceXaf,
               email,
               customerName: name,
-              phone: data.relayit?.phone,
-              country: data.relayit?.country ?? "CM",
-              currency: data.relayit?.currency ?? "XAF",
-              network: data.relayit?.network ?? "",
               externalId,
               description: `Offre découverte ${campaign.credits} crédits Livefoot IA`,
               returnUrl: `${appOrigin()}/profil?payment=${encodeURIComponent(externalId)}`,

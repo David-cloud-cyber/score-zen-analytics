@@ -3,23 +3,14 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import { getRuntimeEnv } from "./config.server";
 
-const relayitCheckoutDetailsSchema = z.object({
-  country: z.string().regex(/^[A-Z]{2}$/),
-  currency: z.enum(["XAF", "XOF"]),
-  network: z.string().trim().min(2).max(40),
-  phone: z.string().trim().regex(/^\+[1-9][0-9]{7,14}$/),
-}).optional();
-
 const packCheckoutInput = z.object({
   packId: z.string().min(1).max(40),
   checkoutRequestId: z.string().uuid(),
-  relayit: relayitCheckoutDetailsSchema,
 });
 
 const subCheckoutInput = z.object({
   planId: z.enum(["premium_monthly", "premium_yearly"]),
   checkoutRequestId: z.string().uuid(),
-  relayit: relayitCheckoutDetailsSchema,
 });
 
 function appOrigin() {
@@ -43,26 +34,12 @@ export const getActivePaymentProvider = createServerFn({ method: "GET" }).handle
   provider: preferredPaymentProvider(),
 }));
 
-export const getRelayitCheckoutOptions = createServerFn({ method: "GET" })
-  .inputValidator((input: unknown) => z.object({ countryCode: z.string().regex(/^[A-Z]{2}$/).optional() }).parse(input))
-  .handler(async ({ data }) => {
-    const { getRelayitPaymentCountries, getRelayitPaymentNetworks } = await import("./relayit.server");
-    if (data.countryCode) return { countries: [], networks: await getRelayitPaymentNetworks(data.countryCode) };
-    return { countries: await getRelayitPaymentCountries(), networks: [] };
-  });
-
 function duplicateCheckoutMessage() {
   return new Error("Ce paiement est déjà en préparation. Réessayez dans quelques instants.");
 }
 
 function publicPaymentError() {
   return new Error("La page de paiement n'a pas pu être ouverte. Réessayez dans quelques instants.");
-}
-
-function assertPreferredProviderDetails(details: z.infer<typeof relayitCheckoutDetailsSchema>) {
-  if (preferredPaymentProvider() === "relayit" && !details) {
-    throw new Error("Indiquez votre pays, votre réseau et votre numéro Mobile Money pour continuer avec Relayit.");
-  }
 }
 
 function customerDetails(claims: unknown) {
@@ -94,7 +71,6 @@ async function startPreferredCheckout(params: {
   userId: string;
   externalId: string;
   message: string;
-  relayit?: z.infer<typeof relayitCheckoutDetailsSchema>;
 }) {
   let customer = customerDetails(params.claims);
   if (!customer.email) {
@@ -113,10 +89,6 @@ async function startPreferredCheckout(params: {
         amountXaf: params.amount,
         email: customer.email,
         customerName: `${customer.firstName} ${customer.lastName}`.trim(),
-        phone: params.relayit?.phone ?? customer.phone?.number,
-        country: params.relayit?.country ?? "CM",
-        currency: params.relayit?.currency ?? "XAF",
-        network: params.relayit?.network ?? "",
         externalId: params.externalId,
         description: params.message,
         returnUrl: `${appOrigin()}/profil?payment=${encodeURIComponent(params.externalId)}`,
@@ -161,8 +133,6 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
     const { findPremiumPlan } = await import("./pricing");
     const plan = findPremiumPlan(data.planId);
     if (!plan) throw new Error("Plan d'abonnement inconnu.");
-    assertPreferredProviderDetails(data.relayit);
-
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     const { data: existing, error: existingError } = await supabaseAdmin
@@ -219,7 +189,6 @@ export const createSubscriptionCheckout = createServerFn({ method: "POST" })
         userId: context.userId,
         externalId,
         message: `Abonnement ${plan.name} Livefoot IA`,
-        relayit: data.relayit,
       });
 
       // Persist the checkout before redirecting. Unawaited work can be cancelled
@@ -265,8 +234,6 @@ export const createTopupCheckout = createServerFn({ method: "POST" })
         "Les packs de crédits sont réservés aux membres Premium. Passez Premium d'abord !",
       );
     }
-    assertPreferredProviderDetails(data.relayit);
-
     const { findPack } = await import("./pricing");
     const pack = findPack(data.packId);
     if (!pack) throw new Error("Pack de crédits inconnu.");
@@ -326,7 +293,6 @@ export const createTopupCheckout = createServerFn({ method: "POST" })
         userId: context.userId,
         externalId,
         message: `Recharge ${pack.credits} crédits Livefoot IA`,
-        relayit: data.relayit,
       });
 
       const { error: attachError } = await supabaseAdmin
