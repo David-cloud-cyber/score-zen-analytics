@@ -9,6 +9,7 @@ import {
   LIVE_DEGRADED_REFRESH_MS,
   LIVE_REFRESH_MS,
   MIN_DAILY_QUOTA_RESERVE,
+  QUOTA_RESERVE_PROBE_MS,
   QUIET_REFRESH_MS,
   SNAPSHOT_STALE_MS,
   buildSharedPayload,
@@ -21,6 +22,7 @@ import {
   type SharedFixtureMode,
   type SharedSnapshotEnvelope,
 } from "./live-football.shared";
+import { readQuotaHeader, reserveProbeDelay } from "./football-quota";
 import type { FixturesPayload } from "./football-types";
 
 type CoordinatorEnv = {
@@ -57,8 +59,9 @@ type UpstreamResult = {
 
 const LIVE_KEY = "lf:shared:v2:fixtures:live";
 const LIVE_STORAGE_KEY = "live-snapshot-envelope:v2";
-const QUOTA_KEY = "lf:shared:v2:coordinator:quota";
-const QUOTA_STORAGE_KEY = "quota-snapshot:v3";
+// Previous quota parsing could persist a false zero for a missing header.
+const QUOTA_KEY = "lf:shared:v3:coordinator:quota";
+const QUOTA_STORAGE_KEY = "quota-snapshot:v4";
 const LAST_HTTP_ACCESS_KEY = "lf:shared:v2:coordinator:last-http-access";
 const UPSTREAM_PREFIX = "lf:shared:v2:upstream:";
 const ACTIVE_HTTP_WINDOW_MS = 65_000;
@@ -119,22 +122,30 @@ function errorCodeFromStatus(status: number): FixturesPayload["errorCode"] {
   return "network";
 }
 
-function headerNumber(response: Response, names: string[]): number | undefined {
-  for (const name of names) {
-    const value = Number(response.headers.get(name));
-    if (Number.isFinite(value)) return value;
-  }
-  return undefined;
-}
-
 export class LiveFootballCoordinator extends DurableObject<CoordinatorEnv> {
   private readonly refreshes = new Map<string, Promise<RefreshResult>>();
   private readonly upstreamRefreshes = new Map<string, Promise<UpstreamResult>>();
   private readonly subscriptions = new Map<WebSocket, Set<number>>();
+  private reserveProbeActive = false;
 
   async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url);
     const isWebSocket = request.headers.get("upgrade")?.toLowerCase() === "websocket";
+
+    // Internal-only observability. The public Worker never forwards these paths.
+    if (url.pathname === "/internal/quota") {
+      return jsonDataResponse(await this.readQuotaState());
+    }
+    if (url.pathname === "/internal/cache-state") {
+      const mode = url.searchParams.get("mode") === "live" ? "live" : "day";
+      const date = url.searchParams.get("date") ?? todayUtcIso();
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return jsonDataResponse(null, 400);
+      const envelope = await this.readEnvelope(mode === "live" ? LIVE_KEY : daySnapshotKey(date));
+      return jsonDataResponse(envelope ? {
+        stale: envelope.freshUntil <= Date.now(),
+        storedAt: envelope.storedAt,
+      } : null);
+    }
 
     if (url.pathname === "/api/live-stream") {
       if (!isWebSocket) return new Response("Expected WebSocket", { status: 426 });
@@ -356,7 +367,12 @@ export class LiveFootballCoordinator extends DurableObject<CoordinatorEnv> {
       quota.dayLimit !== undefined &&
       quota.dayRemaining <= dailyQuotaReserve(quota.dayLimit)
     )
-      return LIVE_DEGRADED_REFRESH_MS;
+      return Math.max(5_000, reserveProbeDelay(
+        now,
+        quota.updatedAt,
+        quota.dayRemaining,
+        QUOTA_RESERVE_PROBE_MS,
+      ));
     if (
       quota.minuteRemaining !== undefined &&
       quota.minuteRemaining <= CRITICAL_MINUTE_QUOTA_THRESHOLD
@@ -583,11 +599,14 @@ export class LiveFootballCoordinator extends DurableObject<CoordinatorEnv> {
     // requests on secondary sections or repeated page refreshes. Serve the
     // last real snapshot when possible and wait for the next daily reset.
     const reserve = dailyQuotaReserve(quota.dayLimit);
-    if (
-      reserve > 0 &&
-      quota.dayRemaining !== undefined &&
-      quota.dayRemaining <= reserve
-    ) {
+    const inReserve = reserve > 0 && quota.dayRemaining !== undefined && quota.dayRemaining <= reserve;
+    const probeDue = inReserve && reserveProbeDelay(
+      now,
+      quota.updatedAt,
+      quota.dayRemaining!,
+      QUOTA_RESERVE_PROBE_MS,
+    ) === 0;
+    if (inReserve && (!probeDue || this.reserveProbeActive)) {
       if (envelope && envelope.staleUntil > now)
         return { data: envelope.data, storedAt: envelope.storedAt, stale: true };
       throw new CoordinatorUpstreamError(
@@ -597,6 +616,7 @@ export class LiveFootballCoordinator extends DurableObject<CoordinatorEnv> {
       );
     }
 
+    if (probeDue) this.reserveProbeActive = true;
     try {
       const data = await this.fetchUpstream(path, params);
       const storedAt = Date.now();
@@ -620,6 +640,8 @@ export class LiveFootballCoordinator extends DurableObject<CoordinatorEnv> {
         return { data: envelope.data, storedAt: envelope.storedAt, stale: true };
       }
       throw error;
+    } finally {
+      if (probeDue) this.reserveProbeActive = false;
     }
   }
 
@@ -657,23 +679,31 @@ export class LiveFootballCoordinator extends DurableObject<CoordinatorEnv> {
     }
 
     const quota = await this.readQuotaState();
-    if (quota.blockedUntil > now) {
+    const inReserve =
+      quota.dayRemaining !== undefined &&
+      quota.dayLimit !== undefined &&
+      quota.dayRemaining <= dailyQuotaReserve(quota.dayLimit);
+    const reserveDelay = inReserve
+      ? reserveProbeDelay(now, quota.updatedAt, quota.dayRemaining!, QUOTA_RESERVE_PROBE_MS)
+      : 0;
+    const pauseMs = Math.max(0, quota.blockedUntil - now, reserveDelay);
+    if (pauseMs > 0) {
       if (envelope && envelope.staleUntil > now) {
         return {
-          snapshot: snapshotWithState(envelope, "stale", "rate_limit", quota.blockedUntil - now),
-          nextDelayMs: Math.max(LIVE_DEGRADED_REFRESH_MS, quota.blockedUntil - now),
+          snapshot: snapshotWithState(envelope, "stale", "rate_limit", pauseMs),
+          nextDelayMs: pauseMs,
         };
       }
       if (mode === "live") {
         const fallback = await this.liveFallbackFromDay(
           date,
           "rate_limit",
-          quota.blockedUntil - now,
+          pauseMs,
         );
         if (fallback) {
           return {
             snapshot: fallback,
-            nextDelayMs: Math.max(LIVE_DEGRADED_REFRESH_MS, quota.blockedUntil - now),
+            nextDelayMs: pauseMs,
           };
         }
       }
@@ -681,12 +711,12 @@ export class LiveFootballCoordinator extends DurableObject<CoordinatorEnv> {
         mode,
         date,
         "rate_limit",
-        quota.blockedUntil - now,
+        pauseMs,
       );
       if (cached) {
         return {
           snapshot: cached,
-          nextDelayMs: Math.max(LIVE_DEGRADED_REFRESH_MS, quota.blockedUntil - now),
+          nextDelayMs: pauseMs,
         };
       }
       return {
@@ -697,9 +727,9 @@ export class LiveFootballCoordinator extends DurableObject<CoordinatorEnv> {
           fetchedAt: null,
           cacheId: key,
           errorCode: "rate_limit",
-          retryAfterMs: quota.blockedUntil - now,
+          retryAfterMs: pauseMs,
         },
-        nextDelayMs: Math.max(LIVE_DEGRADED_REFRESH_MS, quota.blockedUntil - now),
+        nextDelayMs: pauseMs,
       };
     }
 
@@ -812,16 +842,16 @@ export class LiveFootballCoordinator extends DurableObject<CoordinatorEnv> {
       const retryAfterMs = Number.isFinite(retryHeader)
         ? Math.max(1_000, Math.min(retryHeader * 1000, 10 * 60_000))
         : undefined;
-      const dailyLimit = headerNumber(response, [
+      const dailyLimit = readQuotaHeader(response.headers, [
         "x-ratelimit-requests-limit",
         "x-ratelimit-day-limit",
       ]);
-      const dailyRemaining = headerNumber(response, [
+      const dailyRemaining = readQuotaHeader(response.headers, [
         "x-ratelimit-requests-remaining",
         "x-ratelimit-day-remaining",
       ]);
-      const minuteLimit = headerNumber(response, ["x-ratelimit-limit", "x-ratelimit-minute-limit"]);
-      const minuteRemaining = headerNumber(response, [
+      const minuteLimit = readQuotaHeader(response.headers, ["x-ratelimit-limit", "x-ratelimit-minute-limit"]);
+      const minuteRemaining = readQuotaHeader(response.headers, [
         "x-ratelimit-remaining",
         "x-ratelimit-minute-remaining",
       ]);

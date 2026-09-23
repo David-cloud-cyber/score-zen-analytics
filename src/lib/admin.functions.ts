@@ -1598,7 +1598,8 @@ export const getAdminApiHealth = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await requireAdmin(context);
-    const [quota, cache, football, ai, saspay, relayit, relayitWebhook] = await Promise.all([
+    const { getRelayitCredentialStatus } = await import("./relayit.server");
+    const [quota, cache, football, ai, saspay, relayit, relayitWebhook, relayitCredentialStatus] = await Promise.all([
       getApiFootballQuotaState(),
       getApiFootballCacheState("/fixtures", { date: todayISO() }),
       getConfig("APIFOOTBALL_KEY"),
@@ -1606,12 +1607,14 @@ export const getAdminApiHealth = createServerFn({ method: "GET" })
       getConfig("SASPAY_API_KEY"),
       getConfig("RELAYIT_API_KEY"),
       getConfig("RELAYIT_WEBHOOK_SECRET"),
+      getRelayitCredentialStatus(),
     ]);
     return {
       apiFootball: { configured: Boolean(football), quota, cache },
       aiConfigured: Boolean(ai),
       saspayConfigured: Boolean(saspay),
       relayitConfigured: Boolean(relayit && relayitWebhook),
+      relayitCredentialStatus,
       paymentProvider: getRuntimeEnv("PAYMENT_PROVIDER")?.trim().toLowerCase() === "relayit" ? "relayit" : "saspay",
       cloudflareConfigured: Boolean(getRuntimeEnv("PUBLIC_APP_URL")),
       checkedAt: new Date().toISOString(),

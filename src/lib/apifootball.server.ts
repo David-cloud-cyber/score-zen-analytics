@@ -10,6 +10,7 @@ import {
   type DurableObjectNamespaceBinding,
   type RuntimeBinding,
 } from "./config.server";
+import { LIVE_CAUTION_REFRESH_MS, LIVE_REFRESH_MS } from "./live-football.shared";
 
 const BASE = "https://v3.football.api-sports.io";
 const CACHE_PREFIX = "lf:football:v1:";
@@ -71,14 +72,14 @@ let quotaState: QuotaState = { updatedAt: 0, blockedUntil: 0 };
 let quotaStateReadAt = 0;
 
 function cacheProfile(path: string, params: Record<string, string | number | undefined>) {
-  if (params.live === "all") return { freshMs: 10_000, staleMs: 15 * 60_000 };
+  if (params.live === "all") return { freshMs: LIVE_REFRESH_MS, staleMs: 15 * 60_000 };
   if (path === "/fixtures/events" || path === "/fixtures/statistics") {
-    return { freshMs: 10_000, staleMs: 15 * 60_000 };
+    return { freshMs: LIVE_REFRESH_MS, staleMs: 15 * 60_000 };
   }
   if (path === "/fixtures/lineups" || path === "/injuries") {
     return { freshMs: 60_000, staleMs: 15 * 60_000 };
   }
-  if (path === "/odds/live") return { freshMs: 15_000, staleMs: 10 * 60_000 };
+  if (path === "/odds/live") return { freshMs: LIVE_CAUTION_REFRESH_MS, staleMs: 10 * 60_000 };
   if (path === "/odds") return { freshMs: 30_000, staleMs: 10 * 60_000 };
   if (path === "/predictions") return { freshMs: 5 * 60_000, staleMs: 30 * 60_000 };
   if (path === "/standings" || path === "/players/topscorers") {
@@ -531,6 +532,19 @@ export async function getApiFootballCacheState(
   path: string,
   params: Record<string, string | number | undefined> = {},
 ): Promise<{ stale: boolean; storedAt: number } | null> {
+  const coordinator = getRuntimeBinding<DurableObjectNamespaceBinding>("LIVE_FOOTBALL_COORDINATOR");
+  if (coordinator && path === "/fixtures" && (params.date || params.live === "all")) {
+    try {
+      const mode = params.live === "all" ? "live" : "day";
+      const date = typeof params.date === "string" ? params.date : todayISO();
+      const response = await coordinator.getByName("global").fetch(
+        new Request(`https://livefoot.internal/internal/cache-state?mode=${mode}&date=${encodeURIComponent(date)}`),
+      );
+      if (response.ok) return await response.json() as { stale: boolean; storedAt: number } | null;
+    } catch {
+      // Fall back to the legacy cache during a coordinator outage.
+    }
+  }
   const url = new URL(`${BASE}${path}`);
   for (const [name, value] of Object.entries(params)) {
     if (value !== undefined && value !== null && value !== "")
@@ -557,5 +571,16 @@ export function todayISO(): string {
 }
 
 export async function getApiFootballQuotaState(): Promise<ApiFootballQuotaState> {
+  const coordinator = getRuntimeBinding<DurableObjectNamespaceBinding>("LIVE_FOOTBALL_COORDINATOR");
+  if (coordinator) {
+    try {
+      const response = await coordinator.getByName("global").fetch(
+        new Request("https://livefoot.internal/internal/quota"),
+      );
+      if (response.ok) return await response.json() as ApiFootballQuotaState;
+    } catch {
+      // Keep the admin panel available when the coordinator cannot be read.
+    }
+  }
   return { ...(await readQuotaState()) };
 }

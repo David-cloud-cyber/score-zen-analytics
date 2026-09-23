@@ -353,20 +353,20 @@ export const getMyPayments = createServerFn({ method: "GET" })
     const [paymentsRes, subsRes] = await Promise.all([
       context.supabase
         .from("payments")
-        .select("id, trans_id, provider_sale_id, pack_id, credits, amount_xaf, status, link, created_at")
+        .select("id, trans_id, provider_sale_id, pack_id, credits, amount_xaf, status, link, checkout_link, created_at")
         .eq("user_id", context.userId)
         .order("created_at", { ascending: false })
         .limit(10),
       context.supabase
         .from("subscriptions")
-        .select("id, trans_id, provider_sale_id, plan_id, amount_xaf, status, current_period_end, created_at")
+        .select("id, trans_id, provider_sale_id, plan_id, amount_xaf, status, checkout_link, current_period_end, created_at")
         .eq("user_id", context.userId)
         .order("created_at", { ascending: false })
         .limit(10),
     ]);
 
     return {
-      payments: (paymentsRes.data ?? []).map(({ provider_sale_id: _providerSaleId, ...row }) => ({ ...row, trans_id: row.trans_id ?? _providerSaleId })),
-      subscriptions: (subsRes.data ?? []).map(({ provider_sale_id: _providerSaleId, ...row }) => ({ ...row, trans_id: row.trans_id ?? _providerSaleId })),
+      payments: (paymentsRes.data ?? []).map(({ provider_sale_id: providerSaleId, checkout_link: checkoutLink, ...row }) => ({ ...row, trans_id: row.trans_id ?? providerSaleId, had_checkout: Boolean(checkoutLink ?? row.link ?? row.trans_id ?? providerSaleId) })),
+      subscriptions: (subsRes.data ?? []).map(({ provider_sale_id: providerSaleId, checkout_link: checkoutLink, ...row }) => ({ ...row, trans_id: row.trans_id ?? providerSaleId, had_checkout: Boolean(checkoutLink ?? row.trans_id ?? providerSaleId) })),
     };
   });

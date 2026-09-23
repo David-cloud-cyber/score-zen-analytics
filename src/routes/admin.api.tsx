@@ -12,7 +12,7 @@ function AdminApiPage() {
   const demo = isLocalDemo();
   const getHealth = useServerFn(getAdminApiHealth);
   const query = useQuery({ queryKey: ["admin", "api"], queryFn: () => getHealth(), enabled: !demo, refetchInterval: 30_000 });
-  const data = demo ? { apiFootball: { configured: true, quota: { dayRemaining: 6412, dayLimit: 7500, minuteRemaining: 278, minuteLimit: 300 }, cache: { stale: false, storedAt: Date.now() - 12000 } }, aiConfigured: true, saspayConfigured: true, relayitConfigured: false, paymentProvider: "saspay", cloudflareConfigured: true, checkedAt: new Date().toISOString() } : query.data;
+  const data = demo ? { apiFootball: { configured: true, quota: { dayRemaining: 6412, dayLimit: 7500, minuteRemaining: 278, minuteLimit: 300 }, cache: { stale: false, storedAt: Date.now() - 12000 } }, aiConfigured: true, saspayConfigured: true, relayitConfigured: false, relayitCredentialStatus: "missing", paymentProvider: "saspay", cloudflareConfigured: true, checkedAt: new Date().toISOString() } : query.data;
   if (!demo && query.isLoading) return <AdminLoading />;
   const cache = data?.apiFootball.cache;
   const cacheState = !cache ? "Aucun snapshot" : cache.stale ? "Snapshot à vérifier" : "Snapshot disponible";
@@ -21,7 +21,7 @@ function AdminApiPage() {
     { label: "Cache partagé", status: cacheState, ok: Boolean(cache && !cache.stale), Icon: Database },
     { label: "IA", status: data?.aiConfigured ? "Clé configurée" : "Non configurée", ok: Boolean(data?.aiConfigured), Icon: Activity },
     { label: "Paiements SasPay", status: data?.saspayConfigured ? "Clé configurée" : "Non configurée", ok: Boolean(data?.saspayConfigured), Icon: Server },
-    { label: "Paiements Relayit", status: data?.relayitConfigured ? "Clé et webhook configurés" : "Non configurés", ok: Boolean(data?.relayitConfigured), Icon: Server },
+    { label: "Paiements Relayit", status: !data?.relayitConfigured ? "Clé ou webhook manquant" : data.relayitCredentialStatus === "valid" ? "Clé vérifiée · webhook configuré" : data.relayitCredentialStatus === "invalid" ? "Clé refusée par Relayit" : "Vérification du fournisseur indisponible", ok: Boolean(data?.relayitConfigured && data.relayitCredentialStatus === "valid"), Icon: Server },
     { label: "Prestataire actif", status: data?.paymentProvider === "relayit" ? "Relayit" : "SasPay", ok: true, Icon: CheckCircle2 },
   ];
   const checkedAt = data?.checkedAt ? new Date(data.checkedAt).toLocaleString("fr-FR") : "—";

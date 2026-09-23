@@ -6,6 +6,7 @@ export type PaymentRecoveryAttempt = {
   amountXaf: number | null;
   planId: string | null;
   packId: string | null;
+  hadCheckout: boolean;
 };
 
 type PaymentHistoryRecord = {
@@ -15,6 +16,7 @@ type PaymentHistoryRecord = {
   amount_xaf: number | null;
   plan_id?: string | null;
   pack_id?: string | null;
+  had_checkout?: boolean;
 };
 
 type PaymentHistorySnapshot = {
@@ -49,6 +51,7 @@ export function getLatestFailedPayment(
       amountXaf: record.amount_xaf,
       planId: record.plan_id ?? null,
       packId: null,
+      hadCheckout: record.had_checkout === true,
     })),
     ...snapshot.payments.map((record) => ({
       id: record.id,
@@ -58,6 +61,7 @@ export function getLatestFailedPayment(
       amountXaf: record.amount_xaf,
       planId: null,
       packId: record.pack_id ?? null,
+      hadCheckout: record.had_checkout === true,
     })),
   ];
 
@@ -67,6 +71,7 @@ export function getLatestFailedPayment(
         const timestamp = Date.parse(candidate.createdAt);
         return (
           FAILED_STATUSES.has(candidate.status.toUpperCase()) &&
+          candidate.hadCheckout &&
           Number.isFinite(timestamp) &&
           now - timestamp <= RECOVERY_WINDOW_MS
         );

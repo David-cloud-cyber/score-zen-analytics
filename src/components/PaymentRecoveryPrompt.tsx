@@ -43,7 +43,7 @@ export function PaymentRecoveryPrompt({
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <Link
               to="/premium"
-              search={{ plan: attempt.kind === "subscription" ? "premium_monthly" : undefined }}
+              search={{ plan: attempt.kind === "subscription" && attempt.planId === "premium_yearly" ? "premium_yearly" : attempt.kind === "subscription" ? "premium_monthly" : undefined }}
               className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl bg-brand px-3.5 text-[11px] font-black text-brand-foreground transition-transform hover:-translate-y-0.5"
             >
               Réessayer le paiement <ArrowRight className="size-3.5" aria-hidden />

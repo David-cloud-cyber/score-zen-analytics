@@ -3,11 +3,14 @@ import type { FixturesPayload, RemoteMatchSummary } from "./football-types";
 
 export const LIVE_SNAPSHOT_KEY = "lf:shared:v2:fixtures:live";
 export const LIVE_COORDINATOR_NAME = "global";
-export const LIVE_REFRESH_MS = 10_000;
-export const LIVE_CAUTION_REFRESH_MS = 15_000;
-export const LIVE_DEGRADED_REFRESH_MS = 30_000;
-export const QUIET_REFRESH_MS = 60_000;
-export const DAY_REFRESH_MS = 60_000;
+// A 10-second global poll alone can exceed the 7,500/day Pro allowance.
+// These intervals leave room for match details, analysis and daily picks.
+export const LIVE_REFRESH_MS = 30_000;
+export const LIVE_CAUTION_REFRESH_MS = 60_000;
+export const LIVE_DEGRADED_REFRESH_MS = 120_000;
+export const QUIET_REFRESH_MS = 180_000;
+export const DAY_REFRESH_MS = 120_000;
+export const QUOTA_RESERVE_PROBE_MS = 30 * 60_000;
 // Keep a safety reserve for incidents, admin checks and the next UTC reset.
 // The provider exposes the real plan limit in response headers, so this is a
 // ratio rather than a hard-coded 7,500-request assumption.

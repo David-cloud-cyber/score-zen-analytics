@@ -40,6 +40,33 @@ export async function isRelayitConfigured() {
   return Boolean(apiKey && webhookSecret);
 }
 
+export type RelayitCredentialStatus = "valid" | "invalid" | "unavailable" | "missing";
+
+let credentialCheck: { key: string; status: RelayitCredentialStatus; checkedAt: number } | null = null;
+
+/** Read-only credential probe for the private admin health panel. Never exposes the key. */
+export async function getRelayitCredentialStatus(): Promise<RelayitCredentialStatus> {
+  const key = await getRelayitApiKey();
+  if (!key) return "missing";
+  if (credentialCheck?.key === key && Date.now() - credentialCheck.checkedAt < 60_000) {
+    return credentialCheck.status;
+  }
+  let status: RelayitCredentialStatus = "unavailable";
+  try {
+    const response = await fetch(`${RELAYIT_API_BASE}/payment-links?limit=1`, {
+      method: "GET",
+      headers: { Accept: "application/json", Authorization: `Bearer ${key}` },
+      signal: AbortSignal.timeout(5_000),
+    });
+    if (response.ok) status = "valid";
+    else if (response.status === 401 || response.status === 403) status = "invalid";
+  } catch {
+    // An unreachable provider is different from a rejected credential.
+  }
+  credentialCheck = { key, status, checkedAt: Date.now() };
+  return status;
+}
+
 function payloadFromBody(body: unknown): Record<string, unknown> | null {
   if (!body || typeof body !== "object") return null;
   const record = body as Record<string, unknown>;

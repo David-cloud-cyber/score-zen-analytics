@@ -13,9 +13,11 @@ const football = read("src/lib/football.functions.ts");
 const matchRoute = read("src/routes/live.$id.tsx");
 
 const checks = [
-  ["cadence saine 10 secondes", shared.includes("LIVE_REFRESH_MS = 10_000")],
-  ["cadence de vigilance 15 secondes", shared.includes("LIVE_CAUTION_REFRESH_MS = 15_000")],
-  ["cadence dégradée 30 secondes", shared.includes("LIVE_DEGRADED_REFRESH_MS = 30_000")],
+  ["cadence saine 30 secondes", shared.includes("LIVE_REFRESH_MS = 30_000")],
+  ["cadence de vigilance 60 secondes", shared.includes("LIVE_CAUTION_REFRESH_MS = 60_000")],
+  ["cadence dégradée 120 secondes", shared.includes("LIVE_DEGRADED_REFRESH_MS = 120_000")],
+  ["pause au quota de réserve", coordinator.includes("reserveProbeDelay")],
+  ["quota administrateur issu du coordinateur", coordinator.includes('"/internal/quota"') && api.includes('"https://livefoot.internal/internal/quota"') && !server.includes('"/internal/quota"')],
   ["clés de snapshots versionnées", coordinator.includes("lf:shared:v2:")],
   [
     "proxy interne des données fournisseur",
