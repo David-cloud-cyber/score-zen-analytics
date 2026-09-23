@@ -32,6 +32,8 @@ import { useSession } from "@/hooks/use-session";
 import { useLiveFixtureStream } from "@/hooks/use-live-fixture-stream";
 import { TelegramCtaCard } from "@/components/TelegramCtaCard";
 import { StrategicPromoCard } from "@/components/promo/StrategicPromoCard";
+import { ReferralCta } from "@/components/ReferralCta";
+import { PwaInstallCard } from "@/components/PwaInstallCard";
 
 const fixturesQuery = (mode: "today" | "live", date?: string) =>
   queryOptions({
@@ -48,9 +50,9 @@ export const Route = createFileRoute("/")({
   head: () => {
     const base = buildRouteMeta({
       path: "/",
-      title: "Scores football en direct : matchs du jour et analyses",
+      title: "Résultats football en direct : scores et matchs du jour",
       description:
-        "Suivez les scores football en direct et les matchs du jour : Ligue 1, Liga, Premier League, Ligue des champions, compositions et analyses statistiques.",
+        "Consultez les résultats et scores football en direct, les matchs du jour et les grandes compétitions : Premier League, Liga, Ligue 1, Serie A, Bundesliga, Ligue des champions et football africain.",
       alternates: [
         { language: "fr", path: "/" },
         { language: "en", path: "/en" },
@@ -291,6 +293,7 @@ function HomePage() {
 
   return (
     <AppShell>
+      <h1 className="sr-only">Résultats football en direct, scores et matchs du jour</h1>
       <div className="no-scrollbar overflow-x-auto px-4 pb-3 pt-6 lg:px-0 lg:pt-6">
         <div className="flex w-max min-w-full justify-center gap-2">
           {(
@@ -460,8 +463,8 @@ function HomePage() {
             <div>
               <p className="text-sm font-black">Pronostics du jour</p>
               <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                Deux sélections statistiques gratuites chaque jour, avec résultats conservés dans un
-                historique transparent.
+                Des sélections statistiques prudentes lorsque les données convergent, avec résultats
+                conservés dans un historique transparent.
               </p>
             </div>
           </div>
@@ -579,7 +582,9 @@ function HomePage() {
       </div>
 
       <div className="mt-8 space-y-4 px-4 lg:px-0">
+        <PwaInstallCard location="home" />
         <StrategicPromoCard location="match_list" />
+        <ReferralCta location="home" showGuest />
         <TelegramCtaCard location="home_bottom" />
       </div>
 

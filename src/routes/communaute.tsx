@@ -29,9 +29,9 @@ export const Route = createFileRoute("/communaute")({
   head: () => ({
     ...buildRouteMeta({
       path: "/communaute",
-      title: "Communauté & échanges Live",
+      title: "Communauté football : pronostics et discussions en direct",
       description:
-        "Rejoignez la communauté LiveFoot IA : votes sur les matchs réels, discussions et analyses partagées.",
+        "Rejoignez une communauté football active : votes sur les matchs réels, discussions, tendances des supporters et analyses partagées en direct.",
       alternates: [
         { language: "fr", path: "/communaute" },
         { language: "en", path: "/en/community" },
@@ -627,7 +627,7 @@ function CommunautePage() {
           </div>
         </div>
 
-        <div className="grid gap-3 border-t border-border/60 pt-5 md:grid-cols-2">
+        <div className="grid gap-3 border-t border-border/60 pt-5 lg:grid-cols-2">
           <TelegramCtaCard location="community_footer" compact />
           <div className="flex flex-col justify-between gap-3 rounded-xl border border-brand/20 bg-brand/5 p-4">
             <p className="text-xs leading-relaxed text-muted-foreground">

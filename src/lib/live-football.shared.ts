@@ -8,6 +8,12 @@ export const LIVE_CAUTION_REFRESH_MS = 15_000;
 export const LIVE_DEGRADED_REFRESH_MS = 30_000;
 export const QUIET_REFRESH_MS = 60_000;
 export const DAY_REFRESH_MS = 60_000;
+// Keep a safety reserve for incidents, admin checks and the next UTC reset.
+// The provider exposes the real plan limit in response headers, so this is a
+// ratio rather than a hard-coded 7,500-request assumption.
+export const DAILY_QUOTA_RESERVE_RATIO = 0.15;
+export const DAILY_QUOTA_CAUTION_RATIO = 0.25;
+export const MIN_DAILY_QUOTA_RESERVE = 250;
 export const SNAPSHOT_STALE_MS = 15 * 60_000;
 export const DAY_STALE_MS = 30 * 60_000;
 

@@ -3,6 +3,7 @@ import { getConfig, getRuntimeEnv } from "./config.server";
 import { getOpenRouterKey, getOpenRouterModels, requestOpenRouterJson } from "./ai-gateway.server";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import type { EditorialCategory, EditorialContent } from "./editorial.types";
+import { EDITORIAL_CAMPAIGN_TOPICS, type EditorialCampaignTopic } from "@/data/editorial-campaign-topics";
 
 const db = supabaseAdmin as any;
 const DEFAULT_FEEDS = [
@@ -18,6 +19,29 @@ type FeedItem = {
   excerpt: string;
   publishedAt: string | null;
   coverImage: string | null;
+};
+
+type EditorialCampaign = {
+  id: string;
+  slug: string;
+  starts_at: string;
+  ends_at: string;
+  daily_limit: number;
+  max_articles: number;
+  active: boolean;
+};
+
+type CampaignQueueRow = {
+  id: string;
+  topic_key: string;
+  title: string;
+  category: EditorialCategory;
+  query_terms: unknown;
+  trend_score: number;
+  scheduled_for: string;
+  status: "queued" | "generating" | "validated" | "published" | "rejected" | "failed";
+  attempts: number;
+  next_attempt_at: string | null;
 };
 
 const draftSchema = z.object({
@@ -146,6 +170,71 @@ function topicKey(title: string) {
     .join("-");
 }
 
+function normalizeSearch(value: string) {
+  return value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function sourcesForCampaignTopic(topic: EditorialCampaignTopic, sources: FeedItem[]) {
+  const terms = topic.queryTerms.map(normalizeSearch).filter((term) => term.length >= 4);
+  const matches = sources.filter((source) => {
+    const haystack = normalizeSearch(`${source.title} ${source.excerpt}`);
+    return terms.some((term) => haystack.includes(term));
+  });
+  const uniquePublishers = new Set<string>();
+  return matches.filter((source) => {
+    const publisher = normalizeSearch(source.publisher);
+    if (uniquePublishers.has(publisher)) return false;
+    uniquePublishers.add(publisher);
+    return true;
+  }).slice(0, 5);
+}
+
+function campaignSchedule(startAt: string, index: number) {
+  return new Date(Date.parse(startAt) + index * 8 * 60 * 60_000).toISOString();
+}
+
+async function getActiveEditorialCampaign() {
+  try {
+    const { data, error } = await db
+      .from("editorial_campaigns")
+      .select("id, slug, starts_at, ends_at, daily_limit, max_articles, active")
+      .eq("active", true)
+      .lte("starts_at", new Date().toISOString())
+      .gt("ends_at", new Date().toISOString())
+      .order("starts_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (error || !data) return null;
+    return data as EditorialCampaign;
+  } catch {
+    // The campaign migration is additive; the legacy editorial cycle must
+    // continue to work while a deployment is being rolled out.
+    return null;
+  }
+}
+
+async function seedEditorialCampaign(campaign: EditorialCampaign) {
+  const rows = EDITORIAL_CAMPAIGN_TOPICS.map((topic, index) => ({
+    campaign_id: campaign.id,
+    topic_key: topic.key,
+    title: topic.title,
+    category: topic.category,
+    query_terms: topic.queryTerms,
+    trend_score: topic.trendScore,
+    scheduled_for: campaignSchedule(campaign.starts_at, index),
+    status: "queued",
+  }));
+  const { error } = await db
+    .from("editorial_campaign_queue")
+    .upsert(rows, { onConflict: "campaign_id,topic_key", ignoreDuplicates: true });
+  if (error) throw new Error("EDITORIAL_CAMPAIGN_QUEUE_SEED_FAILED");
+}
+
 function categoryFor(title: string): EditorialCategory {
   const value = title.toLowerCase();
   if (/bless|compos|forme|absence|joueur/.test(value)) return "forme";
@@ -256,6 +345,8 @@ async function createArticle(topic: { title: string; category: EditorialCategory
     { label: "Analyser un match", path: "/analyse", reason: "Comparer deux équipes avec les données LiveFoot" },
     { label: "Voir les matchs en direct", path: "/", reason: "Consulter les rencontres du moment" },
     { label: "Rejoindre la communauté", path: "/communaute", reason: "Comparer les avis des utilisateurs" },
+    { label: "Découvrir les codes partenaires", path: "/codes-promo", reason: "Consulter les offres partenaires vérifiées" },
+    { label: "Voir les offres Premium", path: "/premium", reason: "Retrouver l’historique et les alertes Premium" },
   ];
   const coverSourceUrl = topic.sources.find((source) => allowedCoverImage(source.coverImage))?.url ?? null;
   const officialCover = allowedCoverImage(topic.sources.find((source) => source.coverImage)?.coverImage ?? null);
@@ -310,7 +401,98 @@ async function createArticle(topic: { title: string; category: EditorialCategory
       is_verified: true,
     })),
   );
-  return { published: shouldPublish, qualityScore, wordCount };
+  return { articleId: article.id, published: shouldPublish, qualityScore, wordCount };
+}
+
+async function processEditorialCampaign(
+  campaign: EditorialCampaign,
+  remainingDailySlots: number,
+) {
+  const now = new Date().toISOString();
+  const { data: queueRows, error: queueError } = await db
+    .from("editorial_campaign_queue")
+    .select("id, topic_key, title, category, query_terms, trend_score, scheduled_for, status, attempts, next_attempt_at")
+    .eq("campaign_id", campaign.id)
+    .eq("status", "queued")
+    .lte("scheduled_for", now)
+    .or(`next_attempt_at.is.null,next_attempt_at.lte.${now}`)
+    .order("scheduled_for", { ascending: true })
+    .order("trend_score", { ascending: false })
+    .limit(remainingDailySlots);
+  if (queueError) throw new Error("EDITORIAL_CAMPAIGN_QUEUE_UNAVAILABLE");
+
+  const sources = await collectSources();
+  let articlesCreated = 0;
+  for (const rawRow of (queueRows ?? []) as Array<Record<string, unknown>>) {
+    const row = rawRow as unknown as CampaignQueueRow;
+    const attempts = Number(row.attempts ?? 0) + 1;
+    const { data: claimed, error: claimError } = await db
+      .from("editorial_campaign_queue")
+      .update({ status: "generating", attempts, updated_at: new Date().toISOString() })
+      .eq("id", row.id)
+      .eq("status", "queued")
+      .select("id")
+      .maybeSingle();
+    if (claimError || !claimed) continue;
+
+    const topic: EditorialCampaignTopic = {
+      key: String(row.topic_key),
+      title: String(row.title),
+      category: row.category as EditorialCategory,
+      queryTerms: Array.isArray(rawRow.query_terms) ? rawRow.query_terms.map(String) : [],
+      trendScore: Number(row.trend_score ?? 0),
+    };
+    const matchedSources = sourcesForCampaignTopic(topic, sources);
+    if (matchedSources.length < 2) {
+      await db.from("editorial_campaign_queue").update({
+        status: attempts >= 7 ? "failed" : "queued",
+        next_attempt_at: attempts >= 7 ? null : new Date(Date.now() + 6 * 60 * 60_000).toISOString(),
+        last_error: "EDITORIAL_SOURCES_NOT_ENOUGH",
+        updated_at: new Date().toISOString(),
+      }).eq("id", row.id);
+      continue;
+    }
+
+    try {
+      const { data: topicRow, error: topicError } = await db
+        .from("editorial_topics")
+        .upsert({
+          title: topic.title,
+          normalized_key: topic.key,
+          category: topic.category,
+          trend_score: topic.trendScore,
+          status: "selected",
+          updated_at: new Date().toISOString(),
+        }, { onConflict: "normalized_key" })
+        .select("id, status")
+        .single();
+      if (topicError || !topicRow) throw new Error("EDITORIAL_TOPIC_SAVE_FAILED");
+
+      const result = await createArticle({
+        title: topic.title,
+        category: topic.category,
+        sources: matchedSources,
+        topicId: topicRow.id,
+      });
+      await db.from("editorial_campaign_queue").update({
+        status: result.published ? "published" : "validated",
+        article_id: result.articleId,
+        last_error: null,
+        next_attempt_at: null,
+        updated_at: new Date().toISOString(),
+      }).eq("id", row.id);
+      await db.from("editorial_topics").update({ status: "used", updated_at: new Date().toISOString() }).eq("id", topicRow.id);
+      articlesCreated += 1;
+    } catch (error) {
+      await db.from("editorial_campaign_queue").update({
+        status: attempts >= 3 ? "failed" : "queued",
+        next_attempt_at: attempts >= 3 ? null : new Date(Date.now() + 6 * 60 * 60_000).toISOString(),
+        last_error: error instanceof Error ? error.message : "EDITORIAL_ARTICLE_GENERATION_FAILED",
+        updated_at: new Date().toISOString(),
+      }).eq("id", row.id);
+    }
+  }
+  return articlesCreated;
 }
 
 export async function runEditorialCycle(options: { force?: boolean; runType?: "scheduled" | "manual" } = {}) {
@@ -331,6 +513,30 @@ export async function runEditorialCycle(options: { force?: boolean; runType?: "s
       .select("id", { count: "exact", head: true })
       .gte("created_at", rollingDayStart)
       .in("status", ["validated", "scheduled", "published"]);
+    const campaign = await getActiveEditorialCampaign();
+    if (campaign) {
+      await seedEditorialCampaign(campaign);
+      const { count: campaignPublishedCount } = await db
+        .from("editorial_campaign_queue")
+        .select("id", { count: "exact", head: true })
+        .eq("campaign_id", campaign.id)
+        .eq("status", "published");
+      if ((campaignPublishedCount ?? 0) >= campaign.max_articles) {
+        await db.from("editorial_runs").update({ status: "completed", articles_created: 0, metadata: { reason: "campaign_limit_reached", campaign: campaign.slug }, completed_at: new Date().toISOString() }).eq("id", run.id);
+        return { skipped: true, reason: "campaign_limit_reached", articlesCreated: 0 };
+      }
+      const remainingDailySlots = Math.min(
+        Math.max(0, campaign.daily_limit - (recentArticleCount ?? 0)),
+        campaign.max_articles - (campaignPublishedCount ?? 0),
+      );
+      if (remainingDailySlots <= 0) {
+        await db.from("editorial_runs").update({ status: "completed", articles_created: 0, metadata: { reason: "daily_limit_reached", campaign: campaign.slug }, completed_at: new Date().toISOString() }).eq("id", run.id);
+        return { skipped: true, reason: "daily_limit_reached", articlesCreated: 0 };
+      }
+      const articlesCreated = await processEditorialCampaign(campaign, remainingDailySlots);
+      await db.from("editorial_runs").update({ status: "completed", articles_created: articlesCreated, metadata: { campaign: campaign.slug, queueSize: EDITORIAL_CAMPAIGN_TOPICS.length }, completed_at: new Date().toISOString() }).eq("id", run.id);
+      return { skipped: false, articlesCreated };
+    }
     const remainingDailySlots = Math.max(0, 3 - (recentArticleCount ?? 0));
     if (remainingDailySlots === 0) {
       await db.from("editorial_runs").update({ status: "completed", articles_created: 0, metadata: { reason: "daily_limit_reached" }, completed_at: new Date().toISOString() }).eq("id", run.id);

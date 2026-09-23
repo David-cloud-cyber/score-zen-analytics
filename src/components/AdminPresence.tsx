@@ -17,6 +17,8 @@ const DEMO_PRESENCE = {
       lastSeenAt: new Date().toISOString(),
       route: "/premium/tableau-de-bord",
       deviceFamily: "desktop" as const,
+      countryCode: "CM",
+      countryName: "Cameroun",
     },
     {
       id: "demo-2",
@@ -25,6 +27,8 @@ const DEMO_PRESENCE = {
       lastSeenAt: new Date().toISOString(),
       route: "/",
       deviceFamily: "mobile" as const,
+      countryCode: "FR",
+      countryName: "France",
     },
   ],
   generatedAt: new Date().toISOString(),
@@ -105,6 +109,7 @@ export function AdminPresence() {
                 <p className="mt-1 truncate text-[10px] text-muted-foreground">
                   {user.plan === "premium" ? "Premium" : "Gratuit"} ·{" "}
                   {relativeTime(user.lastSeenAt)}
+                  {user.countryName ? ` · ${user.countryName}` : ""}
                 </p>
               </div>
               <DeviceIcon device={user.deviceFamily} />

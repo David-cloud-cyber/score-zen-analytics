@@ -27,7 +27,11 @@ import {
   type PremiumPlan,
   type PricedPack,
 } from "@/lib/pricing";
-import { createSubscriptionCheckout, createTopupCheckout } from "@/lib/payments.functions";
+import {
+  createSubscriptionCheckout,
+  createTopupCheckout,
+  getMyPayments,
+} from "@/lib/payments.functions";
 import { rememberPaymentHandoff } from "@/lib/payment-handoff";
 import { getMyBalance } from "@/lib/analyses.functions";
 import { useServerFn } from "@tanstack/react-start";
@@ -38,6 +42,12 @@ import { formatPremiumExpiry, isPremiumActive, premiumDaysRemaining } from "@/li
 import { DEMO_PROFILE, isLocalDemo } from "@/lib/local-demo";
 import { track } from "@/lib/analytics";
 import { TelegramCtaCard } from "@/components/TelegramCtaCard";
+import { ReferralCta } from "@/components/ReferralCta";
+import { PaymentRecoveryPrompt } from "@/components/PaymentRecoveryPrompt";
+import { getLatestFailedPayment } from "@/lib/payment-recovery";
+import { getActivePaymentProvider } from "@/lib/payments.functions";
+import { RelayitCheckoutDialog } from "@/components/RelayitCheckoutDialog";
+import type { RelayitCheckoutDetails } from "@/lib/relayit.server";
 
 export const Route = createFileRoute("/premium")({
   validateSearch: (search): { plan?: "premium_monthly" | "premium_yearly" } => {
@@ -85,7 +95,7 @@ const PREMIUM_FAQ = [
   },
   {
     q: "Quels moyens de paiement sont acceptés ?",
-    a: "Nous acceptons MTN Mobile Money et Orange Money dans la zone FCFA via notre partenaire sécurisé Fapshi.",
+    a: "Le paiement est préparé côté serveur puis vous êtes redirigé vers la page sécurisée du prestataire disponible. L’abonnement est activé uniquement après confirmation du paiement.",
   },
   {
     q: "Puis-je annuler mon abonnement à tout moment ?",
@@ -110,17 +120,35 @@ function PremiumSubscriptionPage() {
     queryFn: () => (demoMode ? Promise.resolve(DEMO_PROFILE) : getMyBalance()),
     enabled: !!user,
   });
+  const { data: paymentData } = useQuery({
+    queryKey: ["me", "payments"],
+    queryFn: getMyPayments,
+    enabled: Boolean(user) && !demoMode,
+    staleTime: 15_000,
+  });
+  const { data: paymentProvider } = useQuery({
+    queryKey: ["payment-provider"],
+    queryFn: getActivePaymentProvider,
+    staleTime: 60_000,
+  });
 
   const isPremium = isPremiumActive(profile);
   const premiumExpiry = formatPremiumExpiry(profile?.premium_until);
   const premiumDays = premiumDaysRemaining(profile?.premium_until);
+  const failedPayment = getLatestFailedPayment(paymentData);
 
   // /premium est le parent de /premium/tableau-de-bord : le Hub doit être
   // rendu dans l'Outlet, sinon le parent recouvre l'interface enfant.
   const [busyPlan, setBusyPlan] = useState<string | null>(null);
   const [busyPack, setBusyPack] = useState<string | null>(null);
+  const [relayitIntent, setRelayitIntent] = useState<
+    | { type: "subscription"; plan: PremiumPlan }
+    | { type: "pack"; pack: PricedPack }
+    | null
+  >(null);
   const subCheckoutFn = useServerFn(createSubscriptionCheckout);
   const topupCheckoutFn = useServerFn(createTopupCheckout);
+  const paymentProviderFn = useServerFn(getActivePaymentProvider);
 
   useEffect(() => {
     track("premium_view", {
@@ -154,10 +182,14 @@ function PremiumSubscriptionPage() {
       return;
     }
 
-    void startSubscriptionPayment(plan);
+    void (async () => {
+      const provider = paymentProvider?.provider ?? (await paymentProviderFn()).provider;
+      if (provider === "relayit") setRelayitIntent({ type: "subscription", plan });
+      else void startSubscriptionPayment(plan);
+    })().catch(() => toast.error("Impossible de préparer le paiement. Réessayez."));
   };
 
-  const startSubscriptionPayment = async (plan: PremiumPlan) => {
+  const startSubscriptionPayment = async (plan: PremiumPlan, relayit?: RelayitCheckoutDetails) => {
     setBusyPlan(plan.id);
     const startedAt = Date.now();
     try {
@@ -167,22 +199,23 @@ function PremiumSubscriptionPage() {
         mode: "hosted",
       });
       const res = await subCheckoutFn({
-        data: { planId: plan.id, checkoutRequestId: crypto.randomUUID() },
+        data: { planId: plan.id, checkoutRequestId: crypto.randomUUID(), ...(relayit ? { relayit } : {}) },
       });
       if (!res.link) throw new Error("La page de paiement n'a pas pu être ouverte.");
-      if (!res.externalId || !res.transId)
-        throw new Error("La page de paiement n'a pas pu être ouverte.");
-      rememberPaymentHandoff({ externalId: res.externalId, transId: res.transId });
+      if (!res.externalId) throw new Error("La page de paiement n'a pas pu être ouverte.");
+      rememberPaymentHandoff({ externalId: res.externalId, transId: res.transId ?? null });
       track("premium_checkout_redirected", {
         plan: plan.id,
         durationMs: Date.now() - startedAt,
         mode: "hosted",
       });
       window.location.assign(res.link);
+      return true;
     } catch (err) {
       toast.error(
         err instanceof Error ? err.message : "La page de paiement n'a pas pu être ouverte.",
       );
+      return false;
     } finally {
       setBusyPlan(null);
     }
@@ -208,43 +241,66 @@ function PremiumSubscriptionPage() {
 
     const pack = PRICED_PACKS.find((item) => item.id === packId);
     if (!pack) return;
-    void startTopupPayment(pack);
+    void (async () => {
+      const provider = paymentProvider?.provider ?? (await paymentProviderFn()).provider;
+      if (provider === "relayit") setRelayitIntent({ type: "pack", pack });
+      else void startTopupPayment(pack);
+    })().catch(() => toast.error("Impossible de préparer le paiement. Réessayez."));
   };
 
-  const startTopupPayment = async (pack: PricedPack) => {
+  const startTopupPayment = async (pack: PricedPack, relayit?: RelayitCheckoutDetails) => {
     setBusyPack(pack.id);
     const startedAt = Date.now();
     try {
       track("topup_checkout_started", { pack: pack.id, mode: "hosted" });
       const res = await topupCheckoutFn({
-        data: { packId: pack.id, checkoutRequestId: crypto.randomUUID() },
+        data: { packId: pack.id, checkoutRequestId: crypto.randomUUID(), ...(relayit ? { relayit } : {}) },
       });
       if (!res.link) throw new Error("La page de paiement n'a pas pu être ouverte.");
-      if (!res.externalId || !res.transId)
-        throw new Error("La page de paiement n'a pas pu être ouverte.");
-      rememberPaymentHandoff({ externalId: res.externalId, transId: res.transId });
+      if (!res.externalId) throw new Error("La page de paiement n'a pas pu être ouverte.");
+      rememberPaymentHandoff({ externalId: res.externalId, transId: res.transId ?? null });
       track("topup_checkout_redirected", {
         pack: pack.id,
         durationMs: Date.now() - startedAt,
         mode: "hosted",
       });
       window.location.assign(res.link);
+      return true;
     } catch (err) {
       toast.error(
         err instanceof Error ? err.message : "La page de paiement n'a pas pu être ouverte.",
       );
+      return false;
     } finally {
       setBusyPack(null);
     }
   };
 
+  const submitRelayitDetails = async (details: RelayitCheckoutDetails) => {
+    if (!relayitIntent) return;
+    const started = relayitIntent.type === "subscription"
+      ? await startSubscriptionPayment(relayitIntent.plan, details)
+      : await startTopupPayment(relayitIntent.pack, details);
+    if (started) setRelayitIntent(null);
+  };
+
+  const initialRelayitPhone = typeof user?.phone === "string"
+    ? user.phone
+    : typeof user?.user_metadata?.phone === "string"
+      ? user.user_metadata.phone
+      : "";
+
   return (
     <AppShell>
       <PageTitle eyebrow="LiveFoot Premium" title="Choisir mon abonnement" />
 
+      <div className="px-4 lg:px-0">
+        <PaymentRecoveryPrompt attempt={failedPayment} />
+      </div>
+
       {/* Hero Banner */}
       <div className="px-4 lg:px-0">
-        <div className="score-dark-surface relative animate-rise overflow-hidden rounded-xl bg-[#181818] p-6 text-[#f7f7f7] shadow-none">
+        <div className="premium-hero score-dark-surface relative animate-rise overflow-hidden rounded-xl p-6 shadow-none">
           <div
             className="pointer-events-none absolute -right-12 -top-16 size-56 rounded-full bg-brand/35 blur-3xl"
             aria-hidden
@@ -385,6 +441,10 @@ function PremiumSubscriptionPage() {
                   </li>
                   <li className="flex items-center gap-2">
                     <Check className="size-4 text-brand shrink-0" />
+                    <span>Toutes les sélections publiées chaque jour</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Check className="size-4 text-brand shrink-0" />
                     <span>Accès aux packs de recharges supplémentaires</span>
                   </li>
                 </ul>
@@ -449,6 +509,13 @@ function PremiumSubscriptionPage() {
                 <td className="p-3.5">Historique visible</td>
                 <td className="p-3.5 text-center text-muted-foreground">10 entrées</td>
                 <td className="p-3.5 text-center font-bold text-brand">Illimité</td>
+              </tr>
+              <tr>
+                <td className="p-3.5">Pronostics du jour</td>
+                <td className="p-3.5 text-center text-muted-foreground">3 sélections</td>
+                <td className="p-3.5 text-center font-bold text-brand">
+                  Toutes les sélections publiées
+                </td>
               </tr>
               <tr>
                 <td className="p-3.5">Achat de packs supplémentaires</td>
@@ -518,6 +585,11 @@ function PremiumSubscriptionPage() {
 
       <div className="px-4 lg:px-0">
         <TelegramCtaCard location="premium_footer" compact />
+        {!isPremium && (
+          <div className="mt-3">
+            <ReferralCta location="premium_footer" showGuest />
+          </div>
+        )}
       </div>
 
       {/* FAQ */}
@@ -529,6 +601,13 @@ function PremiumSubscriptionPage() {
           ))}
         </div>
       </section>
+      <RelayitCheckoutDialog
+        open={relayitIntent !== null}
+        busy={relayitIntent?.type === "subscription" ? busyPlan !== null : busyPack !== null}
+        initialPhone={initialRelayitPhone}
+        onClose={() => setRelayitIntent(null)}
+        onSubmit={submitRelayitDetails}
+      />
     </AppShell>
   );
 }

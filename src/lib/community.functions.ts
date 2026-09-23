@@ -309,6 +309,9 @@ export const postCommunityMessage = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const message = data.message.replace(/<[^>]*>/g, "").replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, "").trim();
     if (!message) throw new Error("Écrivez un message avant de l'envoyer.");
+    if (data.matchId !== null && data.matchId !== undefined && !(await isRealCommunityFixture(data.matchId))) {
+      throw new Error("Ce match n'est plus disponible pour le moment.");
+    }
     const db = await getDb();
     const since = new Date(Date.now() - 5000).toISOString();
     const { count } = await db
@@ -346,8 +349,8 @@ export const replyCommunityMessage = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const message = data.message.replace(/<[^>]*>/g, "").replace(/[\u0000-\u001F]/g, " ").trim();
     const client = await getDb();
-    const { data: parent } = await client.from("community_messages").select("id, user_id").eq("id", data.parentId).maybeSingle();
-    if (!parent) throw new Error("Ce message n'est plus disponible.");
+    const { data: parent } = await client.from("community_messages").select("id, user_id, parent_id").eq("id", data.parentId).maybeSingle();
+    if (!parent || parent.parent_id) throw new Error("Les réponses sont limitées à un niveau.");
     const since = new Date(Date.now() - 5000).toISOString();
     const { count } = await client.from("community_messages").select("id", { count: "exact", head: true }).eq("user_id", context.userId).gte("created_at", since);
     if ((count ?? 0) > 0) throw new Error("Attendez quelques secondes avant de répondre.");
@@ -382,6 +385,8 @@ export const castMatchCommunityVote = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => voteInput.parse(input))
   .handler(async ({ data, context }) => {
+    const match = await isRealCommunityFixture(data.fixtureId);
+    if (!match) throw new Error("Ce match n'est plus disponible pour le moment.");
     const db = await getDb();
     const { data: profile } = await db
       .from("profiles")
@@ -392,13 +397,13 @@ export const castMatchCommunityVote = createServerFn({ method: "POST" })
       {
         user_id: context.userId,
         user_name: String(profile?.display_name || "Membre LiveFoot").slice(0, 80),
-        fixture_id: data.fixtureId,
-        home_team: data.homeTeam,
-        away_team: data.awayTeam,
+        fixture_id: match.id,
+        home_team: match.home.name,
+        away_team: match.away.name,
         prediction: data.prediction,
       },
       { onConflict: "user_id,fixture_id" },
     );
     if (error) throw new Error("Impossible d'enregistrer votre vote.");
-    return readMatchVotes(data.fixtureId);
+    return readMatchVotes(match.id);
   });

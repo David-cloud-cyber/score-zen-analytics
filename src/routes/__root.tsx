@@ -14,8 +14,10 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { SessionProvider } from "@/hooks/use-session";
 import { CookieBanner } from "@/components/CookieBanner";
+import { GoogleTagManager } from "@/components/GoogleTagManager";
 import { MetaPixel } from "@/components/MetaPixel";
 import { ThemeProvider, THEME_INIT_SCRIPT } from "@/hooks/use-theme";
+import { GOOGLE_TAG_MANAGER_ID } from "@/lib/google-tag-manager";
 
 function NotFoundComponent() {
   return (
@@ -241,6 +243,23 @@ if(document.readyState==='complete'){schedule()}else{window.addEventListener('lo
 })();
 `.trim();
 
+/**
+ * Google Consent Mode est initialisé avant GTM : aucune mesure publicitaire ou
+ * d'audience n'est activée avant le choix explicite de l'utilisateur.
+ */
+const GOOGLE_TAG_MANAGER_SCRIPT = `
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('consent', 'default', {
+  'analytics_storage': 'denied',
+  'ad_storage': 'denied',
+  'ad_user_data': 'denied',
+  'ad_personalization': 'denied',
+  'wait_for_update': 500
+});
+(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','${GOOGLE_TAG_MANAGER_ID}');
+`.trim();
+
 
 // Vite dev sert le fichier source comme module JS par défaut. Le suffixe
 // `direct` force une vraie réponse text/css pour le SSR et les téléphones qui
@@ -254,11 +273,22 @@ function RootShell({ children }: { children: ReactNode }) {
     <html lang="fr" suppressHydrationWarning>
       <head>
         <meta name="color-scheme" content="light dark" />
+        <link rel="preconnect" href="https://www.googletagmanager.com" />
+        <script dangerouslySetInnerHTML={{ __html: GOOGLE_TAG_MANAGER_SCRIPT }} />
         <style dangerouslySetInnerHTML={{ __html: CRITICAL_CSS }} />
         <link rel="stylesheet" data-livefoot-css="1" href={APP_CSS_HREF} onError={(event) => event.currentTarget.remove()} />
         <HeadContent />
       </head>
       <body suppressHydrationWarning>
+        <noscript>
+          <iframe
+            src={`https://www.googletagmanager.com/ns.html?id=${GOOGLE_TAG_MANAGER_ID}`}
+            height="0"
+            width="0"
+            title="Google Tag Manager"
+            style={{ display: "none", visibility: "hidden" }}
+          />
+        </noscript>
         {children}
         <Scripts />
       </body>
@@ -292,6 +322,7 @@ function RootComponent() {
         <SessionProvider>
           <Outlet />
           <CookieBanner />
+          <GoogleTagManager />
           <MetaPixel />
           <Toaster position="top-center" richColors />
         </SessionProvider>

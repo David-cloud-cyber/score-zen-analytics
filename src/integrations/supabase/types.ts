@@ -13,7 +13,8 @@ export type Database = {
           id: string;
           incident_id: string;
           route: string;
-          category: "data" | "route" | "render" | "css" | "provider" | "timeout" | "quota" | "payment";
+          category:
+            "data" | "route" | "render" | "css" | "provider" | "timeout" | "quota" | "payment";
           status_code: number;
           device_family: "mobile" | "tablet" | "desktop";
           browser_family: string;
@@ -26,7 +27,8 @@ export type Database = {
           id?: string;
           incident_id: string;
           route: string;
-          category: "data" | "route" | "render" | "css" | "provider" | "timeout" | "quota" | "payment";
+          category:
+            "data" | "route" | "render" | "css" | "provider" | "timeout" | "quota" | "payment";
           status_code?: number;
           device_family?: "mobile" | "tablet" | "desktop";
           browser_family?: string;
@@ -44,6 +46,9 @@ export type Database = {
           last_seen_at: string;
           route: string;
           device_family: "mobile" | "tablet" | "desktop";
+          country_code: string | null;
+          locale: string | null;
+          timezone: string | null;
           updated_at: string;
         };
         Insert: {
@@ -51,6 +56,9 @@ export type Database = {
           last_seen_at?: string;
           route?: string;
           device_family?: "mobile" | "tablet" | "desktop";
+          country_code?: string | null;
+          locale?: string | null;
+          timezone?: string | null;
           updated_at?: string;
         };
         Update: {
@@ -58,6 +66,9 @@ export type Database = {
           last_seen_at?: string;
           route?: string;
           device_family?: "mobile" | "tablet" | "desktop";
+          country_code?: string | null;
+          locale?: string | null;
+          timezone?: string | null;
           updated_at?: string;
         };
         Relationships: [];
@@ -339,6 +350,7 @@ export type Database = {
           checkout_request_id: string | null;
           checkout_link: string | null;
           created_at: string;
+          customer_email: string | null;
           credited_at: string | null;
           credits: number;
           external_id: string;
@@ -346,7 +358,10 @@ export type Database = {
           link: string | null;
           medium: "mobile money" | "orange money" | null;
           pack_id: string;
+          promo_campaign_id: string | null;
+          promo_user_state_id: string | null;
           provider: string;
+          provider_sale_id: string | null;
           status: string;
           trans_id: string | null;
           updated_at: string;
@@ -358,6 +373,7 @@ export type Database = {
           checkout_request_id?: string | null;
           checkout_link?: string | null;
           created_at?: string;
+          customer_email?: string | null;
           credited_at?: string | null;
           credits: number;
           external_id: string;
@@ -365,7 +381,10 @@ export type Database = {
           link?: string | null;
           medium?: "mobile money" | "orange money" | null;
           pack_id: string;
+          promo_campaign_id?: string | null;
+          promo_user_state_id?: string | null;
           provider?: string;
+          provider_sale_id?: string | null;
           status?: string;
           trans_id?: string | null;
           updated_at?: string;
@@ -377,6 +396,7 @@ export type Database = {
           checkout_request_id?: string | null;
           checkout_link?: string | null;
           created_at?: string;
+          customer_email?: string | null;
           credited_at?: string | null;
           credits?: number;
           external_id?: string;
@@ -384,7 +404,10 @@ export type Database = {
           link?: string | null;
           medium?: "mobile money" | "orange money" | null;
           pack_id?: string;
+          promo_campaign_id?: string | null;
+          promo_user_state_id?: string | null;
           provider?: string;
+          provider_sale_id?: string | null;
           status?: string;
           trans_id?: string | null;
           updated_at?: string;
@@ -402,6 +425,7 @@ export type Database = {
           id: string;
           plan: Database["public"]["Enums"]["plan_tier"];
           premium_until: string | null;
+          referral_pro_until: string | null;
           referral_code: string | null;
           referred_by: string | null;
           updated_at: string;
@@ -418,6 +442,7 @@ export type Database = {
           id: string;
           plan?: Database["public"]["Enums"]["plan_tier"];
           premium_until?: string | null;
+          referral_pro_until?: string | null;
           referral_code?: string | null;
           referred_by?: string | null;
           updated_at?: string;
@@ -434,6 +459,7 @@ export type Database = {
           id?: string;
           plan?: Database["public"]["Enums"]["plan_tier"];
           premium_until?: string | null;
+          referral_pro_until?: string | null;
           referral_code?: string | null;
           referred_by?: string | null;
           updated_at?: string;
@@ -458,6 +484,7 @@ export type Database = {
           checkout_request_id: string | null;
           checkout_link: string | null;
           created_at: string;
+          customer_email: string | null;
           current_period_end: string | null;
           current_period_start: string | null;
           external_id: string;
@@ -465,6 +492,7 @@ export type Database = {
           medium: "mobile money" | "orange money" | null;
           plan_id: string;
           provider: string;
+          provider_sale_id: string | null;
           status: string;
           trans_id: string | null;
           updated_at: string;
@@ -476,6 +504,7 @@ export type Database = {
           checkout_request_id?: string | null;
           checkout_link?: string | null;
           created_at?: string;
+          customer_email?: string | null;
           current_period_end?: string | null;
           current_period_start?: string | null;
           external_id: string;
@@ -483,6 +512,7 @@ export type Database = {
           medium?: "mobile money" | "orange money" | null;
           plan_id: string;
           provider?: string;
+          provider_sale_id?: string | null;
           status?: string;
           trans_id?: string | null;
           updated_at?: string;
@@ -494,6 +524,7 @@ export type Database = {
           checkout_request_id?: string | null;
           checkout_link?: string | null;
           created_at?: string;
+          customer_email?: string | null;
           current_period_end?: string | null;
           current_period_start?: string | null;
           external_id?: string;
@@ -501,6 +532,7 @@ export type Database = {
           medium?: "mobile money" | "orange money" | null;
           plan_id?: string;
           provider?: string;
+          provider_sale_id?: string | null;
           status?: string;
           trans_id?: string | null;
           updated_at?: string;
@@ -558,6 +590,17 @@ export type Database = {
         }[];
       };
       credit_payment: {
+        Args: {
+          p_payment_id: string;
+          p_user_id: string;
+          p_credits: number;
+        };
+        Returns: {
+          credited: boolean;
+          new_balance: number;
+        }[];
+      };
+      credit_promotional_payment: {
         Args: {
           p_payment_id: string;
           p_user_id: string;

@@ -224,10 +224,10 @@ export function PromoFaq({ items }: { items: { q: string; a: string }[] }) {
 
 export function ResponsibleGamblingNotice() {
   return (
-    <aside className="flex gap-3 rounded-xl border border-alert/30 bg-alert/5 p-4">
+    <aside className="responsible-gambling-notice flex gap-3 rounded-xl border p-4">
       <ShieldAlert className="mt-0.5 size-5 shrink-0 text-alert" aria-hidden />
-      <div className="space-y-1 text-xs leading-relaxed text-muted-foreground">
-        <p className="font-bold text-foreground">Jeu responsable — interdit aux mineurs (18+)</p>
+      <div className="space-y-1 text-xs leading-relaxed">
+        <p className="font-bold">Jeu responsable — interdit aux mineurs (18+)</p>
         <p>
           Les paris sportifs comportent des risques : endettement, isolement, dépendance. LiveFoot
           AI publie ces contenus à titre informatif et perçoit une commission d'affiliation sur les

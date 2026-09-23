@@ -1,6 +1,7 @@
 export type PremiumProfile = {
   plan?: string | null;
   premium_until?: string | null;
+  referral_pro_until?: string | null;
 };
 
 /** Source unique pour décider si les droits Premium sont encore actifs. */

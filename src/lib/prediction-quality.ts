@@ -5,8 +5,8 @@
  * It is safe to use from server functions and from pure verification scripts.
  */
 
-export const PREDICTION_ENGINE_VERSION = "v2.2.0";
-export const PREDICTION_CALIBRATION_VERSION = "observed-evidence-v3";
+export const PREDICTION_ENGINE_VERSION = "v2.3.0";
+export const PREDICTION_CALIBRATION_VERSION = "selective-evidence-v4";
 
 export type PredictionAiStatus =
   "ai_enriched" | "ai_fallback" | "statistical_only" | "no_recommendation";
@@ -118,8 +118,8 @@ export function shouldRecommendMarket(params: {
   divergence?: number;
 }): boolean {
   const divergence = params.divergence ?? 0;
-  const minimumConfidence = params.qualityScore >= 72 ? 53 : params.qualityScore >= 52 ? 56 : 60;
-  return params.qualityScore >= 42 && params.confidence >= minimumConfidence && divergence <= 20;
+  const minimumConfidence = params.qualityScore >= 78 ? 57 : params.qualityScore >= 55 ? 58 : 54;
+  return params.qualityScore >= 48 && params.confidence >= minimumConfidence && divergence <= 14;
 }
 
 export function brierScore(probability: number, outcome: boolean): number {

@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { newIncidentId, recordServerIncident, type IncidentCategory } from "@/lib/incident.server";
+import { allowPublicRequest, readJsonBody } from "@/lib/public-endpoint.server";
 
 type PublicError = {
   category?: unknown;
@@ -24,7 +25,9 @@ export const Route = createFileRoute("/api/public/app-error")({
     handlers: {
       POST: async ({ request }) => {
         try {
-          const input = (await request.json()) as PublicError;
+          if (!allowPublicRequest(request, "app-error")) return new Response(null, { status: 204 });
+          const input = await readJsonBody(request);
+          if (!input) return new Response(null, { status: 204 });
           await recordServerIncident({
             incidentId: newIncidentId(),
             route: text(input.route, 160),

@@ -2,10 +2,13 @@ import { DurableObject } from "cloudflare:workers";
 import {
   DAY_REFRESH_MS,
   DAY_STALE_MS,
+  DAILY_QUOTA_CAUTION_RATIO,
+  DAILY_QUOTA_RESERVE_RATIO,
   LIVE_CAUTION_REFRESH_MS,
   LIVE_COORDINATOR_NAME,
   LIVE_DEGRADED_REFRESH_MS,
   LIVE_REFRESH_MS,
+  MIN_DAILY_QUOTA_RESERVE,
   QUIET_REFRESH_MS,
   SNAPSHOT_STALE_MS,
   buildSharedPayload,
@@ -55,14 +58,19 @@ type UpstreamResult = {
 const LIVE_KEY = "lf:shared:v2:fixtures:live";
 const LIVE_STORAGE_KEY = "live-snapshot-envelope:v2";
 const QUOTA_KEY = "lf:shared:v2:coordinator:quota";
+const QUOTA_STORAGE_KEY = "quota-snapshot:v3";
 const LAST_HTTP_ACCESS_KEY = "lf:shared:v2:coordinator:last-http-access";
 const UPSTREAM_PREFIX = "lf:shared:v2:upstream:";
 const ACTIVE_HTTP_WINDOW_MS = 65_000;
 const UPSTREAM_TIMEOUT_MS = 5_000;
-const LOW_DAILY_QUOTA_THRESHOLD = 0.1;
-const LOW_DAILY_QUOTA_THRESHOLD_CRITICAL = 0.05;
+const UPSTREAM_RATE_LIMIT_COOLDOWN_MS = 60_000;
 const LOW_MINUTE_QUOTA_THRESHOLD = 10;
 const CRITICAL_MINUTE_QUOTA_THRESHOLD = 2;
+
+function dailyQuotaReserve(dayLimit?: number): number {
+  if (!dayLimit || dayLimit <= 0) return 0;
+  return Math.max(MIN_DAILY_QUOTA_RESERVE, Math.ceil(dayLimit * DAILY_QUOTA_RESERVE_RATIO));
+}
 
 const ALLOWED_UPSTREAM_PATHS = new Set([
   "/fixtures",
@@ -90,6 +98,16 @@ function jsonResponse(payload: FixturesPayload, status = 200): Response {
       "x-livefoot-source": payload.source,
       "x-livefoot-state": payload.state,
       ...(payload.fetchedAt ? { "x-livefoot-updated-at": payload.fetchedAt } : {}),
+    },
+  });
+}
+
+function jsonDataResponse(payload: unknown, status = 200): Response {
+  return new Response(JSON.stringify(payload), {
+    status,
+    headers: {
+      "content-type": "application/json; charset=utf-8",
+      "cache-control": "private, no-store",
     },
   });
 }
@@ -145,6 +163,37 @@ export class LiveFootballCoordinator extends DurableObject<CoordinatorEnv> {
 
     if (url.pathname === "/api/upstream") {
       return this.handleUpstreamRequest(url);
+    }
+
+    // Persistent fallback for small server-side editorial datasets. KV is
+    // intentionally reserved for shared football caches; its daily write
+    // quota must never make the public predictions page empty.
+    if (url.pathname === "/api/daily-predictions") {
+      const date = url.searchParams.get("date") ?? "";
+      const kind = url.searchParams.get("kind") ?? "rows";
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date) && date !== "global") {
+        return jsonDataResponse({ error: "invalid_date" }, 400);
+      }
+      if (!["rows", "attempt", "settlement"].includes(kind)) {
+        return jsonDataResponse({ error: "invalid_kind" }, 400);
+      }
+      const key = `daily-predictions:v2:${kind}:${date}`;
+      if (request.method === "GET") {
+        return jsonDataResponse((await this.ctx.storage.get(key)) ?? null);
+      }
+      if (request.method === "PUT") {
+        try {
+          const body = (await request.json()) as unknown;
+          if (kind === "rows" && (!Array.isArray(body) || body.length > 12)) {
+            return jsonDataResponse({ error: "invalid_rows" }, 400);
+          }
+          await this.ctx.storage.put(key, body);
+          return jsonDataResponse({ ok: true });
+        } catch {
+          return jsonDataResponse({ error: "invalid_payload" }, 400);
+        }
+      }
+      return jsonDataResponse({ error: "method_not_allowed" }, 405);
     }
 
     if (url.pathname === "/api/fixtures/live") {
@@ -305,7 +354,7 @@ export class LiveFootballCoordinator extends DurableObject<CoordinatorEnv> {
     if (
       quota.dayRemaining !== undefined &&
       quota.dayLimit !== undefined &&
-      quota.dayRemaining <= Math.max(10, quota.dayLimit * LOW_DAILY_QUOTA_THRESHOLD_CRITICAL)
+      quota.dayRemaining <= dailyQuotaReserve(quota.dayLimit)
     )
       return LIVE_DEGRADED_REFRESH_MS;
     if (
@@ -317,7 +366,7 @@ export class LiveFootballCoordinator extends DurableObject<CoordinatorEnv> {
     if (
       (quota.dayRemaining !== undefined &&
         quota.dayLimit !== undefined &&
-        quota.dayRemaining <= Math.max(10, quota.dayLimit * LOW_DAILY_QUOTA_THRESHOLD)) ||
+        quota.dayRemaining <= Math.max(10, quota.dayLimit * DAILY_QUOTA_CAUTION_RATIO)) ||
       (quota.minuteRemaining !== undefined && quota.minuteRemaining <= LOW_MINUTE_QUOTA_THRESHOLD)
     )
       return LIVE_CAUTION_REFRESH_MS;
@@ -341,26 +390,24 @@ export class LiveFootballCoordinator extends DurableObject<CoordinatorEnv> {
   }
 
   private async readEnvelope(key: string): Promise<SharedSnapshotEnvelope | null> {
-    // Durable Object storage is the authoritative L1 for live snapshots. KV
-    // edge reads have a minimum cache TTL and can otherwise hide a fresh score
-    // for longer than the live refresh cadence.
-    if (key === LIVE_KEY) {
-      const local = await this.ctx.storage.get<unknown>(LIVE_STORAGE_KEY);
-      if (isSnapshotEnvelope(local)) return local;
-    }
-    // Cloudflare KV requires cacheTtl >= 30 seconds. The snapshot freshness
-    // itself remains adaptive; this only controls the edge read cache.
+    // The global coordinator is the authoritative cache. Persist both live
+    // and dated snapshots in Durable Object storage so a KV write limit never
+    // deletes the last verified score or a recently opened fixture.
+    const storageKey =
+      key === LIVE_KEY ? LIVE_STORAGE_KEY : `day-snapshot-envelope:v3:${encodeURIComponent(key)}`;
+    const local = await this.ctx.storage.get<unknown>(storageKey);
+    if (isSnapshotEnvelope(local)) return local;
+
+    // Read legacy KV data only as a migration fallback. New writes stay in
+    // the Durable Object to keep the quota available for unrelated features.
     const value = await this.env.FOOTBALL_CACHE?.get(key, { type: "json", cacheTtl: 30 });
     return isSnapshotEnvelope(value) ? value : null;
   }
 
   private async writeEnvelope(key: string, envelope: SharedSnapshotEnvelope) {
-    if (key === LIVE_KEY) {
-      await this.ctx.storage.put(LIVE_STORAGE_KEY, envelope);
-    }
-    await this.env.FOOTBALL_CACHE?.put(key, JSON.stringify(envelope), {
-      expirationTtl: Math.max(60, Math.ceil((envelope.staleUntil - envelope.storedAt) / 1000) + 60),
-    });
+    const storageKey =
+      key === LIVE_KEY ? LIVE_STORAGE_KEY : `day-snapshot-envelope:v3:${encodeURIComponent(key)}`;
+    await this.ctx.storage.put(storageKey, envelope);
   }
 
   private async liveFallbackFromDay(
@@ -386,7 +433,48 @@ export class LiveFootballCoordinator extends DurableObject<CoordinatorEnv> {
     };
   }
 
+  private async cachedUpstreamSnapshot(
+    mode: SharedFixtureMode,
+    date: string,
+    errorCode?: FixturesPayload["errorCode"],
+    retryAfterMs?: number,
+  ): Promise<FixturesPayload | null> {
+    const params: Record<string, string> = mode === "live" ? { live: "all" } : { date };
+    try {
+      const upstream = await this.getUpstream("/fixtures", params);
+      if (!Array.isArray(upstream.data) || upstream.data.length === 0) return null;
+      const snapshot = buildSharedPayload(
+        upstream.data as ApiFixtureRecord[],
+        mode,
+        upstream.storedAt,
+      );
+      return {
+        ...snapshot,
+        source: "cache",
+        state: "stale",
+        fetchedAt: new Date(upstream.storedAt).toISOString(),
+        cacheId: mode === "live" ? LIVE_KEY : daySnapshotKey(date),
+        errorCode,
+        retryAfterMs,
+      };
+    } catch {
+      return null;
+    }
+  }
+
   private async readQuotaState(): Promise<QuotaSnapshot> {
+    const local = await this.ctx.storage.get<unknown>(QUOTA_STORAGE_KEY);
+    if (local && typeof local === "object") {
+      const state = local as Partial<QuotaSnapshot>;
+      return {
+        updatedAt: typeof state.updatedAt === "number" ? state.updatedAt : 0,
+        blockedUntil: typeof state.blockedUntil === "number" ? state.blockedUntil : 0,
+        dayLimit: state.dayLimit,
+        dayRemaining: state.dayRemaining,
+        minuteLimit: state.minuteLimit,
+        minuteRemaining: state.minuteRemaining,
+      };
+    }
     const value = await this.env.FOOTBALL_CACHE?.get(QUOTA_KEY, { type: "json", cacheTtl: 30 });
     if (!value || typeof value !== "object") return { updatedAt: 0, blockedUntil: 0 };
     const state = value as Partial<QuotaSnapshot>;
@@ -401,12 +489,7 @@ export class LiveFootballCoordinator extends DurableObject<CoordinatorEnv> {
   }
 
   private async setQuotaState(state: QuotaSnapshot) {
-    await this.env.FOOTBALL_CACHE?.put(QUOTA_KEY, JSON.stringify(state), {
-      expirationTtl: Math.max(
-        60,
-        Math.ceil(Math.max(0, state.blockedUntil - Date.now()) / 1000) + 60,
-      ),
-    });
+    await this.ctx.storage.put(QUOTA_STORAGE_KEY, state);
   }
 
   private upstreamProfile(path: string, params: Record<string, string>) {
@@ -435,6 +518,20 @@ export class LiveFootballCoordinator extends DurableObject<CoordinatorEnv> {
   }
 
   private async readUpstreamEnvelope(key: string): Promise<UpstreamEnvelope | null> {
+    const local = await this.ctx.storage.get<unknown>(
+      `upstream-envelope:v3:${encodeURIComponent(key)}`,
+    );
+    if (local && typeof local === "object") {
+      const envelope = local as Partial<UpstreamEnvelope>;
+      if (
+        typeof envelope.storedAt === "number" &&
+        typeof envelope.freshUntil === "number" &&
+        typeof envelope.staleUntil === "number" &&
+        "data" in envelope
+      ) {
+        return envelope as UpstreamEnvelope;
+      }
+    }
     const value = await this.env.FOOTBALL_CACHE?.get(key, { type: "json", cacheTtl: 30 });
     if (!value || typeof value !== "object") return null;
     const envelope = value as Partial<UpstreamEnvelope>;
@@ -447,9 +544,7 @@ export class LiveFootballCoordinator extends DurableObject<CoordinatorEnv> {
   }
 
   private async writeUpstreamEnvelope(key: string, envelope: UpstreamEnvelope) {
-    await this.env.FOOTBALL_CACHE?.put(key, JSON.stringify(envelope), {
-      expirationTtl: Math.max(60, Math.ceil((envelope.staleUntil - envelope.storedAt) / 1000) + 60),
-    });
+    await this.ctx.storage.put(`upstream-envelope:v3:${encodeURIComponent(key)}`, envelope);
   }
 
   private async getUpstream(path: string, params: Record<string, string>): Promise<UpstreamResult> {
@@ -484,6 +579,24 @@ export class LiveFootballCoordinator extends DurableObject<CoordinatorEnv> {
       throw new CoordinatorUpstreamError(429, "provider_quota_blocked", quota.blockedUntil - now);
     }
 
+    // Once the provider reports the safety reserve, do not spend the last
+    // requests on secondary sections or repeated page refreshes. Serve the
+    // last real snapshot when possible and wait for the next daily reset.
+    const reserve = dailyQuotaReserve(quota.dayLimit);
+    if (
+      reserve > 0 &&
+      quota.dayRemaining !== undefined &&
+      quota.dayRemaining <= reserve
+    ) {
+      if (envelope && envelope.staleUntil > now)
+        return { data: envelope.data, storedAt: envelope.storedAt, stale: true };
+      throw new CoordinatorUpstreamError(
+        429,
+        "provider_daily_reserve",
+        Math.max(LIVE_DEGRADED_REFRESH_MS, 60_000),
+      );
+    }
+
     try {
       const data = await this.fetchUpstream(path, params);
       const storedAt = Date.now();
@@ -495,6 +608,14 @@ export class LiveFootballCoordinator extends DurableObject<CoordinatorEnv> {
       });
       return { data, storedAt, stale: false };
     } catch (error) {
+      if (error instanceof CoordinatorUpstreamError && error.status === 429) {
+        const quota = await this.readQuotaState();
+        await this.setQuotaState({
+          ...quota,
+          updatedAt: Date.now(),
+          blockedUntil: Date.now() + (error.retryAfterMs ?? UPSTREAM_RATE_LIMIT_COOLDOWN_MS),
+        });
+      }
       if (envelope && envelope.staleUntil > Date.now()) {
         return { data: envelope.data, storedAt: envelope.storedAt, stale: true };
       }
@@ -555,6 +676,18 @@ export class LiveFootballCoordinator extends DurableObject<CoordinatorEnv> {
             nextDelayMs: Math.max(LIVE_DEGRADED_REFRESH_MS, quota.blockedUntil - now),
           };
         }
+      }
+      const cached = await this.cachedUpstreamSnapshot(
+        mode,
+        date,
+        "rate_limit",
+        quota.blockedUntil - now,
+      );
+      if (cached) {
+        return {
+          snapshot: cached,
+          nextDelayMs: Math.max(LIVE_DEGRADED_REFRESH_MS, quota.blockedUntil - now),
+        };
       }
       return {
         snapshot: {
@@ -634,6 +767,18 @@ export class LiveFootballCoordinator extends DurableObject<CoordinatorEnv> {
           };
         }
       }
+      const cached = await this.cachedUpstreamSnapshot(
+        mode,
+        date,
+        errorCodeFromStatus(status),
+        retryAfterMs,
+      );
+      if (cached) {
+        return {
+          snapshot: cached,
+          nextDelayMs: Math.max(LIVE_DEGRADED_REFRESH_MS, retryAfterMs ?? QUIET_REFRESH_MS),
+        };
+      }
       return {
         snapshot: {
           matches: [],
@@ -659,9 +804,13 @@ export class LiveFootballCoordinator extends DurableObject<CoordinatorEnv> {
         `https://v3.football.api-sports.io${path}?${new URLSearchParams(params).toString()}`,
         { headers: { "x-apisports-key": key }, signal: controller.signal },
       );
-      const retryHeader = Number(response.headers.get("retry-after"));
+      // `Number(null)` is 0. Treating a missing Retry-After header as zero
+      // caused a 429 to reopen the circuit immediately and made every page
+      // request the provider again, which could leave the match list empty.
+      const retryHeaderValue = response.headers.get("retry-after");
+      const retryHeader = retryHeaderValue ? Number(retryHeaderValue) : NaN;
       const retryAfterMs = Number.isFinite(retryHeader)
-        ? Math.min(retryHeader * 1000, 10 * 60_000)
+        ? Math.max(1_000, Math.min(retryHeader * 1000, 10 * 60_000))
         : undefined;
       const dailyLimit = headerNumber(response, [
         "x-ratelimit-requests-limit",
@@ -678,15 +827,16 @@ export class LiveFootballCoordinator extends DurableObject<CoordinatorEnv> {
       ]);
       const now = Date.now();
       const currentQuota = await this.readQuotaState();
+      const reserve = dailyQuotaReserve(dailyLimit);
       const criticalDaily =
         dailyRemaining === 0 ||
         (dailyRemaining !== undefined &&
-          dailyLimit !== undefined &&
-          dailyRemaining <= Math.max(10, dailyLimit * LOW_DAILY_QUOTA_THRESHOLD_CRITICAL));
+          reserve > 0 &&
+          dailyRemaining <= reserve);
       const lowDaily =
         dailyRemaining !== undefined &&
         dailyLimit !== undefined &&
-        dailyRemaining <= Math.max(10, dailyLimit * LOW_DAILY_QUOTA_THRESHOLD);
+        dailyRemaining <= Math.max(10, dailyLimit * DAILY_QUOTA_CAUTION_RATIO);
       const criticalMinute =
         minuteRemaining !== undefined && minuteRemaining <= CRITICAL_MINUTE_QUOTA_THRESHOLD;
       const lowMinute =
@@ -697,9 +847,13 @@ export class LiveFootballCoordinator extends DurableObject<CoordinatorEnv> {
           : currentQuota.blockedUntil > now && (lowDaily || lowMinute)
             ? currentQuota.blockedUntil
             : 0;
+      const providerBlockedUntil =
+        response.status === 429
+          ? now + (retryAfterMs ?? UPSTREAM_RATE_LIMIT_COOLDOWN_MS)
+          : blockedUntil;
       await this.setQuotaState({
         updatedAt: now,
-        blockedUntil,
+        blockedUntil: providerBlockedUntil,
         dayLimit: dailyLimit ?? currentQuota.dayLimit,
         dayRemaining: dailyRemaining ?? currentQuota.dayRemaining,
         minuteLimit: minuteLimit ?? currentQuota.minuteLimit,

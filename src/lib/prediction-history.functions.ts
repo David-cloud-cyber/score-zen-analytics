@@ -5,6 +5,7 @@ import type { Database, Json } from "@/integrations/supabase/types";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { isPremiumActive } from "@/lib/premium-status";
 import { apiFootball } from "@/lib/apifootball.server";
+import { isActionablePrediction } from "./prediction-evaluation";
 
 export type PredictionHistoryStatus = "pending" | "won" | "lost" | "unresolvable";
 export type PredictionHistoryMarket = "1X2" | "double_chance" | "btts" | "total_goals" | "unsupported";
@@ -170,18 +171,13 @@ function classifySelection(item: PredictionHistoryItem):
   | { total: number; over: boolean }
   | null {
   const pick = normalizeText(item.pick);
+  if (!isActionablePrediction(item.pick)) return null;
   const home = normalizeText(item.homeTeam);
   const away = normalizeText(item.awayTeam);
   if (item.market === "1X2") {
     if (pick.includes(home) || pick.includes("domicile")) return "home";
     if (pick.includes(away) || pick.includes("exterieur")) return "away";
     if (pick.includes("nul") || pick.includes("draw")) return "draw";
-    const values = item.probabilities;
-    if (values.home !== null && values.away !== null && values.draw !== null) {
-      if (values.home >= values.away && values.home >= values.draw) return "home";
-      if (values.away >= values.home && values.away >= values.draw) return "away";
-      return "draw";
-    }
     return null;
   }
   if (item.market === "double_chance") {
@@ -254,6 +250,9 @@ function toItem(row: RawAnalysisRow, settlement?: Partial<PredictionHistoryItem>
     finalScore: row.final_score ?? existing?.finalScore ?? null,
     settledAt: row.settled_at ?? existing?.settledAt ?? null,
     ...settlement,
+    ...(!isActionablePrediction(row.prediction_pick ?? primary.pick)
+      ? { status: "unresolvable" as const, outcome: null }
+      : {}),
   };
 }
 

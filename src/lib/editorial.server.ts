@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import type {
   EditorialCategory,
   EditorialContent,
+  EditorialLink,
   EditorialListItem,
   EditorialSource,
   PublicEditorialArticle,
@@ -72,6 +73,29 @@ function sources(rows: unknown[]): EditorialSource[] {
   });
 }
 
+const DEFAULT_EDITORIAL_LINKS: EditorialLink[] = [
+  { label: "Découvrir les codes partenaires", path: "/codes-promo", reason: "Consulter les offres partenaires vérifiées" },
+  { label: "Voir les offres Premium", path: "/premium", reason: "Retrouver l’historique et les alertes Premium" },
+];
+
+function articleLinks(value: unknown): EditorialLink[] {
+  const existing = Array.isArray(value)
+    ? value.flatMap((item) => {
+        if (!item || typeof item !== "object") return [];
+        const row = item as Record<string, unknown>;
+        if (typeof row.label !== "string" || typeof row.path !== "string" || !row.label.trim() || !row.path.startsWith("/")) return [];
+        return [{
+          label: row.label.trim().slice(0, 100),
+          path: row.path.trim().slice(0, 160),
+          reason: typeof row.reason === "string" ? row.reason.trim().slice(0, 180) : "Approfondir ce sujet sur LiveFoot",
+        } satisfies EditorialLink];
+      })
+    : [];
+  return [...existing, ...DEFAULT_EDITORIAL_LINKS]
+    .filter((link, index, links) => links.findIndex((candidate) => candidate.path === link.path) === index)
+    .slice(0, 5);
+}
+
 function mapArticle(row: Record<string, unknown>, sourceRows: unknown[] = []): PublicEditorialArticle {
   return {
     id: String(row.id),
@@ -83,7 +107,7 @@ function mapArticle(row: Record<string, unknown>, sourceRows: unknown[] = []): P
     excerpt: String(row.excerpt),
     directAnswer: String(row.direct_answer),
     content: content(row.content),
-    internalLinks: Array.isArray(row.internal_links) ? row.internal_links : [],
+    internalLinks: articleLinks(row.internal_links),
     qualityScore: typeof row.quality_score === "number" ? row.quality_score : null,
     wordCount: Number(row.word_count ?? 0),
     authorName: String(row.author_name ?? "Rédaction LiveFoot"),
@@ -226,7 +250,7 @@ export async function getEditorialFeedEntries() {
 }
 
 export async function getAdminEditorialData() {
-  const [{ data: articles }, { data: topics }, { data: runs }] = await Promise.all([
+  const [{ data: articles }, { data: topics }, { data: runs }, { data: campaign }, { data: queueRows }] = await Promise.all([
     db
       .from("editorial_articles")
       .select("id, slug, title, category, status, quality_score, word_count, scheduled_for, published_at, updated_at, rejection_reason, created_at")
@@ -242,6 +266,28 @@ export async function getAdminEditorialData() {
       .select("id, slot_key, run_type, status, articles_created, error_message, started_at, completed_at")
       .order("started_at", { ascending: false })
       .limit(20),
+    db
+      .from("editorial_campaigns")
+      .select("id, slug, name, starts_at, ends_at, daily_limit, max_articles, active")
+      .order("starts_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    db
+      .from("editorial_campaign_queue")
+      .select("status")
+      .limit(500),
   ]);
-  return { articles: articles ?? [], topics: topics ?? [], runs: runs ?? [] };
+  const queue = (queueRows ?? []) as Array<{ status: string }>;
+  const queueStats = queue.reduce<Record<string, number>>((stats, row) => {
+    stats[row.status] = (stats[row.status] ?? 0) + 1;
+    return stats;
+  }, {});
+  return {
+    articles: articles ?? [],
+    topics: topics ?? [],
+    runs: runs ?? [],
+    campaign: campaign
+      ? { ...campaign, queueTotal: queue.length, queueStats }
+      : null,
+  };
 }

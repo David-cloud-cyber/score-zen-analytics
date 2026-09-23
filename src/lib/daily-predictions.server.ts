@@ -1,7 +1,12 @@
-import { apiFootball, todayISO } from "./apifootball.server";
+import { apiFootball } from "./apifootball.server";
 import { readSharedFixtureSnapshot } from "./football.functions";
 import type { RemoteMatchSummary } from "./football-types";
-import { getRuntimeBinding, type RuntimeBinding } from "./config.server";
+import { buildStatisticalPrediction, type TeamPredictionContext } from "./prediction-engine";
+import {
+  getRuntimeBinding,
+  type DurableObjectNamespaceBinding,
+  type RuntimeBinding,
+} from "./config.server";
 
 type DailyRow = {
   id: string;
@@ -54,7 +59,7 @@ type AttemptState = {
 };
 
 const TARGET_PREDICTIONS = 8;
-const MAX_CANDIDATES_PER_RUN = 36;
+const MAX_CANDIDATES_PER_RUN = 12;
 const MIN_LEAD_TIME_MS = 20 * 60_000;
 const STORAGE_PREFIX = "daily-predictions:v1";
 const STORAGE_TTL_SECONDS = 45 * 24 * 60 * 60;
@@ -66,12 +71,58 @@ function predictionStore() {
   return getRuntimeBinding<RuntimeBinding>("FOOTBALL_CACHE");
 }
 
+function predictionCoordinator() {
+  return getRuntimeBinding<DurableObjectNamespaceBinding>("LIVE_FOOTBALL_COORDINATOR")?.getByName(
+    "global",
+  );
+}
+
+async function readCoordinatorState<T>(kind: "rows" | "attempt" | "settlement", date: string) {
+  const coordinator = predictionCoordinator();
+  if (!coordinator) return null;
+  try {
+    const response = await coordinator.fetch(
+      new Request(
+        `https://livefoot.internal/api/daily-predictions?kind=${kind}&date=${encodeURIComponent(date)}`,
+      ),
+    );
+    if (!response.ok) return null;
+    return (await response.json()) as T | null;
+  } catch {
+    return null;
+  }
+}
+
+async function writeCoordinatorState(
+  kind: "rows" | "attempt" | "settlement",
+  date: string,
+  value: unknown,
+) {
+  const coordinator = predictionCoordinator();
+  if (!coordinator) return false;
+  try {
+    const response = await coordinator.fetch(
+      new Request(
+        `https://livefoot.internal/api/daily-predictions?kind=${kind}&date=${encodeURIComponent(date)}`,
+        {
+          method: "PUT",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(value),
+        },
+      ),
+    );
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
 function storageKey(date: string) {
   return `${STORAGE_PREFIX}:${date}`;
 }
 
 function attemptKey(date: string) {
-  return `${STORAGE_PREFIX}:attempt-v3:${date}`;
+  return `${STORAGE_PREFIX}:attempt-v7:${date}`;
 }
 
 function settlementKey() {
@@ -79,9 +130,28 @@ function settlementKey() {
 }
 
 async function readAttemptState(date: string): Promise<AttemptState> {
+  const coordinated = await readCoordinatorState<AttemptState>("attempt", date);
+  if (coordinated) {
+    return {
+      lastAttempt: Number(coordinated.lastAttempt) || 0,
+      fixtures:
+        coordinated.fixtures && typeof coordinated.fixtures === "object"
+          ? Object.fromEntries(
+              Object.entries(coordinated.fixtures).filter(([, timestamp]) =>
+                Number.isFinite(Number(timestamp)),
+              ),
+            )
+          : {},
+    };
+  }
   const store = predictionStore();
   if (!store) return { lastAttempt: 0, fixtures: {} };
-  const value = await store.get(attemptKey(date), { type: "text", cacheTtl: 60 });
+  let value: unknown = null;
+  try {
+    value = await store.get(attemptKey(date), { type: "text", cacheTtl: 60 });
+  } catch {
+    return { lastAttempt: 0, fixtures: {} };
+  }
   const legacyTimestamp = Number(value);
   if (Number.isFinite(legacyTimestamp)) return { lastAttempt: legacyTimestamp, fixtures: {} };
   try {
@@ -108,26 +178,43 @@ async function recordAttempt(date: string, state: AttemptState, fixtureIds: numb
     Object.entries(state.fixtures).filter(([, timestamp]) => now - timestamp < CANDIDATE_RETRY_MS),
   );
   for (const fixtureId of fixtureIds) fixtures[String(fixtureId)] = now;
-  await predictionStore()?.put(
-    attemptKey(date),
-    JSON.stringify({ lastAttempt: now, fixtures } satisfies AttemptState),
-    { expirationTtl: 24 * 60 * 60 },
-  );
+  const nextState = { lastAttempt: now, fixtures } satisfies AttemptState;
+  if (await writeCoordinatorState("attempt", date, nextState)) return;
+  try {
+    await predictionStore()?.put(attemptKey(date), JSON.stringify(nextState), {
+      expirationTtl: 24 * 60 * 60,
+    });
+  } catch {
+    // A KV quota must not prevent the next request from serving a valid
+    // calculation. The coordinator remains the preferred durable store.
+  }
 }
 
 async function saveRows(date: string, rows: DailyRow[]) {
+  if (await writeCoordinatorState("rows", date, rows)) return;
   const store = predictionStore();
-  if (!store) throw new Error("Daily prediction storage unavailable");
-  await store.put(storageKey(date), JSON.stringify(rows), {
-    expirationTtl: STORAGE_TTL_SECONDS,
-  });
+  if (!store) return;
+  try {
+    await store.put(storageKey(date), JSON.stringify(rows), {
+      expirationTtl: STORAGE_TTL_SECONDS,
+    });
+  } catch {
+    // KV is a cache here. If its write quota is exhausted, predictions are
+    // still persisted in the Durable Object above.
+  }
 }
 
 async function loadRows(date: string): Promise<DailyRow[]> {
+  const coordinated = await readCoordinatorState<DailyRow[]>("rows", date);
+  if (Array.isArray(coordinated)) return coordinated;
   const store = predictionStore();
   if (!store) return [];
-  const value = await store.get(storageKey(date), { type: "json", cacheTtl: 60 });
-  return Array.isArray(value) ? (value as DailyRow[]) : [];
+  try {
+    const value = await store.get(storageKey(date), { type: "json", cacheTtl: 60 });
+    return Array.isArray(value) ? (value as DailyRow[]) : [];
+  } catch {
+    return [];
+  }
 }
 
 function dateInDouala(date = new Date()) {
@@ -228,9 +315,17 @@ async function settleExisting(rows: DailyRow[], matches: RemoteMatchSummary[]) {
 
 async function settleRecentPredictionDays(days = 4) {
   const store = predictionStore();
-  const lastSettlement = Number(
-    await store?.get(settlementKey(), { type: "text", cacheTtl: 60 }),
-  );
+  const coordinatedSettlement = await readCoordinatorState<number>("settlement", "global");
+  let lastSettlement = coordinatedSettlement === null ? Number.NaN : Number(coordinatedSettlement);
+  if (!Number.isFinite(lastSettlement)) {
+    try {
+      lastSettlement = Number(
+        await store?.get(settlementKey(), { type: "text", cacheTtl: 60 }),
+      );
+    } catch {
+      lastSettlement = 0;
+    }
+  }
   if (Number.isFinite(lastSettlement) && Date.now() - lastSettlement < SETTLEMENT_COOLDOWN_MS)
     return;
   for (let offset = 1; offset <= days; offset += 1) {
@@ -243,7 +338,157 @@ async function settleRecentPredictionDays(days = 4) {
     if (!snapshot?.matches.length) continue;
     if (await settleExisting(rows, snapshot.matches)) await saveRows(date, rows);
   }
-  await store?.put(settlementKey(), String(Date.now()), { expirationTtl: 24 * 60 * 60 });
+  const now = Date.now();
+  if (await writeCoordinatorState("settlement", "global", now)) return;
+  try {
+    await store?.put(settlementKey(), String(now), { expirationTtl: 24 * 60 * 60 });
+  } catch {
+    // Settlement is best-effort and must not block today's generation.
+  }
+}
+
+type RecentFixture = {
+  fixture: { date: string; status: { short: string } };
+  league: { id: number };
+  teams: {
+    home: { id: number; name: string };
+    away: { id: number; name: string };
+  };
+  goals: { home: number | null; away: number | null };
+};
+
+type Standing = {
+  team: { id: number };
+  rank: number;
+  points: number;
+  goalsDiff: number;
+};
+
+type StatisticalFallback = {
+  marketKey: "1X2" | "double_chance";
+  marketLabel: string;
+  pick: string;
+  probability: number;
+  confidence: number;
+  risk: "bas" | "moyen" | "eleve";
+  rationale: string;
+  factors: string[];
+};
+
+function teamContextFromRecent(
+  id: number,
+  name: string,
+  fixtures: RecentFixture[],
+  standings: Map<number, Standing>,
+  competitionId: number,
+): TeamPredictionContext {
+  const recent = fixtures
+    .filter((fixture) => fixture.goals.home !== null && fixture.goals.away !== null)
+    .map((fixture) => {
+      const isHome = fixture.teams.home.id === id;
+      const goalsFor = isHome ? fixture.goals.home : fixture.goals.away;
+      const goalsAgainst = isHome ? fixture.goals.away : fixture.goals.home;
+      const result =
+        goalsFor === null || goalsAgainst === null
+          ? ("?" as const)
+          : goalsFor > goalsAgainst
+            ? ("W" as const)
+            : goalsFor < goalsAgainst
+              ? ("L" as const)
+              : ("D" as const);
+      return {
+        isHome,
+        goalsFor,
+        goalsAgainst,
+        result,
+        sameCompetition: fixture.league.id === competitionId,
+      };
+    });
+  const standing = standings.get(id);
+  return {
+    id,
+    name,
+    recent,
+    injuries: [],
+    rank: standing?.rank ?? null,
+    points: standing?.points ?? null,
+    goalsDiff: standing?.goalsDiff ?? null,
+    season: null,
+    dataQuality: recent.length >= 5 ? "complete" : "partial",
+  };
+}
+
+async function buildStatisticalFallback(match: RemoteMatchSummary): Promise<StatisticalFallback | null> {
+  const [homeResult, awayResult, standingsResult] = await Promise.all([
+    apiFootball<RecentFixture[]>("/fixtures", { team: match.home.id, last: 10 }).catch(() => []),
+    apiFootball<RecentFixture[]>("/fixtures", { team: match.away.id, last: 10 }).catch(() => []),
+    apiFootball<Array<{ league: { standings: Array<Standing[]> } }>>("/standings", {
+      league: match.league.id,
+      season: match.league.season,
+    }).catch(() => []),
+  ]);
+  const standings = new Map(
+    standingsResult.flatMap((row) => row.league.standings.flat()).map((row) => [row.team.id, row]),
+  );
+  const home = teamContextFromRecent(
+    match.home.id,
+    match.home.name,
+    homeResult,
+    standings,
+    match.league.id,
+  );
+  const away = teamContextFromRecent(
+    match.away.id,
+    match.away.name,
+    awayResult,
+    standings,
+    match.league.id,
+  );
+  // Do not fall back to internal defaults: both teams must have a meaningful
+  // real sample before a daily selection can be shown publicly.
+  if (home.recent.length < 5 || away.recent.length < 5) return null;
+
+  const base = buildStatisticalPrediction({
+    home,
+    away,
+    h2h: [],
+    odds: null,
+    live: null,
+    signals: {
+      competition: {
+        id: match.league.id,
+        name: match.league.name,
+        importance: 0.35,
+      },
+    },
+  });
+  const market = base.markets.find(
+    (item) =>
+      item.label === "Double chance" &&
+      typeof item.probability === "number" &&
+      !item.pick.toLowerCase().includes("aucune"),
+  ) ?? base.markets.find(
+    (item) =>
+      item.label === "Issue du match" &&
+      typeof item.probability === "number" &&
+      !item.pick.toLowerCase().includes("aucune"),
+  );
+  const probability = market?.probability ?? 0;
+  const quality = base.dataQuality?.score ?? 0;
+  if (!market || probability < 70 || market.confidence < 60 || quality < 52) return null;
+  return {
+    marketKey: market.label === "Issue du match" ? "1X2" : "double_chance",
+    marketLabel: market.label,
+    pick: market.pick,
+    probability,
+    confidence: market.confidence,
+    risk: market.risk,
+    rationale: `${market.rationale} Cette sélection repose sur la forme récente et le classement réellement disponibles, sans cote ni projection fournisseur inventée.`,
+    factors: [
+      ...base.keyFactors.slice(0, 3),
+      `Échantillon vérifié : ${home.recent.length} matchs pour ${home.name} et ${away.recent.length} pour ${away.name}.`,
+    ].slice(0, 4),
+  };
 }
 
 async function buildPrediction(match: RemoteMatchSummary, rank: number, predictionDate: string) {
@@ -263,7 +508,48 @@ async function buildPrediction(match: RemoteMatchSummary, rank: number, predicti
     away: percent(provider?.percent?.away) ?? 0,
   });
   const market = marketProbabilities(oddsRows[0]);
-  if (!providerProbabilities && !market) return null;
+  // Les deux sources restent prioritaires. Lorsque l'une des APIs est
+  // temporairement indisponible, une source réelle unique peut toutefois
+  // produire une sélection uniquement avec un seuil plus strict. Cela évite
+  // une page vide sans jamais fabriquer de donnée.
+  if (!providerProbabilities && !market) {
+    const fallback = await buildStatisticalFallback(match);
+    if (!fallback) return null;
+    const now = new Date().toISOString();
+    return {
+      prediction_date: predictionDate,
+      fixture_id: match.id,
+      kickoff: match.kickoff,
+      home_team: match.home.name,
+      away_team: match.away.name,
+      home_logo: match.home.logo || null,
+      away_logo: match.away.logo || null,
+      league_id: match.league.id,
+      league_name: match.league.name,
+      league_logo: match.league.logo || null,
+      market_key: fallback.marketKey,
+      market_label: fallback.marketLabel,
+      pick: fallback.pick,
+      probability: Math.round(fallback.probability),
+      confidence: Math.min(84, Math.max(60, Math.round(fallback.confidence))),
+      risk: fallback.risk,
+      rationale: `${fallback.rationale} La sélection reste une estimation et non une garantie.`,
+      factors: fallback.factors,
+      source_fetched_at: now,
+      engine_version: "daily-v1.5.0",
+      display_rank: rank,
+      updated_at: now,
+    };
+  }
+  const hasTwoSources = Boolean(providerProbabilities && market);
+  if (providerProbabilities && market) {
+    const sourceDivergence = Math.max(
+      Math.abs(providerProbabilities.home - market.home),
+      Math.abs(providerProbabilities.draw - market.draw),
+      Math.abs(providerProbabilities.away - market.away),
+    );
+    if (sourceDivergence > 12) return null;
+  }
   const blend = providerProbabilities && market
     ? {
         home: providerProbabilities.home * 0.78 + market.home * 0.22,
@@ -278,8 +564,9 @@ async function buildPrediction(match: RemoteMatchSummary, rank: number, predicti
   const margin = winnerProbability - entries[1][1];
   if (winner === "draw" || winnerProbability < 40 || margin < 2) return null;
   const opponent = winner === "home" ? "away" : "home";
-  const useStraightWinner =
-    Boolean(providerProbabilities && market) && winnerProbability >= 60 && margin >= 10;
+  const useStraightWinner = hasTwoSources
+    ? winnerProbability >= 62 && margin >= 12
+    : winnerProbability >= 68 && margin >= 18;
   if (providerProbabilities && market) {
     const marketWinner = (Object.entries(market) as Array<["home" | "draw" | "away", number]>).sort(
       (a, b) => b[1] - a[1],
@@ -291,13 +578,14 @@ async function buildPrediction(match: RemoteMatchSummary, rank: number, predicti
   const probability = useStraightWinner
     ? Math.min(88, Math.round(winnerProbability))
     : doubleChanceProbability;
-  const hasTwoSources = Boolean(providerProbabilities && market);
-  const confidence = Math.min(
-    84,
-    Math.max(62, probability - (hasTwoSources ? 2 : market ? 8 : 7)),
-  );
-  if (confidence < 62) return null;
+  const confidence = Math.min(84, Math.max(62, probability - (hasTwoSources ? 2 : 8)));
+  if (confidence < 66 || (!useStraightWinner && probability < (hasTwoSources ? 78 : 84))) return null;
   const advice = provider?.advice?.trim();
+  const sourceDescription = hasTwoSources
+    ? "La projection statistique et les probabilités issues des cotes disponibles convergent."
+    : providerProbabilities
+      ? "La projection fournisseur réelle présente un avantage suffisamment net ; les cotes ne sont pas disponibles pour cette rencontre."
+      : "Le consensus réel des cotes disponibles présente un avantage suffisamment net ; la projection fournisseur est indisponible pour cette rencontre.";
   return {
     prediction_date: predictionDate,
     fixture_id: match.id,
@@ -315,24 +603,20 @@ async function buildPrediction(match: RemoteMatchSummary, rank: number, predicti
     probability,
     confidence,
     risk: confidence >= 76 ? "bas" : "moyen",
-    rationale: hasTwoSources
-      ? "La projection statistique et les probabilités issues des cotes disponibles convergent vers cette sélection."
-      : market
-        ? "Le consensus des cotes disponibles présente un avantage suffisamment net pour retenir cette sélection avec prudence."
-        : "La projection statistique disponible présente un avantage suffisamment net pour retenir cette sélection avec prudence.",
+    rationale: `${sourceDescription} La sélection reste une estimation et non une garantie.`,
     factors: [
       `Projection publiée avant le coup d’envoi : ${probability}% pour le marché retenu.`,
       hasTwoSources
         ? "Le consensus des cotes disponibles va dans la même direction."
-        : market
-          ? "La sélection repose sur plusieurs cotes disponibles, corrigées de leur marge."
-          : "Aucune cote exploitable n’a été utilisée.",
+        : providerProbabilities
+          ? "La sélection repose sur la projection fournisseur réelle disponible, avec un seuil renforcé."
+          : "La sélection repose sur les cotes réelles disponibles, corrigées de leur marge, avec un seuil renforcé.",
       advice
         ? `Lecture complémentaire : ${advice.slice(0, 180)}`
         : `Compétition : ${match.league.name}.`,
     ],
     source_fetched_at: new Date().toISOString(),
-    engine_version: "daily-v1.2.0",
+    engine_version: "daily-v1.4.0",
     display_rank: rank,
     updated_at: new Date().toISOString(),
   };
@@ -346,7 +630,10 @@ export async function ensureDailyPredictions() {
   const generationOnCooldown =
     existing.length < TARGET_PREDICTIONS &&
     Date.now() - attemptState.lastAttempt < ATTEMPT_COOLDOWN_MS;
-  const snapshot = await readSharedFixtureSnapshot("day", todayISO());
+  // Utiliser la même date locale que le stockage public. À minuit UTC, la
+  // date du fournisseur peut déjà être différente de celle affichée au
+  // Cameroun, ce qui produisait une liste vide malgré des matchs disponibles.
+  const snapshot = await readSharedFixtureSnapshot("day", date);
   const matches = snapshot?.matches ?? [];
   const settled = await settleExisting(existing, matches);
   if (existing.length >= TARGET_PREDICTIONS || !matches.length || generationOnCooldown) {

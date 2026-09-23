@@ -22,7 +22,9 @@ import {
 } from "lucide-react";
 import { AppShell, PageTitle } from "@/components/AppShell";
 import { PRICED_PACKS, formatXaf, type PricedPack } from "@/lib/pricing";
-import { createTopupCheckout, verifyTopup, verifyCheckout, getMyPayments } from "@/lib/payments.functions";
+import { createTopupCheckout, verifyTopup, verifyCheckout, getMyPayments, getActivePaymentProvider } from "@/lib/payments.functions";
+import { RelayitCheckoutDialog } from "@/components/RelayitCheckoutDialog";
+import type { RelayitCheckoutDetails } from "@/lib/relayit.server";
 import { clearPaymentHandoff, readPaymentHandoff, rememberPaymentHandoff } from "@/lib/payment-handoff";
 import { getMyBalance, getMyAnalysisHistory } from "@/lib/analyses.functions";
 import { getMyReferralDetails } from "@/lib/referral.functions";
@@ -31,6 +33,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { useSession } from "@/hooks/use-session";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { getLatestFailedPayment } from "@/lib/payment-recovery";
+import { PaymentRecoveryPrompt } from "@/components/PaymentRecoveryPrompt";
 import { formatPremiumExpiry, isPremiumActive, premiumDaysRemaining } from "@/lib/premium-status";
 import {
   DEMO_HISTORY,
@@ -108,8 +112,14 @@ function ProfilPage() {
     code: string | null;
     referralLink: string | null;
     referralCount: number;
+    qualifiedCount: number;
+    pendingCount: number;
     creditsEarned: number;
-    referrals: { displayName: string; joinedAt: string }[];
+    nextMilestone: number;
+    remainingToNext: number;
+    milestonesEarned: number;
+    activeProUntil: string | null;
+    referrals: { status: "pending" | "qualified" | "rejected"; joinedAt: string }[];
   }>({
     queryKey: ["me", "referral"],
     queryFn: () => (demoMode ? Promise.resolve(DEMO_REFERRAL) : getMyReferralDetails()),
@@ -117,6 +127,7 @@ function ProfilPage() {
   });
 
   const [showTopup, setShowTopup] = useState(false);
+  const [relayitPack, setRelayitPack] = useState<PricedPack | null>(null);
   const [flash, setFlash] = useState<string | null>(null);
   const [referralCopied, setReferralCopied] = useState(false);
 
@@ -128,6 +139,7 @@ function ProfilPage() {
   const monthlyLimit = isPremium ? 100 : 5;
   const usedPct = Math.min(100, Math.round((balance / monthlyLimit) * 100));
   const displayName = profile.display_name ?? user?.email?.split("@")[0] ?? "Utilisateur";
+  const failedPayment = getLatestFailedPayment(paymentData);
   const initials = displayName
     .split(/[\s.]+/)
     .map((s) => s[0])
@@ -137,6 +149,12 @@ function ProfilPage() {
 
   const [busyPack, setBusyPack] = useState<string | null>(null);
   const checkoutFn = useServerFn(createTopupCheckout);
+  const paymentProviderFn = useServerFn(getActivePaymentProvider);
+  const { data: paymentProvider } = useQuery({
+    queryKey: ["payment-provider"],
+    queryFn: getActivePaymentProvider,
+    staleTime: 60_000,
+  });
   const verifyFn = useServerFn(verifyTopup);
   const verifyCheckoutFn = useServerFn(verifyCheckout);
 
@@ -187,23 +205,39 @@ function ProfilPage() {
       return;
     }
     setShowTopup(false);
-    void startTopupPayment(pack);
+    void (async () => {
+      const provider = paymentProvider?.provider ?? (await paymentProviderFn()).provider;
+      if (provider === "relayit") setRelayitPack(pack);
+      else void startTopupPayment(pack);
+    })().catch(() => toast.error("Impossible de préparer le paiement. Réessayez."));
   };
 
-  const startTopupPayment = async (pack: PricedPack) => {
+  const startTopupPayment = async (pack: PricedPack, relayit?: RelayitCheckoutDetails) => {
     setBusyPack(pack.id);
     try {
-      const res = await checkoutFn({ data: { packId: pack.id, checkoutRequestId: crypto.randomUUID() } });
+      const res = await checkoutFn({ data: { packId: pack.id, checkoutRequestId: crypto.randomUUID(), ...(relayit ? { relayit } : {}) } });
       if (!res.link) throw new Error("La page de paiement n'a pas pu être ouverte.");
-      if (!res.externalId || !res.transId) throw new Error("La page de paiement n'a pas pu être ouverte.");
-      rememberPaymentHandoff({ externalId: res.externalId, transId: res.transId });
+      if (!res.externalId) throw new Error("La page de paiement n'a pas pu être ouverte.");
+      rememberPaymentHandoff({ externalId: res.externalId, transId: res.transId ?? null });
       window.location.assign(res.link);
+      return true;
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "La page de paiement n'a pas pu être ouverte.");
+      return false;
     } finally {
       setBusyPack(null);
     }
   };
+
+  const submitRelayitDetails = async (details: RelayitCheckoutDetails) => {
+    if (relayitPack && await startTopupPayment(relayitPack, details)) setRelayitPack(null);
+  };
+
+  const initialRelayitPhone = typeof user?.phone === "string"
+    ? user.phone
+    : typeof user?.user_metadata?.phone === "string"
+      ? user.user_metadata.phone
+      : "";
 
   const handleVerify = async (transId: string) => {
     if (demoMode) {
@@ -271,6 +305,8 @@ function ProfilPage() {
           <Check className="size-4" aria-hidden /> {flash}
         </div>
       )}
+
+      <PaymentRecoveryPrompt attempt={failedPayment} />
 
       {/* Profil Header */}
       <div className="px-4 lg:px-0">
@@ -402,11 +438,11 @@ function ProfilPage() {
                 <Users className="size-3" aria-hidden /> Parrainage
               </div>
               <h2 id="referral-title" className="text-xl font-black tracking-tight">
-                Invitez, suivez, gagnez
+                Débloquez Premium Pro gratuitement
               </h2>
               <p className="mt-1 max-w-xl text-xs leading-relaxed text-muted-foreground">
-                Retrouvez ici votre lien, le nombre de filleuls inscrits et les crédits attribués.
-                Le popup ne s'ouvre plus automatiquement : vous le contrôlez depuis ce tableau.
+                Invitez 25 amis qui confirment leur compte : recevez automatiquement
+                <span className="font-black text-brand"> 7 jours Premium Pro gratuits</span>. Chaque confirmation vous rapporte aussi 5 crédits.
               </p>
             </div>
             <button
@@ -414,16 +450,27 @@ function ProfilPage() {
               onClick={requestReferralPopup}
               className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-xs font-black text-brand-foreground transition-transform hover:scale-[1.02] active:scale-95"
             >
-              <Users className="size-3.5" aria-hidden /> Partager mon lien
+              <Users className="size-3.5" aria-hidden /> Gagner mon accès Pro
             </button>
           </div>
 
           {referralData ? (
             <>
               <div className="mt-4 grid grid-cols-3 gap-2.5">
-                <ReferralStat value={String(referralData.referralCount)} label="Filleuls" />
+                <ReferralStat value={String(referralData.qualifiedCount)} label="Confirmés" />
                 <ReferralStat value={`+${referralData.creditsEarned}`} label="Crédits gagnés" />
                 <ReferralStat value={referralData.code ?? "—"} label="Votre code" compact />
+              </div>
+
+              <div className="mt-3 rounded-2xl bg-background p-3 ring-1 ring-black/5 dark:ring-white/10">
+                <div className="flex items-center justify-between gap-3 text-[11px] font-bold">
+                  <span>Prochain accès Premium Pro</span>
+                  <span className="text-brand">{referralData.remainingToNext} restant{referralData.remainingToNext > 1 ? "s" : ""}</span>
+                </div>
+                <div className="mt-2 h-2 overflow-hidden rounded-full bg-surface">
+                  <div className="h-full rounded-full bg-brand transition-all" style={{ width: `${Math.min(100, ((referralData.qualifiedCount % 25) / 25) * 100)}%` }} />
+                </div>
+                <p className="mt-2 text-[10px] leading-relaxed text-muted-foreground">{referralData.qualifiedCount} / {referralData.nextMilestone} invitations confirmées · {referralData.milestonesEarned} palier{referralData.milestonesEarned > 1 ? "s" : ""} obtenu{referralData.milestonesEarned > 1 ? "s" : ""}</p>
               </div>
 
               {referralData.referralLink && (
@@ -445,8 +492,7 @@ function ProfilPage() {
                 <div className="mb-2 flex items-center justify-between">
                   <h3 className="text-[11px] font-black uppercase tracking-widest">Mes filleuls</h3>
                   <span className="text-[10px] text-muted-foreground">
-                    {referralData.referralCount} inscription
-                    {referralData.referralCount > 1 ? "s" : ""}
+                    {referralData.pendingCount ? `${referralData.pendingCount} en attente · ` : ""}{referralData.qualifiedCount} confirmée{referralData.qualifiedCount > 1 ? "s" : ""}
                   </span>
                 </div>
                 {referralData.referrals.length === 0 ? (
@@ -460,14 +506,14 @@ function ProfilPage() {
                   >
                     {referralData.referrals.map((referral) => (
                       <li
-                        key={`${referral.displayName}-${referral.joinedAt}`}
+                        key={`${referral.status}-${referral.joinedAt}`}
                         className="flex items-center justify-between gap-3 px-3 py-2.5"
                       >
                         <div className="flex min-w-0 items-center gap-2">
                           <span className="grid size-7 shrink-0 place-items-center rounded-full bg-brand/15 text-brand">
                             <Users className="size-3.5" aria-hidden />
                           </span>
-                          <span className="truncate text-xs font-bold">{referral.displayName}</span>
+                          <span className="truncate text-xs font-bold">{referral.status === "qualified" ? "Compte confirmé" : "En attente de confirmation"}</span>
                         </div>
                         <time
                           className="shrink-0 text-[10px] text-muted-foreground"
@@ -600,7 +646,7 @@ function ProfilPage() {
               100 crédits d'analyse mensuels & Favoris illimités
             </h3>
             <p className="mt-2 text-xs text-muted-foreground leading-relaxed">
-              Pour seulement 4 900 FCFA/mois, obtenez 100 crédits par mois et débloquez la
+              Pour seulement 5 900 FCFA/mois, obtenez 100 crédits par mois et débloquez la
               possibilité de télécharger des packs de recharges.
             </p>
             <Link
@@ -698,8 +744,16 @@ function ProfilPage() {
           onBuy={handleTopup}
           busyPack={busyPack}
           isPremium={isPremium}
+          provider={paymentProvider?.provider}
         />
       )}
+      <RelayitCheckoutDialog
+        open={relayitPack !== null}
+        busy={busyPack !== null}
+        initialPhone={initialRelayitPhone}
+        onClose={() => setRelayitPack(null)}
+        onSubmit={submitRelayitDetails}
+      />
     </AppShell>
   );
 }
@@ -790,11 +844,13 @@ function TopupDialog({
   onBuy,
   busyPack,
   isPremium,
+  provider,
 }: {
   onClose: () => void;
   onBuy: (pack: PricedPack) => void;
   busyPack: string | null;
   isPremium: boolean;
+  provider?: "relayit" | "saspay";
 }) {
   const navigate = useNavigate();
   return (
@@ -813,7 +869,7 @@ function TopupDialog({
             </div>
             <h2 className="text-xl font-black leading-tight">Choisir un pack</h2>
             <p className="mt-1 text-xs text-muted-foreground">
-              Paiement MTN MoMo / Orange Money via Fapshi.
+              Paiement sécurisé en FCFA via {provider === "relayit" ? "Relayit" : "SasPay"}.
             </p>
           </div>
           <button

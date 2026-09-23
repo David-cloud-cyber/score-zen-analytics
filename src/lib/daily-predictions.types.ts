@@ -1,4 +1,5 @@
 export type DailyPredictionStatus = "pending" | "won" | "lost" | "unresolvable";
+export type DailyPredictionsAccess = "visitor" | "free" | "premium";
 
 export type DailyPredictionItem = {
   id: string;
@@ -16,8 +17,8 @@ export type DailyPredictionItem = {
   marketLabel: string;
   pick: string | null;
   probability: number | null;
-  confidence: number;
-  risk: "bas" | "moyen" | "eleve";
+  confidence: number | null;
+  risk: "bas" | "moyen" | "eleve" | null;
   rationale: string | null;
   factors: string[];
   status: DailyPredictionStatus;
@@ -30,7 +31,9 @@ export type DailyPredictionItem = {
 export type DailyPredictionsPayload = {
   date: string;
   isPremium: boolean;
+  access: DailyPredictionsAccess;
   freeLimit: number;
+  availableCount: number;
   items: DailyPredictionItem[];
   generatedAt: string | null;
   state: "ready" | "limited" | "empty";

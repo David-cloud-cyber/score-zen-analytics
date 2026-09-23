@@ -17,8 +17,8 @@ export const Route = createFileRoute("/blog/football")({
   },
   head: ({ loaderData }) => blogCollectionHead({
     path: "/blog/football",
-    title: "Blog football : actualités, analyses et compétitions",
-    description: "Le meilleur du football expliqué par la rédaction LiveFoot : compétitions, forme des équipes, analyses et guides utiles.",
+    title: "Actualités football, résultats et analyses de matchs",
+    description: "Suivez l’actualité football, les résultats, les grandes compétitions, la forme des équipes et les analyses de matchs expliquées par LiveFoot.",
     articles: loaderData?.articles ?? [],
     total: loaderData?.total,
     page: loaderData?._seo.page,

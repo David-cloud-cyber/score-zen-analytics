@@ -13,12 +13,17 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AProposRouteImport } from './routes/a-propos'
 import { Route as AdminRouteImport } from './routes/admin'
+import { Route as AmbassadeursRouteImport } from './routes/ambassadeurs'
 import { Route as AnalyseRouteImport } from './routes/analyse'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as BlogRouteImport } from './routes/blog'
+import { Route as ChampionnatsRouteImport } from './routes/championnats'
 import { Route as CodesPromoRouteImport } from './routes/codes-promo'
 import { Route as CommunauteRouteImport } from './routes/communaute'
 import { Route as EnRouteImport } from './routes/en'
+import { Route as EntraineursRouteImport } from './routes/entraineurs'
+import { Route as EquipesRouteImport } from './routes/equipes'
+import { Route as JoueursRouteImport } from './routes/joueurs'
 import { Route as MentionsLegalesRouteImport } from './routes/mentions-legales'
 import { Route as PolitiqueEditorialeRouteImport } from './routes/politique-editoriale'
 import { Route as PremiumRouteImport } from './routes/premium'
@@ -32,6 +37,7 @@ import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AdminAnalysesRouteImport } from './routes/admin.analyses'
 import { Route as AdminApiRouteImport } from './routes/admin.api'
 import { Route as AdminAuditRouteImport } from './routes/admin.audit'
+import { Route as AdminClientsPremiumRouteImport } from './routes/admin.clients-premium'
 import { Route as AdminCommunauteRouteImport } from './routes/admin.communaute'
 import { Route as AdminContenusRouteImport } from './routes/admin.contenus'
 import { Route as AdminExportsRouteImport } from './routes/admin.exports'
@@ -47,6 +53,7 @@ import { Route as BlogIndexRouteImport } from './routes/blog.index'
 import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
 import { Route as BlogFootballRouteImport } from './routes/blog.football'
 import { Route as BlogRssDotxmlRouteImport } from './routes/blog.rss[.]xml'
+import { Route as ChampionnatsSlugRouteImport } from './routes/championnats.$slug'
 import { Route as CodesPromoIndexRouteImport } from './routes/codes-promo.index'
 import { Route as CodesPromoSlugRouteImport } from './routes/codes-promo.$slug'
 import { Route as CodesPromoCamerounRouteImport } from './routes/codes-promo.cameroun'
@@ -58,15 +65,22 @@ import { Route as EnBlogRouteImport } from './routes/en.blog'
 import { Route as EnCommunityRouteImport } from './routes/en.community'
 import { Route as EnPremiumRouteImport } from './routes/en.premium'
 import { Route as EnPromoCodesRouteImport } from './routes/en.promo-codes'
+import { Route as EntraineursIdRouteImport } from './routes/entraineurs.$id'
+import { Route as EquipesIdRouteImport } from './routes/equipes.$id'
+import { Route as JoueursIdRouteImport } from './routes/joueurs.$id'
 import { Route as LiveIdRouteImport } from './routes/live.$id'
 import { Route as MatchIdRouteImport } from './routes/match.$id'
 import { Route as PremiumHistoriqueRouteImport } from './routes/premium.historique'
 import { Route as PremiumTableauDeBordRouteImport } from './routes/premium.tableau-de-bord'
 import { Route as PronosticsHistoriqueRouteImport } from './routes/pronostics.historique'
+import { Route as AuthenticatedAmbassadeursTableauDeBordRouteImport } from './routes/_authenticated/ambassadeurs.tableau-de-bord'
 import { Route as ApiPublicAppErrorRouteImport } from './routes/api/public/app-error'
+import { Route as ApiPublicChariowWebhookRouteImport } from './routes/api/public/chariow-webhook'
 import { Route as ApiPublicConversionEventRouteImport } from './routes/api/public/conversion-event'
 import { Route as ApiPublicFapshiWebhookRouteImport } from './routes/api/public/fapshi-webhook'
 import { Route as ApiPublicFixtureDiagnosticRouteImport } from './routes/api/public/fixture-diagnostic'
+import { Route as ApiPublicRelayitWebhookRouteImport } from './routes/api/public/relayit-webhook'
+import { Route as ApiPublicSaspayWebhookRouteImport } from './routes/api/public/saspay-webhook'
 import { Route as BlogCategorieCategorieRouteImport } from './routes/blog.categorie.$categorie'
 import { Route as CodesPromoSlugCountryRouteImport } from './routes/codes-promo.$slug.$country'
 
@@ -89,6 +103,11 @@ const AdminRoute = AdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AmbassadeursRoute = AmbassadeursRouteImport.update({
+  id: '/ambassadeurs',
+  path: '/ambassadeurs',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AnalyseRoute = AnalyseRouteImport.update({
   id: '/analyse',
   path: '/analyse',
@@ -104,6 +123,11 @@ const BlogRoute = BlogRouteImport.update({
   path: '/blog',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ChampionnatsRoute = ChampionnatsRouteImport.update({
+  id: '/championnats',
+  path: '/championnats',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CodesPromoRoute = CodesPromoRouteImport.update({
   id: '/codes-promo',
   path: '/codes-promo',
@@ -117,6 +141,21 @@ const CommunauteRoute = CommunauteRouteImport.update({
 const EnRoute = EnRouteImport.update({
   id: '/en',
   path: '/en',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EntraineursRoute = EntraineursRouteImport.update({
+  id: '/entraineurs',
+  path: '/entraineurs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EquipesRoute = EquipesRouteImport.update({
+  id: '/equipes',
+  path: '/equipes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const JoueursRoute = JoueursRouteImport.update({
+  id: '/joueurs',
+  path: '/joueurs',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MentionsLegalesRoute = MentionsLegalesRouteImport.update({
@@ -182,6 +221,11 @@ const AdminApiRoute = AdminApiRouteImport.update({
 const AdminAuditRoute = AdminAuditRouteImport.update({
   id: '/audit',
   path: '/audit',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminClientsPremiumRoute = AdminClientsPremiumRouteImport.update({
+  id: '/clients-premium',
+  path: '/clients-premium',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminCommunauteRoute = AdminCommunauteRouteImport.update({
@@ -259,6 +303,11 @@ const BlogRssDotxmlRoute = BlogRssDotxmlRouteImport.update({
   path: '/rss.xml',
   getParentRoute: () => BlogRoute,
 } as any)
+const ChampionnatsSlugRoute = ChampionnatsSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => ChampionnatsRoute,
+} as any)
 const CodesPromoIndexRoute = CodesPromoIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -314,6 +363,21 @@ const EnPromoCodesRoute = EnPromoCodesRouteImport.update({
   path: '/promo-codes',
   getParentRoute: () => EnRoute,
 } as any)
+const EntraineursIdRoute = EntraineursIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => EntraineursRoute,
+} as any)
+const EquipesIdRoute = EquipesIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => EquipesRoute,
+} as any)
+const JoueursIdRoute = JoueursIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => JoueursRoute,
+} as any)
 const LiveIdRoute = LiveIdRouteImport.update({
   id: '/live/$id',
   path: '/live/$id',
@@ -339,9 +403,20 @@ const PronosticsHistoriqueRoute = PronosticsHistoriqueRouteImport.update({
   path: '/pronostics/historique',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedAmbassadeursTableauDeBordRoute =
+  AuthenticatedAmbassadeursTableauDeBordRouteImport.update({
+    id: '/ambassadeurs/tableau-de-bord',
+    path: '/ambassadeurs/tableau-de-bord',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const ApiPublicAppErrorRoute = ApiPublicAppErrorRouteImport.update({
   id: '/api/public/app-error',
   path: '/api/public/app-error',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicChariowWebhookRoute = ApiPublicChariowWebhookRouteImport.update({
+  id: '/api/public/chariow-webhook',
+  path: '/api/public/chariow-webhook',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicConversionEventRoute =
@@ -361,6 +436,16 @@ const ApiPublicFixtureDiagnosticRoute =
     path: '/api/public/fixture-diagnostic',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicRelayitWebhookRoute = ApiPublicRelayitWebhookRouteImport.update({
+  id: '/api/public/relayit-webhook',
+  path: '/api/public/relayit-webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicSaspayWebhookRoute = ApiPublicSaspayWebhookRouteImport.update({
+  id: '/api/public/saspay-webhook',
+  path: '/api/public/saspay-webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const BlogCategorieCategorieRoute = BlogCategorieCategorieRouteImport.update({
   id: '/categorie/$categorie',
   path: '/categorie/$categorie',
@@ -376,12 +461,17 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/a-propos': typeof AProposRoute
   '/admin': typeof AdminRouteWithChildren
+  '/ambassadeurs': typeof AmbassadeursRoute
   '/analyse': typeof AnalyseRoute
   '/auth': typeof AuthRouteWithChildren
   '/blog': typeof BlogRouteWithChildren
+  '/championnats': typeof ChampionnatsRouteWithChildren
   '/codes-promo': typeof CodesPromoRouteWithChildren
   '/communaute': typeof CommunauteRoute
   '/en': typeof EnRouteWithChildren
+  '/entraineurs': typeof EntraineursRouteWithChildren
+  '/equipes': typeof EquipesRouteWithChildren
+  '/joueurs': typeof JoueursRouteWithChildren
   '/mentions-legales': typeof MentionsLegalesRoute
   '/politique-editoriale': typeof PolitiqueEditorialeRoute
   '/premium': typeof PremiumRouteWithChildren
@@ -394,6 +484,7 @@ export interface FileRoutesByFullPath {
   '/admin/analyses': typeof AdminAnalysesRoute
   '/admin/api': typeof AdminApiRoute
   '/admin/audit': typeof AdminAuditRoute
+  '/admin/clients-premium': typeof AdminClientsPremiumRoute
   '/admin/communaute': typeof AdminCommunauteRoute
   '/admin/contenus': typeof AdminContenusRoute
   '/admin/exports': typeof AdminExportsRoute
@@ -408,6 +499,7 @@ export interface FileRoutesByFullPath {
   '/blog/$slug': typeof BlogSlugRoute
   '/blog/football': typeof BlogFootballRoute
   '/blog/rss.xml': typeof BlogRssDotxmlRoute
+  '/championnats/$slug': typeof ChampionnatsSlugRoute
   '/codes-promo/$slug': typeof CodesPromoSlugRouteWithChildren
   '/codes-promo/cameroun': typeof CodesPromoCamerounRoute
   '/codes-promo/cote-ivoire': typeof CodesPromoCoteIvoireRoute
@@ -417,6 +509,9 @@ export interface FileRoutesByFullPath {
   '/en/community': typeof EnCommunityRoute
   '/en/premium': typeof EnPremiumRoute
   '/en/promo-codes': typeof EnPromoCodesRoute
+  '/entraineurs/$id': typeof EntraineursIdRoute
+  '/equipes/$id': typeof EquipesIdRoute
+  '/joueurs/$id': typeof JoueursIdRoute
   '/live/$id': typeof LiveIdRoute
   '/match/$id': typeof MatchIdRoute
   '/premium/historique': typeof PremiumHistoriqueRoute
@@ -426,19 +521,28 @@ export interface FileRoutesByFullPath {
   '/blog/': typeof BlogIndexRoute
   '/codes-promo/': typeof CodesPromoIndexRoute
   '/en/': typeof EnIndexRoute
+  '/ambassadeurs/tableau-de-bord': typeof AuthenticatedAmbassadeursTableauDeBordRoute
   '/api/public/app-error': typeof ApiPublicAppErrorRoute
+  '/api/public/chariow-webhook': typeof ApiPublicChariowWebhookRoute
   '/api/public/conversion-event': typeof ApiPublicConversionEventRoute
   '/api/public/fapshi-webhook': typeof ApiPublicFapshiWebhookRoute
   '/api/public/fixture-diagnostic': typeof ApiPublicFixtureDiagnosticRoute
+  '/api/public/relayit-webhook': typeof ApiPublicRelayitWebhookRoute
+  '/api/public/saspay-webhook': typeof ApiPublicSaspayWebhookRoute
   '/blog/categorie/$categorie': typeof BlogCategorieCategorieRoute
   '/codes-promo/$slug/$country': typeof CodesPromoSlugCountryRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/a-propos': typeof AProposRoute
+  '/ambassadeurs': typeof AmbassadeursRoute
   '/analyse': typeof AnalyseRoute
   '/auth': typeof AuthRouteWithChildren
+  '/championnats': typeof ChampionnatsRouteWithChildren
   '/communaute': typeof CommunauteRoute
+  '/entraineurs': typeof EntraineursRouteWithChildren
+  '/equipes': typeof EquipesRouteWithChildren
+  '/joueurs': typeof JoueursRouteWithChildren
   '/mentions-legales': typeof MentionsLegalesRoute
   '/politique-editoriale': typeof PolitiqueEditorialeRoute
   '/premium': typeof PremiumRouteWithChildren
@@ -451,6 +555,7 @@ export interface FileRoutesByTo {
   '/admin/analyses': typeof AdminAnalysesRoute
   '/admin/api': typeof AdminApiRoute
   '/admin/audit': typeof AdminAuditRoute
+  '/admin/clients-premium': typeof AdminClientsPremiumRoute
   '/admin/communaute': typeof AdminCommunauteRoute
   '/admin/contenus': typeof AdminContenusRoute
   '/admin/exports': typeof AdminExportsRoute
@@ -465,6 +570,7 @@ export interface FileRoutesByTo {
   '/blog/$slug': typeof BlogSlugRoute
   '/blog/football': typeof BlogFootballRoute
   '/blog/rss.xml': typeof BlogRssDotxmlRoute
+  '/championnats/$slug': typeof ChampionnatsSlugRoute
   '/codes-promo/$slug': typeof CodesPromoSlugRouteWithChildren
   '/codes-promo/cameroun': typeof CodesPromoCamerounRoute
   '/codes-promo/cote-ivoire': typeof CodesPromoCoteIvoireRoute
@@ -474,6 +580,9 @@ export interface FileRoutesByTo {
   '/en/community': typeof EnCommunityRoute
   '/en/premium': typeof EnPremiumRoute
   '/en/promo-codes': typeof EnPromoCodesRoute
+  '/entraineurs/$id': typeof EntraineursIdRoute
+  '/equipes/$id': typeof EquipesIdRoute
+  '/joueurs/$id': typeof JoueursIdRoute
   '/live/$id': typeof LiveIdRoute
   '/match/$id': typeof MatchIdRoute
   '/premium/historique': typeof PremiumHistoriqueRoute
@@ -483,10 +592,14 @@ export interface FileRoutesByTo {
   '/blog': typeof BlogIndexRoute
   '/codes-promo': typeof CodesPromoIndexRoute
   '/en': typeof EnIndexRoute
+  '/ambassadeurs/tableau-de-bord': typeof AuthenticatedAmbassadeursTableauDeBordRoute
   '/api/public/app-error': typeof ApiPublicAppErrorRoute
+  '/api/public/chariow-webhook': typeof ApiPublicChariowWebhookRoute
   '/api/public/conversion-event': typeof ApiPublicConversionEventRoute
   '/api/public/fapshi-webhook': typeof ApiPublicFapshiWebhookRoute
   '/api/public/fixture-diagnostic': typeof ApiPublicFixtureDiagnosticRoute
+  '/api/public/relayit-webhook': typeof ApiPublicRelayitWebhookRoute
+  '/api/public/saspay-webhook': typeof ApiPublicSaspayWebhookRoute
   '/blog/categorie/$categorie': typeof BlogCategorieCategorieRoute
   '/codes-promo/$slug/$country': typeof CodesPromoSlugCountryRoute
 }
@@ -496,12 +609,17 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/a-propos': typeof AProposRoute
   '/admin': typeof AdminRouteWithChildren
+  '/ambassadeurs': typeof AmbassadeursRoute
   '/analyse': typeof AnalyseRoute
   '/auth': typeof AuthRouteWithChildren
   '/blog': typeof BlogRouteWithChildren
+  '/championnats': typeof ChampionnatsRouteWithChildren
   '/codes-promo': typeof CodesPromoRouteWithChildren
   '/communaute': typeof CommunauteRoute
   '/en': typeof EnRouteWithChildren
+  '/entraineurs': typeof EntraineursRouteWithChildren
+  '/equipes': typeof EquipesRouteWithChildren
+  '/joueurs': typeof JoueursRouteWithChildren
   '/mentions-legales': typeof MentionsLegalesRoute
   '/politique-editoriale': typeof PolitiqueEditorialeRoute
   '/premium': typeof PremiumRouteWithChildren
@@ -514,6 +632,7 @@ export interface FileRoutesById {
   '/admin/analyses': typeof AdminAnalysesRoute
   '/admin/api': typeof AdminApiRoute
   '/admin/audit': typeof AdminAuditRoute
+  '/admin/clients-premium': typeof AdminClientsPremiumRoute
   '/admin/communaute': typeof AdminCommunauteRoute
   '/admin/contenus': typeof AdminContenusRoute
   '/admin/exports': typeof AdminExportsRoute
@@ -528,6 +647,7 @@ export interface FileRoutesById {
   '/blog/$slug': typeof BlogSlugRoute
   '/blog/football': typeof BlogFootballRoute
   '/blog/rss.xml': typeof BlogRssDotxmlRoute
+  '/championnats/$slug': typeof ChampionnatsSlugRoute
   '/codes-promo/$slug': typeof CodesPromoSlugRouteWithChildren
   '/codes-promo/cameroun': typeof CodesPromoCamerounRoute
   '/codes-promo/cote-ivoire': typeof CodesPromoCoteIvoireRoute
@@ -537,6 +657,9 @@ export interface FileRoutesById {
   '/en/community': typeof EnCommunityRoute
   '/en/premium': typeof EnPremiumRoute
   '/en/promo-codes': typeof EnPromoCodesRoute
+  '/entraineurs/$id': typeof EntraineursIdRoute
+  '/equipes/$id': typeof EquipesIdRoute
+  '/joueurs/$id': typeof JoueursIdRoute
   '/live/$id': typeof LiveIdRoute
   '/match/$id': typeof MatchIdRoute
   '/premium/historique': typeof PremiumHistoriqueRoute
@@ -546,10 +669,14 @@ export interface FileRoutesById {
   '/blog/': typeof BlogIndexRoute
   '/codes-promo/': typeof CodesPromoIndexRoute
   '/en/': typeof EnIndexRoute
+  '/_authenticated/ambassadeurs/tableau-de-bord': typeof AuthenticatedAmbassadeursTableauDeBordRoute
   '/api/public/app-error': typeof ApiPublicAppErrorRoute
+  '/api/public/chariow-webhook': typeof ApiPublicChariowWebhookRoute
   '/api/public/conversion-event': typeof ApiPublicConversionEventRoute
   '/api/public/fapshi-webhook': typeof ApiPublicFapshiWebhookRoute
   '/api/public/fixture-diagnostic': typeof ApiPublicFixtureDiagnosticRoute
+  '/api/public/relayit-webhook': typeof ApiPublicRelayitWebhookRoute
+  '/api/public/saspay-webhook': typeof ApiPublicSaspayWebhookRoute
   '/blog/categorie/$categorie': typeof BlogCategorieCategorieRoute
   '/codes-promo/$slug/$country': typeof CodesPromoSlugCountryRoute
 }
@@ -559,12 +686,17 @@ export interface FileRouteTypes {
     | '/'
     | '/a-propos'
     | '/admin'
+    | '/ambassadeurs'
     | '/analyse'
     | '/auth'
     | '/blog'
+    | '/championnats'
     | '/codes-promo'
     | '/communaute'
     | '/en'
+    | '/entraineurs'
+    | '/equipes'
+    | '/joueurs'
     | '/mentions-legales'
     | '/politique-editoriale'
     | '/premium'
@@ -577,6 +709,7 @@ export interface FileRouteTypes {
     | '/admin/analyses'
     | '/admin/api'
     | '/admin/audit'
+    | '/admin/clients-premium'
     | '/admin/communaute'
     | '/admin/contenus'
     | '/admin/exports'
@@ -591,6 +724,7 @@ export interface FileRouteTypes {
     | '/blog/$slug'
     | '/blog/football'
     | '/blog/rss.xml'
+    | '/championnats/$slug'
     | '/codes-promo/$slug'
     | '/codes-promo/cameroun'
     | '/codes-promo/cote-ivoire'
@@ -600,6 +734,9 @@ export interface FileRouteTypes {
     | '/en/community'
     | '/en/premium'
     | '/en/promo-codes'
+    | '/entraineurs/$id'
+    | '/equipes/$id'
+    | '/joueurs/$id'
     | '/live/$id'
     | '/match/$id'
     | '/premium/historique'
@@ -609,19 +746,28 @@ export interface FileRouteTypes {
     | '/blog/'
     | '/codes-promo/'
     | '/en/'
+    | '/ambassadeurs/tableau-de-bord'
     | '/api/public/app-error'
+    | '/api/public/chariow-webhook'
     | '/api/public/conversion-event'
     | '/api/public/fapshi-webhook'
     | '/api/public/fixture-diagnostic'
+    | '/api/public/relayit-webhook'
+    | '/api/public/saspay-webhook'
     | '/blog/categorie/$categorie'
     | '/codes-promo/$slug/$country'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/a-propos'
+    | '/ambassadeurs'
     | '/analyse'
     | '/auth'
+    | '/championnats'
     | '/communaute'
+    | '/entraineurs'
+    | '/equipes'
+    | '/joueurs'
     | '/mentions-legales'
     | '/politique-editoriale'
     | '/premium'
@@ -634,6 +780,7 @@ export interface FileRouteTypes {
     | '/admin/analyses'
     | '/admin/api'
     | '/admin/audit'
+    | '/admin/clients-premium'
     | '/admin/communaute'
     | '/admin/contenus'
     | '/admin/exports'
@@ -648,6 +795,7 @@ export interface FileRouteTypes {
     | '/blog/$slug'
     | '/blog/football'
     | '/blog/rss.xml'
+    | '/championnats/$slug'
     | '/codes-promo/$slug'
     | '/codes-promo/cameroun'
     | '/codes-promo/cote-ivoire'
@@ -657,6 +805,9 @@ export interface FileRouteTypes {
     | '/en/community'
     | '/en/premium'
     | '/en/promo-codes'
+    | '/entraineurs/$id'
+    | '/equipes/$id'
+    | '/joueurs/$id'
     | '/live/$id'
     | '/match/$id'
     | '/premium/historique'
@@ -666,10 +817,14 @@ export interface FileRouteTypes {
     | '/blog'
     | '/codes-promo'
     | '/en'
+    | '/ambassadeurs/tableau-de-bord'
     | '/api/public/app-error'
+    | '/api/public/chariow-webhook'
     | '/api/public/conversion-event'
     | '/api/public/fapshi-webhook'
     | '/api/public/fixture-diagnostic'
+    | '/api/public/relayit-webhook'
+    | '/api/public/saspay-webhook'
     | '/blog/categorie/$categorie'
     | '/codes-promo/$slug/$country'
   id:
@@ -678,12 +833,17 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/a-propos'
     | '/admin'
+    | '/ambassadeurs'
     | '/analyse'
     | '/auth'
     | '/blog'
+    | '/championnats'
     | '/codes-promo'
     | '/communaute'
     | '/en'
+    | '/entraineurs'
+    | '/equipes'
+    | '/joueurs'
     | '/mentions-legales'
     | '/politique-editoriale'
     | '/premium'
@@ -696,6 +856,7 @@ export interface FileRouteTypes {
     | '/admin/analyses'
     | '/admin/api'
     | '/admin/audit'
+    | '/admin/clients-premium'
     | '/admin/communaute'
     | '/admin/contenus'
     | '/admin/exports'
@@ -710,6 +871,7 @@ export interface FileRouteTypes {
     | '/blog/$slug'
     | '/blog/football'
     | '/blog/rss.xml'
+    | '/championnats/$slug'
     | '/codes-promo/$slug'
     | '/codes-promo/cameroun'
     | '/codes-promo/cote-ivoire'
@@ -719,6 +881,9 @@ export interface FileRouteTypes {
     | '/en/community'
     | '/en/premium'
     | '/en/promo-codes'
+    | '/entraineurs/$id'
+    | '/equipes/$id'
+    | '/joueurs/$id'
     | '/live/$id'
     | '/match/$id'
     | '/premium/historique'
@@ -728,10 +893,14 @@ export interface FileRouteTypes {
     | '/blog/'
     | '/codes-promo/'
     | '/en/'
+    | '/_authenticated/ambassadeurs/tableau-de-bord'
     | '/api/public/app-error'
+    | '/api/public/chariow-webhook'
     | '/api/public/conversion-event'
     | '/api/public/fapshi-webhook'
     | '/api/public/fixture-diagnostic'
+    | '/api/public/relayit-webhook'
+    | '/api/public/saspay-webhook'
     | '/blog/categorie/$categorie'
     | '/codes-promo/$slug/$country'
   fileRoutesById: FileRoutesById
@@ -741,12 +910,17 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AProposRoute: typeof AProposRoute
   AdminRoute: typeof AdminRouteWithChildren
+  AmbassadeursRoute: typeof AmbassadeursRoute
   AnalyseRoute: typeof AnalyseRoute
   AuthRoute: typeof AuthRouteWithChildren
   BlogRoute: typeof BlogRouteWithChildren
+  ChampionnatsRoute: typeof ChampionnatsRouteWithChildren
   CodesPromoRoute: typeof CodesPromoRouteWithChildren
   CommunauteRoute: typeof CommunauteRoute
   EnRoute: typeof EnRouteWithChildren
+  EntraineursRoute: typeof EntraineursRouteWithChildren
+  EquipesRoute: typeof EquipesRouteWithChildren
+  JoueursRoute: typeof JoueursRouteWithChildren
   MentionsLegalesRoute: typeof MentionsLegalesRoute
   PolitiqueEditorialeRoute: typeof PolitiqueEditorialeRoute
   PremiumRoute: typeof PremiumRouteWithChildren
@@ -759,9 +933,12 @@ export interface RootRouteChildren {
   MatchIdRoute: typeof MatchIdRoute
   PronosticsHistoriqueRoute: typeof PronosticsHistoriqueRoute
   ApiPublicAppErrorRoute: typeof ApiPublicAppErrorRoute
+  ApiPublicChariowWebhookRoute: typeof ApiPublicChariowWebhookRoute
   ApiPublicConversionEventRoute: typeof ApiPublicConversionEventRoute
   ApiPublicFapshiWebhookRoute: typeof ApiPublicFapshiWebhookRoute
   ApiPublicFixtureDiagnosticRoute: typeof ApiPublicFixtureDiagnosticRoute
+  ApiPublicRelayitWebhookRoute: typeof ApiPublicRelayitWebhookRoute
+  ApiPublicSaspayWebhookRoute: typeof ApiPublicSaspayWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -794,6 +971,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/ambassadeurs': {
+      id: '/ambassadeurs'
+      path: '/ambassadeurs'
+      fullPath: '/ambassadeurs'
+      preLoaderRoute: typeof AmbassadeursRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/analyse': {
       id: '/analyse'
       path: '/analyse'
@@ -815,6 +999,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BlogRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/championnats': {
+      id: '/championnats'
+      path: '/championnats'
+      fullPath: '/championnats'
+      preLoaderRoute: typeof ChampionnatsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/codes-promo': {
       id: '/codes-promo'
       path: '/codes-promo'
@@ -834,6 +1025,27 @@ declare module '@tanstack/react-router' {
       path: '/en'
       fullPath: '/en'
       preLoaderRoute: typeof EnRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/entraineurs': {
+      id: '/entraineurs'
+      path: '/entraineurs'
+      fullPath: '/entraineurs'
+      preLoaderRoute: typeof EntraineursRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/equipes': {
+      id: '/equipes'
+      path: '/equipes'
+      fullPath: '/equipes'
+      preLoaderRoute: typeof EquipesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/joueurs': {
+      id: '/joueurs'
+      path: '/joueurs'
+      fullPath: '/joueurs'
+      preLoaderRoute: typeof JoueursRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/mentions-legales': {
@@ -925,6 +1137,13 @@ declare module '@tanstack/react-router' {
       path: '/audit'
       fullPath: '/admin/audit'
       preLoaderRoute: typeof AdminAuditRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/clients-premium': {
+      id: '/admin/clients-premium'
+      path: '/clients-premium'
+      fullPath: '/admin/clients-premium'
+      preLoaderRoute: typeof AdminClientsPremiumRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/communaute': {
@@ -1032,6 +1251,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BlogRssDotxmlRouteImport
       parentRoute: typeof BlogRoute
     }
+    '/championnats/$slug': {
+      id: '/championnats/$slug'
+      path: '/$slug'
+      fullPath: '/championnats/$slug'
+      preLoaderRoute: typeof ChampionnatsSlugRouteImport
+      parentRoute: typeof ChampionnatsRoute
+    }
     '/codes-promo/': {
       id: '/codes-promo/'
       path: '/'
@@ -1109,6 +1335,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EnPromoCodesRouteImport
       parentRoute: typeof EnRoute
     }
+    '/entraineurs/$id': {
+      id: '/entraineurs/$id'
+      path: '/$id'
+      fullPath: '/entraineurs/$id'
+      preLoaderRoute: typeof EntraineursIdRouteImport
+      parentRoute: typeof EntraineursRoute
+    }
+    '/equipes/$id': {
+      id: '/equipes/$id'
+      path: '/$id'
+      fullPath: '/equipes/$id'
+      preLoaderRoute: typeof EquipesIdRouteImport
+      parentRoute: typeof EquipesRoute
+    }
+    '/joueurs/$id': {
+      id: '/joueurs/$id'
+      path: '/$id'
+      fullPath: '/joueurs/$id'
+      preLoaderRoute: typeof JoueursIdRouteImport
+      parentRoute: typeof JoueursRoute
+    }
     '/live/$id': {
       id: '/live/$id'
       path: '/live/$id'
@@ -1144,11 +1391,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PronosticsHistoriqueRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/ambassadeurs/tableau-de-bord': {
+      id: '/_authenticated/ambassadeurs/tableau-de-bord'
+      path: '/ambassadeurs/tableau-de-bord'
+      fullPath: '/ambassadeurs/tableau-de-bord'
+      preLoaderRoute: typeof AuthenticatedAmbassadeursTableauDeBordRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/api/public/app-error': {
       id: '/api/public/app-error'
       path: '/api/public/app-error'
       fullPath: '/api/public/app-error'
       preLoaderRoute: typeof ApiPublicAppErrorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/chariow-webhook': {
+      id: '/api/public/chariow-webhook'
+      path: '/api/public/chariow-webhook'
+      fullPath: '/api/public/chariow-webhook'
+      preLoaderRoute: typeof ApiPublicChariowWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/conversion-event': {
@@ -1172,6 +1433,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicFixtureDiagnosticRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/relayit-webhook': {
+      id: '/api/public/relayit-webhook'
+      path: '/api/public/relayit-webhook'
+      fullPath: '/api/public/relayit-webhook'
+      preLoaderRoute: typeof ApiPublicRelayitWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/saspay-webhook': {
+      id: '/api/public/saspay-webhook'
+      path: '/api/public/saspay-webhook'
+      fullPath: '/api/public/saspay-webhook'
+      preLoaderRoute: typeof ApiPublicSaspayWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/blog/categorie/$categorie': {
       id: '/blog/categorie/$categorie'
       path: '/categorie/$categorie'
@@ -1192,11 +1467,14 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedFavorisRoute: typeof AuthenticatedFavorisRoute
   AuthenticatedProfilRoute: typeof AuthenticatedProfilRoute
+  AuthenticatedAmbassadeursTableauDeBordRoute: typeof AuthenticatedAmbassadeursTableauDeBordRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedFavorisRoute: AuthenticatedFavorisRoute,
   AuthenticatedProfilRoute: AuthenticatedProfilRoute,
+  AuthenticatedAmbassadeursTableauDeBordRoute:
+    AuthenticatedAmbassadeursTableauDeBordRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
@@ -1206,6 +1484,7 @@ interface AdminRouteChildren {
   AdminAnalysesRoute: typeof AdminAnalysesRoute
   AdminApiRoute: typeof AdminApiRoute
   AdminAuditRoute: typeof AdminAuditRoute
+  AdminClientsPremiumRoute: typeof AdminClientsPremiumRoute
   AdminCommunauteRoute: typeof AdminCommunauteRoute
   AdminContenusRoute: typeof AdminContenusRoute
   AdminExportsRoute: typeof AdminExportsRoute
@@ -1222,6 +1501,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminAnalysesRoute: AdminAnalysesRoute,
   AdminApiRoute: AdminApiRoute,
   AdminAuditRoute: AdminAuditRoute,
+  AdminClientsPremiumRoute: AdminClientsPremiumRoute,
   AdminCommunauteRoute: AdminCommunauteRoute,
   AdminContenusRoute: AdminContenusRoute,
   AdminExportsRoute: AdminExportsRoute,
@@ -1263,6 +1543,18 @@ const BlogRouteChildren: BlogRouteChildren = {
 }
 
 const BlogRouteWithChildren = BlogRoute._addFileChildren(BlogRouteChildren)
+
+interface ChampionnatsRouteChildren {
+  ChampionnatsSlugRoute: typeof ChampionnatsSlugRoute
+}
+
+const ChampionnatsRouteChildren: ChampionnatsRouteChildren = {
+  ChampionnatsSlugRoute: ChampionnatsSlugRoute,
+}
+
+const ChampionnatsRouteWithChildren = ChampionnatsRoute._addFileChildren(
+  ChampionnatsRouteChildren,
+)
 
 interface CodesPromoSlugRouteChildren {
   CodesPromoSlugCountryRoute: typeof CodesPromoSlugCountryRoute
@@ -1316,6 +1608,40 @@ const EnRouteChildren: EnRouteChildren = {
 
 const EnRouteWithChildren = EnRoute._addFileChildren(EnRouteChildren)
 
+interface EntraineursRouteChildren {
+  EntraineursIdRoute: typeof EntraineursIdRoute
+}
+
+const EntraineursRouteChildren: EntraineursRouteChildren = {
+  EntraineursIdRoute: EntraineursIdRoute,
+}
+
+const EntraineursRouteWithChildren = EntraineursRoute._addFileChildren(
+  EntraineursRouteChildren,
+)
+
+interface EquipesRouteChildren {
+  EquipesIdRoute: typeof EquipesIdRoute
+}
+
+const EquipesRouteChildren: EquipesRouteChildren = {
+  EquipesIdRoute: EquipesIdRoute,
+}
+
+const EquipesRouteWithChildren =
+  EquipesRoute._addFileChildren(EquipesRouteChildren)
+
+interface JoueursRouteChildren {
+  JoueursIdRoute: typeof JoueursIdRoute
+}
+
+const JoueursRouteChildren: JoueursRouteChildren = {
+  JoueursIdRoute: JoueursIdRoute,
+}
+
+const JoueursRouteWithChildren =
+  JoueursRoute._addFileChildren(JoueursRouteChildren)
+
 interface PremiumRouteChildren {
   PremiumHistoriqueRoute: typeof PremiumHistoriqueRoute
   PremiumTableauDeBordRoute: typeof PremiumTableauDeBordRoute
@@ -1334,12 +1660,17 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AProposRoute: AProposRoute,
   AdminRoute: AdminRouteWithChildren,
+  AmbassadeursRoute: AmbassadeursRoute,
   AnalyseRoute: AnalyseRoute,
   AuthRoute: AuthRouteWithChildren,
   BlogRoute: BlogRouteWithChildren,
+  ChampionnatsRoute: ChampionnatsRouteWithChildren,
   CodesPromoRoute: CodesPromoRouteWithChildren,
   CommunauteRoute: CommunauteRoute,
   EnRoute: EnRouteWithChildren,
+  EntraineursRoute: EntraineursRouteWithChildren,
+  EquipesRoute: EquipesRouteWithChildren,
+  JoueursRoute: JoueursRouteWithChildren,
   MentionsLegalesRoute: MentionsLegalesRoute,
   PolitiqueEditorialeRoute: PolitiqueEditorialeRoute,
   PremiumRoute: PremiumRouteWithChildren,
@@ -1352,9 +1683,12 @@ const rootRouteChildren: RootRouteChildren = {
   MatchIdRoute: MatchIdRoute,
   PronosticsHistoriqueRoute: PronosticsHistoriqueRoute,
   ApiPublicAppErrorRoute: ApiPublicAppErrorRoute,
+  ApiPublicChariowWebhookRoute: ApiPublicChariowWebhookRoute,
   ApiPublicConversionEventRoute: ApiPublicConversionEventRoute,
   ApiPublicFapshiWebhookRoute: ApiPublicFapshiWebhookRoute,
   ApiPublicFixtureDiagnosticRoute: ApiPublicFixtureDiagnosticRoute,
+  ApiPublicRelayitWebhookRoute: ApiPublicRelayitWebhookRoute,
+  ApiPublicSaspayWebhookRoute: ApiPublicSaspayWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

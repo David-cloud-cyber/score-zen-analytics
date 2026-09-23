@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate, useParams } from "@tanstack/react-router";
-import { useQuery, useQueryClient, useSuspenseQuery, queryOptions } from "@tanstack/react-query";
+import { useQuery, useQueryClient, queryOptions } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -58,7 +58,8 @@ const detailQuery = (id: number, demoMode = false) =>
       demoMode ? Promise.resolve(DEMO_MATCH_DETAIL) : getFixtureSummary({ data: { id } }),
     staleTime: 10_000,
     refetchInterval: false,
-    retry: 0,
+    retry: 1,
+    retryDelay: 1_000,
   });
 
 const sectionsQuery = (id: number, demoMode = false) =>
@@ -184,7 +185,7 @@ export const Route = createFileRoute("/live/$id")({
   },
   pendingComponent: MatchSkeleton,
   pendingMs: 0,
-  errorComponent: ({ reset }) => <PublicMatchErrorState reset={reset} />,
+  errorComponent: ({ reset }) => <FixtureWaitingState onRetry={reset} />,
   /* errorComponent: ({ error, reset }) => (
     <AppShell>
       <div className="mx-4 mt-8 rounded-2xl border border-alert/30 bg-alert/5 p-6 text-center lg:mx-0">
@@ -219,9 +220,15 @@ function LiveMatchPage() {
   const demoMode = isLocalDemo();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("overview");
-  const { data: summary } = useSuspenseQuery(detailQuery(fixtureId, demoMode));
+  const initialSummary = Route.useLoaderData();
+  const summaryQuery = useQuery({
+    ...detailQuery(fixtureId, demoMode),
+    initialData: initialSummary,
+    refetchInterval: (query) => (query.state.data ? false : 15_000),
+  });
+  const summary = summaryQuery.data;
   useLiveMatchStream({
-    enabled: !demoMode && summary.status !== "finished",
+    enabled: !demoMode && Boolean(summary) && summary?.status !== "finished",
     fixtureId,
     onUpdate: (nextSummary, fetchedAt) => {
       if (!nextSummary) {
@@ -247,26 +254,37 @@ function LiveMatchPage() {
   });
   const sections = useQuery({
     ...sectionsQuery(fixtureId, demoMode),
-    enabled: true,
+    enabled: Boolean(summary),
     // Score ticks arrive independently; detailed sections refresh at a sane
     // cadence so one open match cannot trigger seven calls every ten seconds.
     refetchInterval:
-      !demoMode && (summary.status === "live" || summary.status === "ht") ? 30_000 : false,
+      !demoMode && (summary?.status === "live" || summary?.status === "ht") ? 30_000 : false,
   });
   const extendedContext = useQuery({
     queryKey: ["fixture-extended-context", fixtureId],
     queryFn: () => getFixtureExtendedContext({ data: { id: fixtureId } }),
-    enabled: !demoMode && ["analysis", "prematch"].includes(activeTab),
+    enabled: Boolean(summary) && !demoMode && ["analysis", "prematch"].includes(activeTab),
     staleTime: 10 * 60_000,
     retry: 0,
   });
   const matchCenter = useQuery({
     queryKey: ["fixture-match-center", fixtureId],
     queryFn: () => getFixtureMatchCenter({ data: { id: fixtureId } }),
-    enabled: !demoMode && ["round", "standings", "odds", "info"].includes(activeTab),
-    staleTime: summary.status === "finished" ? 60 * 60_000 : 60_000,
+    enabled:
+      Boolean(summary) && !demoMode && ["round", "standings", "odds", "info"].includes(activeTab),
+    staleTime: summary?.status === "finished" ? 60 * 60_000 : 60_000,
     retry: 0,
   });
+
+  if (!summary) {
+    return (
+      <FixtureWaitingState
+        onRetry={() => summaryQuery.refetch()}
+        refreshing={summaryQuery.isFetching}
+      />
+    );
+  }
+
   // Secondary responses also contain an identity snapshot. Keep their rich
   // sections, but always overlay the newest lightweight summary so an older
   // statistics response can never roll the visible score or minute backward.
@@ -437,25 +455,34 @@ function LiveMatchView({
               </div>
             </div>
 
-            {/* Direct AI Prediction CTA Banner */}
+            {/* Prediction CTA: a finished match cannot start a new paid analysis. */}
             <div className="score-dark-surface border-t border-[#252525] bg-[#181818] p-3">
-              <a
-                href={`/analyse?home=${encodeURIComponent(m.home.name)}&away=${encodeURIComponent(m.away.name)}&matchId=${m.id}`}
-                className="flex min-h-11 w-full items-center justify-between rounded-2xl bg-brand px-4 py-2.5 text-xs font-black text-neutral-900 shadow-lg transition-transform hover:scale-[1.02] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-              >
-                <div className="flex items-center gap-2">
-                  <Sparkles className="size-4 animate-bounce" />
-                  <span>
-                    {isLive
-                      ? "Analyser le match en direct"
-                      : isFinished
-                        ? "Revoir l’analyse de ce match"
-                        : "Obtenir l’analyse IA de ce match"}{" "}
-                    · 3 crédits
-                  </span>
-                </div>
-                <ChevronRight className="size-4" />
-              </a>
+              {isFinished ? (
+                <a
+                  href="/pronostics/historique"
+                  className="flex min-h-11 w-full items-center justify-between rounded-2xl border border-white/15 bg-white/10 px-4 py-2.5 text-xs font-black text-white transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                >
+                  <div className="flex items-center gap-2">
+                    <ClipboardList className="size-4" />
+                    <span>Consulter l’historique des pronostics</span>
+                  </div>
+                  <ChevronRight className="size-4" />
+                </a>
+              ) : (
+                <a
+                  href={`/analyse?home=${encodeURIComponent(m.home.name)}&away=${encodeURIComponent(m.away.name)}&matchId=${m.id}`}
+                  className="flex min-h-11 w-full items-center justify-between rounded-2xl bg-brand px-4 py-2.5 text-xs font-black text-neutral-900 shadow-lg transition-transform hover:scale-[1.02] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                >
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="size-4 animate-bounce" />
+                    <span>
+                      {isLive ? "Analyser le match en direct" : "Obtenir l’analyse IA de ce match"}{" "}
+                      · 3 crédits
+                    </span>
+                  </div>
+                  <ChevronRight className="size-4" />
+                </a>
+              )}
             </div>
           </div>
         </div>
@@ -470,10 +497,10 @@ function LiveMatchView({
                 <TabsTrigger
                   key={v}
                   value={v}
-                  className="relative min-h-11 shrink-0 snap-start rounded-none border-0 bg-transparent px-3.5 py-3 text-[11px] font-bold uppercase tracking-wider text-muted-foreground data-[state=active]:bg-transparent data-[state=active]:text-brand data-[state=active]:shadow-none sm:px-4"
+                  className="group relative min-h-11 shrink-0 snap-start rounded-none border-0 bg-transparent px-3.5 py-3 text-[11px] font-bold uppercase tracking-wider text-muted-foreground data-[state=active]:bg-transparent data-[state=active]:text-brand data-[state=active]:shadow-none sm:px-4"
                 >
                   {l}
-                  <span className="absolute inset-x-3 bottom-0 h-0.5 rounded-full bg-brand opacity-0 data-[state=active]:opacity-100" />
+                  <span className="absolute inset-x-3 bottom-0 h-0.5 rounded-full bg-brand opacity-0 group-data-[state=active]:opacity-100" />
                 </TabsTrigger>
               ))}
             </TabsList>
@@ -561,85 +588,41 @@ function formatFetchedAt(value: string) {
   return `il y a ${minutes} minutes`;
 }
 
-function PublicMatchErrorState({ reset }: { reset: () => void }) {
-  const [cooldown, setCooldown] = useState(15);
-  useEffect(() => {
-    if (cooldown <= 0) return;
-    const timer = window.setInterval(() => setCooldown((value) => Math.max(0, value - 1)), 1000);
-    return () => window.clearInterval(timer);
-  }, [cooldown]);
+function FixtureWaitingState({
+  onRetry,
+  refreshing = false,
+}: {
+  onRetry: () => void | Promise<unknown>;
+  refreshing?: boolean;
+}) {
   return (
     <AppShell>
-      <div className="mx-4 mt-8 rounded-2xl border border-border/60 bg-card p-6 text-center lg:mx-0">
-        <AlertTriangle className="mx-auto size-6 text-muted-foreground" aria-hidden />
-        <h2 className="mt-3 text-base font-black">Match temporairement indisponible</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Les informations seront actualisées automatiquement. Réessayez dans quelques instants.
-        </p>
-        <div className="mt-4 flex justify-center gap-2">
-          <button
-            type="button"
-            onClick={reset}
-            disabled={cooldown > 0}
-            className="recovery-primary inline-flex items-center gap-2 rounded-full disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <RefreshCw className="size-3.5" />
-            {cooldown > 0 ? `Réessayer dans ${cooldown}s` : "Réessayer"}
-          </button>
-          <Link
-            to="/"
-            className="recovery-secondary inline-flex items-center rounded-full ring-1 ring-black/5 dark:ring-white/10"
-          >
-            Retour
-          </Link>
-        </div>
-      </div>
-    </AppShell>
-  );
-}
-
-function MatchErrorState({ error, reset }: { error: Error; reset: () => void }) {
-  const isQuotaError = /quota|limite|rate|429|requests|requêtes/i.test(error.message ?? "");
-  const [cooldown, setCooldown] = useState(isQuotaError ? 15 : 0);
-
-  useEffect(() => {
-    if (!isQuotaError || cooldown <= 0) return;
-    const timer = window.setInterval(() => {
-      setCooldown((value) => Math.max(0, value - 1));
-    }, 1000);
-    return () => window.clearInterval(timer);
-  }, [cooldown, isQuotaError]);
-
-  const retryDisabled = isQuotaError && cooldown > 0;
-
-  return (
-    <AppShell>
-      <div className="mx-4 mt-8 rounded-2xl border border-alert/30 bg-alert/5 p-6 text-center lg:mx-0">
-        <AlertTriangle className="mx-auto size-6 text-alert" aria-hidden />
-        <h2 className="mt-3 text-base font-black">Match temporairement indisponible</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Les informations seront actualisées automatiquement. Réessayez dans quelques instants.
-        </p>
-        <div className="mt-4 flex justify-center gap-2">
-          <button
-            onClick={() => {
-              if (retryDisabled) return;
-              reset();
-            }}
-            disabled={retryDisabled}
-            className="recovery-primary inline-flex items-center gap-2 rounded-full disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <RefreshCw className="size-3.5" />
-            {retryDisabled ? `Réessayer dans ${cooldown}s` : "Réessayer"}
-          </button>
-          <Link
-            to="/"
-            className="recovery-secondary inline-flex items-center rounded-full ring-1 ring-black/5 dark:ring-white/10"
-          >
-            Retour
-          </Link>
-        </div>
-      </div>
+      <main className="mx-auto flex min-h-[50vh] w-full max-w-3xl items-center px-4 py-8 sm:px-6 lg:px-0">
+        <section className="w-full rounded-2xl border border-border/60 bg-card p-6 text-center">
+          <AlertTriangle className="mx-auto size-6 text-muted-foreground" aria-hidden />
+          <h1 className="mt-3 text-base font-bold">Cette fiche est en cours de synchronisation</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Le score et les informations vérifiées apparaîtront dès que la rencontre sera reçue.
+          </p>
+          <div className="mt-4 flex justify-center gap-2">
+            <button
+              type="button"
+              onClick={() => void onRetry()}
+              disabled={refreshing}
+              className="recovery-primary inline-flex items-center gap-2 rounded-full disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <RefreshCw className={cn("size-3.5", refreshing && "animate-spin")} />
+              Actualiser la fiche
+            </button>
+            <Link
+              to="/"
+              className="recovery-secondary inline-flex items-center rounded-full ring-1 ring-black/5 dark:ring-white/10"
+            >
+              Retour
+            </Link>
+          </div>
+        </section>
+      </main>
     </AppShell>
   );
 }
@@ -1061,35 +1044,67 @@ function FixturePrematchPanel({
 
 function FixtureOddsPanel({ data, loading }: { data?: FixtureMatchCenter; loading: boolean }) {
   if (loading) return <MatchPanelSkeleton rows={4} />;
-  if (!data?.oddsMarkets.length)
+  if (!data?.oddsMarkets.length && !data?.liveOddsMarkets.length)
     return (
       <MatchPanelEmpty>Aucune cote vérifiée n’est disponible pour cette rencontre.</MatchPanelEmpty>
     );
   return (
     <div className="space-y-3">
-      {data.oddsMarkets.map((market) => (
-        <section key={market.name} className="score-card p-4">
-          <div className="flex items-center gap-2">
-            <BadgeDollarSign className="size-4 text-brand" />
-            <h2 className="text-sm font-black">{market.name}</h2>
-          </div>
-          <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
-            {market.selections.map((selection) => (
-              <div
-                key={selection.label}
-                className="flex items-center justify-between rounded-xl bg-surface px-3 py-2.5"
-              >
-                <span className="text-xs font-bold text-muted-foreground">{selection.label}</span>
-                <span className="text-sm font-black tabular-nums">{selection.odd.toFixed(2)}</span>
-              </div>
-            ))}
-          </div>
-        </section>
-      ))}
+      <OddsGroup title="Cotes en direct" markets={data.liveOddsMarkets} live />
+      <OddsGroup title="Cotes pré-match" markets={data.oddsMarkets} />
       <p className="px-1 text-[10px] leading-relaxed text-muted-foreground">
-        Les cotes peuvent évoluer. Vérifiez les conditions au moment de votre consultation.
+        {data.oddsUpdatedAt
+          ? `Dernière mise à jour : ${formatFetchedAtTechnical(data.oddsUpdatedAt)}. Les cotes peuvent évoluer.`
+          : "Les cotes peuvent évoluer. Vérifiez les conditions au moment de votre consultation."}
       </p>
     </div>
+  );
+}
+
+function OddsGroup({
+  title,
+  markets,
+  live = false,
+}: {
+  title: string;
+  markets: FixtureMatchCenter["oddsMarkets"];
+  live?: boolean;
+}) {
+  if (!markets.length) return null;
+  return (
+    <section className="score-card p-4">
+      <div className="flex items-center gap-2">
+        <BadgeDollarSign className="size-4 text-brand" />
+        <h2 className="text-sm font-black">{title}</h2>
+        {live && (
+          <span className="ml-auto rounded-full bg-alert/10 px-2 py-1 text-[10px] font-black text-alert">
+            LIVE
+          </span>
+        )}
+      </div>
+      <div className="mt-4 space-y-3">
+        {markets.map((market) => (
+          <div key={`${title}-${market.name}`}>
+            <h3 className="text-xs font-bold text-muted-foreground">{market.name}</h3>
+            <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
+              {market.selections.map((selection) => (
+                <div
+                  key={selection.label}
+                  className="flex items-center justify-between rounded-xl bg-surface px-3 py-2.5"
+                >
+                  <span className="min-w-0 truncate text-xs font-bold text-muted-foreground">
+                    {selection.label}
+                  </span>
+                  <span className="ml-2 text-sm font-black tabular-nums">
+                    {selection.odd.toFixed(2)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -1202,8 +1217,25 @@ function FixtureTeamCard({ team }: { team: FixtureContextTeam }) {
       <div className="flex items-center gap-3">
         <img src={team.logo} alt="" className="size-10 object-contain" />
         <div className="min-w-0">
-          <h2 className="truncate text-sm font-black">{team.name}</h2>
-          {team.coach && <p className="text-xs text-muted-foreground">Coach · {team.coach.name}</p>}
+          <h2 className="truncate text-sm font-black">
+            <a
+              href={`/equipes/${team.id}`}
+              className="hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+            >
+              {team.name}
+            </a>
+          </h2>
+          {team.coach && (
+            <p className="text-xs text-muted-foreground">
+              Coach ·{" "}
+              <a
+                href={`/entraineurs/${team.coach.id}`}
+                className="hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+              >
+                {team.coach.name}
+              </a>
+            </p>
+          )}
         </div>
       </div>
 
@@ -1260,7 +1292,12 @@ function FixtureTeamCard({ team }: { team: FixtureContextTeam }) {
             {team.topScorers.map((player) => (
               <div key={player.id} className="flex items-center gap-2 text-xs">
                 <img src={player.photo} alt="" className="size-7 rounded-full object-cover" />
-                <span className="min-w-0 flex-1 truncate font-semibold">{player.name}</span>
+                <a
+                  href={`/joueurs/${player.id}`}
+                  className="min-w-0 flex-1 truncate font-semibold hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+                >
+                  {player.name}
+                </a>
                 <span className="font-black">{player.goals} buts</span>
               </div>
             ))}

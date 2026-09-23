@@ -483,7 +483,11 @@ async function fetchWithCache<T>(
       staleUntil: storedAt + profile.staleMs,
     };
     memoryCache.set(cacheKey, envelope);
-    await writeSharedCache(cacheKey, envelope, profile.staleMs);
+    // With the Durable Object coordinator enabled, it already owns the
+    // shared cache. Writing the same response to KV for every SSR request
+    // wastes the daily KV write budget and eventually removes the very
+    // fallback needed during provider limits.
+    if (!coordinator) await writeSharedCache(cacheKey, envelope, profile.staleMs);
     return data;
   } catch (error) {
     const normalized =

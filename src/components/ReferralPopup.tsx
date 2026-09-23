@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { type PopupVariant } from "@/hooks/use-referral-popup";
 import { getMyReferralCode } from "@/lib/referral.functions";
 import { isLocalDemo } from "@/lib/local-demo";
+import { track } from "@/lib/analytics";
 
 const BASE_URL = "https://www.livefoot.fun";
 
@@ -76,7 +77,7 @@ function FreeInviteContent({ onDismiss }: { onDismiss: () => void }) {
       return;
     }
     fetchCode()
-      .then((res) => setReferralCode(res.code))
+      .then((res) => setReferralCode(res.code || null))
       .catch(() => setReferralCode(null))
       .finally(() => setLoading(false));
   }, [demoMode, fetchCode]);
@@ -89,6 +90,7 @@ function FreeInviteContent({ onDismiss }: { onDismiss: () => void }) {
       .writeText(referralLink)
       .then(() => {
         setCopied(true);
+        track("referral_link_copy", { location: "referral_popup" });
         toast.success("Lien copié !");
         setTimeout(() => setCopied(false), 2000);
       })
@@ -97,6 +99,7 @@ function FreeInviteContent({ onDismiss }: { onDismiss: () => void }) {
 
   const handleWhatsApp = () => {
     if (!referralLink) return;
+    track("referral_share_click", { location: "referral_popup", channel: "whatsapp" });
     const text = encodeURIComponent(
       `🔥 Rejoins-moi sur Livefoot IA — analyses football IA en temps réel !\nInscris-toi avec mon lien et on joue ensemble 👉 ${referralLink}`,
     );
@@ -109,14 +112,14 @@ function FreeInviteContent({ onDismiss }: { onDismiss: () => void }) {
       <div className="flex items-start justify-between">
         <div>
           <div className="mb-1.5 inline-flex items-center gap-1.5 rounded-full bg-brand/15 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-brand">
-            <Users className="size-3" /> Parrainage
+            <Users className="size-3" /> Récompense Premium Pro
           </div>
           <h2 id="referral-title" className="text-xl font-black leading-tight">
-            Invitez un proche, gagnez 5 crédits
+            Invitez 25 amis, gagnez 7 jours Premium Pro
           </h2>
           <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
-            Partagez votre lien unique. Dès qu'un proche crée son compte, vous recevez
-            automatiquement <span className="font-bold text-brand">+5 crédits</span>.
+            Partagez votre lien unique. Chaque compte confirmé vous rapporte
+            <span className="font-bold text-brand"> +5 crédits</span>. À 25 confirmations, votre accès Premium Pro de 7 jours est offert automatiquement.
           </p>
         </div>
         <button
@@ -157,23 +160,30 @@ function FreeInviteContent({ onDismiss }: { onDismiss: () => void }) {
         <button
           onClick={handleWhatsApp}
           disabled={!referralLink}
-          className="flex items-center justify-center gap-1.5 rounded-xl bg-[#25D366] py-3 text-xs font-black text-white transition-transform active:scale-[0.98] disabled:opacity-40"
+          className="flex items-center justify-center gap-1.5 rounded-xl bg-[#25D366] py-3 text-xs font-black text-white transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand disabled:cursor-not-allowed disabled:opacity-50"
         >
-          <WhatsAppIcon /> Partager
+          <WhatsAppIcon /> Inviter sur WhatsApp
         </button>
         <Link
           to="/profil"
           onClick={onDismiss}
-          className="flex items-center justify-center gap-1.5 rounded-xl bg-foreground py-3 text-xs font-black text-background transition-transform active:scale-[0.98]"
+          className="flex min-h-12 items-center justify-center gap-1.5 rounded-xl bg-[#f5f7f6] px-3 py-2 text-xs font-bold text-[#06130e] transition-colors hover:bg-[#dfe8e2] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
         >
-          <Users className="size-3.5 text-brand" /> Mon parrainage
+          <Users className="size-3.5 shrink-0 text-brand" />
+          <span className="whitespace-nowrap">Ma progression</span>
         </Link>
       </div>
 
       <p className="mt-3 text-center text-[10px] text-muted-foreground">
-        Votre proche reçoit ses 5 crédits de bienvenue. Vous gagnez +5 crédits par
-        inscription attribuée.
+        Gratuit : votre proche reçoit ses 5 crédits de bienvenue et vous avancez vers Premium Pro.
       </p>
+      <Link
+        to="/ambassadeurs"
+        onClick={onDismiss}
+        className="mt-3 inline-flex w-full items-center justify-center rounded-xl border border-brand/25 bg-brand/5 px-3 py-2.5 text-xs font-black text-brand transition-colors hover:bg-brand/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+      >
+        Gagner jusqu’à 40 % sur les abonnements Premium
+      </Link>
     </>
   );
 }
@@ -232,7 +242,7 @@ function PremiumLowCreditsContent({ onDismiss }: { onDismiss: () => void }) {
           <div className="mt-1 text-xs font-bold leading-snug text-foreground">
             2 mois offerts
             <br />
-            <span className="text-muted-foreground font-normal">49 000 FCFA/an</span>
+            <span className="text-muted-foreground font-normal">59 000 FCFA/an</span>
           </div>
         </div>
       </div>
@@ -252,9 +262,10 @@ function PremiumLowCreditsContent({ onDismiss }: { onDismiss: () => void }) {
           to="/premium"
           search={{}}
           onClick={onDismiss}
-          className="flex items-center justify-center gap-1.5 rounded-xl bg-foreground py-3 text-xs font-black text-background transition-transform active:scale-[0.98]"
+          className="flex min-h-12 items-center justify-center gap-1.5 rounded-xl bg-[#f5f7f6] px-3 py-2 text-xs font-bold text-[#06130e] transition-colors hover:bg-[#dfe8e2] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
         >
-          <Crown className="size-3.5 text-warn" /> Annuel
+          <Crown className="size-3.5 shrink-0 text-warn" />
+          <span>Voir l’offre annuelle</span>
         </Link>
       </div>
     </>

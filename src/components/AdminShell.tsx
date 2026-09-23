@@ -27,6 +27,7 @@ import { useSession } from "@/hooks/use-session";
 const items = [
   ["/admin", "Vue générale", LayoutDashboard],
   ["/admin/utilisateurs", "Utilisateurs", Users],
+  ["/admin/clients-premium", "Clients payants", Crown],
   ["/admin/paiements", "Paiements", CreditCard],
   ["/admin/analyses", "Analyses", BarChart3],
   ["/admin/api", "Matchs & API", Activity],

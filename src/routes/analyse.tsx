@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { AppShell, PageTitle } from "@/components/AppShell";
 import { PremiumCta } from "@/components/PremiumCta";
+import { ReferralCta } from "@/components/ReferralCta";
 import { Disclaimer } from "@/components/Disclaimer";
 import { WinProbabilityDonut, WinProbabilityLegend } from "@/components/WinProbabilityDonut";
 import { MarketCard } from "@/components/MarketCard";
@@ -30,6 +31,7 @@ import { buildRouteMeta, breadcrumbSchema, faqSchema, SPEAKABLE, ORG } from "@/l
 import { track, lastCtaSource } from "@/lib/analytics";
 import { requestPremiumPrompt } from "@/hooks/use-premium-prompt";
 import { DEMO_ANALYSIS, isLocalDemo } from "@/lib/local-demo";
+import { analysisMatchId, analysisReturnPath, analysisErrorMessage } from "@/lib/analysis-navigation";
 
 const ANALYSE_ANSWER =
   "Pour obtenir une prédiction football avec LiveFoot, saisissez l'équipe à domicile et l'équipe à l'extérieur, puis lancez l'analyse. Le moteur LiveFoot recoupe forme récente, confrontations directes, blessures, classement, données live et marché disponible, puis renvoie les probabilités 1X2, le score le plus probable et les marchés recommandés avec un niveau de confiance. Une analyse coûte 3 crédits.";
@@ -74,9 +76,9 @@ export const Route = createFileRoute("/analyse")({
   head: () => {
     const base = buildRouteMeta({
       path: "/analyse",
-      title: "Prédictions IA & analyse d'équipes",
+      title: "Pronostics football : analyse et prédictions IA des matchs",
       description:
-        "Analysez n'importe quelle rencontre : entrez deux équipes et obtenez une prédiction IA complète (probabilités, marchés, score).",
+        "Obtenez une analyse de match football complète : forme des équipes, statistiques, confrontations, probabilités, score probable et marchés disponibles, avec une estimation IA prudente.",
       alternates: [
         { language: "fr", path: "/analyse" },
         { language: "en", path: "/en/analyse" },
@@ -207,6 +209,9 @@ function AnalysePage() {
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [swapping, setSwapping] = useState(false);
   const autoLaunched = useRef(false);
+  const submitting = useRef(false);
+  const pendingRequest = useRef<{ key: string; id: string } | null>(null);
+  const selectedMatchId = analysisMatchId(home, away, homeParam, awayParam, matchIdParam);
 
   const runFn = useServerFn(runAnalysis);
   const { user, loading: sessionLoading } = useSession();
@@ -222,15 +227,13 @@ function AnalysePage() {
   // Rediriger vers /auth si l'utilisateur n'est pas connecté (après chargement)
   useEffect(() => {
     if (!demoMode && !sessionLoading && !user) {
-      const context = [homeParam, awayParam].every(Boolean)
-        ? `/analyse?home=${encodeURIComponent(homeParam)}&away=${encodeURIComponent(awayParam)}`
-        : "/analyse";
+      const context = analysisReturnPath(homeParam, awayParam, matchIdParam);
       navigate({
         to: "/auth",
         search: { mode: "signup", redirect: context, source: "analyse_gate" },
       });
     }
-  }, [demoMode, sessionLoading, user, navigate, homeParam, awayParam]);
+  }, [demoMode, sessionLoading, user, navigate, homeParam, awayParam, matchIdParam]);
 
   // Auto-lancer l'analyse quand les équipes viennent de la page match
   useEffect(() => {
@@ -253,11 +256,9 @@ function AnalysePage() {
   };
 
   async function onSubmit() {
+    if (submitting.current) return;
     if (!user) {
-      const context =
-        home.trim() && away.trim()
-          ? `/analyse?home=${encodeURIComponent(home.trim())}&away=${encodeURIComponent(away.trim())}`
-          : "/analyse";
+      const context = analysisReturnPath(home, away, selectedMatchId);
       navigate({
         to: "/auth",
         search: { mode: "signup", redirect: context, source: "analyse_gate" },
@@ -272,6 +273,11 @@ function AnalysePage() {
       setLive(DEMO_ANALYSIS);
       toast.success("Aperçu local : analyse fictive affichée, aucun crédit débité.");
       return;
+    }
+    submitting.current = true;
+    const requestKey = JSON.stringify([user.id, home.trim(), away.trim(), selectedMatchId]);
+    if (pendingRequest.current?.key !== requestKey) {
+      pendingRequest.current = { key: requestKey, id: crypto.randomUUID() };
     }
     track("analyse_run", { source: lastCtaSource() ?? "direct" });
     setLoading(true);
@@ -295,35 +301,27 @@ function AnalysePage() {
         data: {
           home: home.trim(),
           away: away.trim(),
-          matchId: matchIdParam || undefined,
-          requestId: crypto.randomUUID(),
+          matchId: selectedMatchId,
+          requestId: pendingRequest.current.id,
         },
       });
       setLive(result);
+      pendingRequest.current = null;
       track("analysis_result_view", {
         source: lastCtaSource() ?? "direct",
         matchId: matchIdParam ?? "",
       });
       window.dispatchEvent(new Event("livefoot:analysis-completed"));
       requestPremiumPrompt("first_analysis");
-      toast.success("Analyse IA générée — 3 crédits débités.");
+      toast.success("Analyse disponible — 3 crédits débités.");
     } catch (err) {
       const rawMessage = err instanceof Error ? err.message : "";
-      const message = /invalid_type|matchId|Identifiant de match/i.test(rawMessage)
-        ? "Le match n’a pas pu être identifié. Ouvrez l’analyse depuis la fiche du match ou vérifiez les équipes."
-        : /Données statistiques insuffisantes|API Football|momentanément indisponible/i.test(
-              rawMessage,
-            )
-          ? "Certaines informations sont encore en cours de mise à jour. Réessayez dans quelques instants."
-          : /Crédits insuffisants|Limite atteinte|Limite quotidienne|Profil introuvable|Impossible de lire votre profil/i.test(
-                rawMessage,
-              )
-            ? rawMessage
-            : "L’analyse n’a pas pu être générée. Réessayez dans quelques secondes.";
+      const message = analysisErrorMessage(rawMessage);
       setAnalysisError(message);
       toast.error(message);
     } finally {
       clearInterval(interval);
+      submitting.current = false;
       setLoading(false);
     }
   }
@@ -586,6 +584,8 @@ function AnalysePage() {
                 </Link>
               </div>
             )}
+
+            <ReferralCta location="analysis_result" variant="inline" showProgress />
           </>
         )}
 

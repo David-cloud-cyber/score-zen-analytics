@@ -18,6 +18,7 @@ import {
   type PredictionMetadata,
 } from "./prediction-quality";
 import { normalizeAiCandidate } from "./prediction-ai-normalize";
+import { isActionablePrediction } from "./prediction-evaluation";
 
 const ANALYSIS_COST = 3;
 
@@ -190,6 +191,7 @@ type HeadToHeadContext = H2HMatch & {
 };
 
 type FixtureIdentity = {
+  fixtureId: number;
   homeId: number;
   awayId: number;
   homeName: string;
@@ -223,6 +225,7 @@ async function resolveFixtureIdentity(fixtureId: number): Promise<FixtureIdentit
     league: { id: number; season: number };
     statusShort: string;
   }): FixtureIdentity => ({
+    fixtureId: fixture.id,
     homeId: fixture.home.id,
     awayId: fixture.away.id,
     homeName: fixture.home.name,
@@ -249,6 +252,7 @@ async function resolveFixtureIdentity(fixtureId: number): Promise<FixtureIdentit
     const cachedFixture = Array.isArray(cached?.data) ? cached.data[0] : null;
     if (cachedFixture?.teams?.home && cachedFixture?.teams?.away) {
       return {
+        fixtureId,
         homeId: cachedFixture.teams.home.id,
         awayId: cachedFixture.teams.away.id,
         homeName: cachedFixture.teams.home.name,
@@ -272,6 +276,41 @@ async function resolveFixtureIdentity(fixtureId: number): Promise<FixtureIdentit
     const fixture = fixtures[0];
     if (!fixture) return null;
     return {
+      fixtureId,
+      homeId: fixture.teams.home.id,
+      awayId: fixture.teams.away.id,
+      homeName: fixture.teams.home.name,
+      awayName: fixture.teams.away.name,
+      leagueId: fixture.league.id,
+      season: fixture.league.season,
+      status: fixture.fixture.status.short,
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function resolveFixtureIdentityForTeams(
+  homeId: number,
+  awayId: number,
+): Promise<FixtureIdentity | null> {
+  try {
+    const { apiFootball, todayISO } = await import("./apifootball.server");
+    type FixtureRow = {
+      fixture: { id: number; date: string; status: { short: string } };
+      league: { id: number; season: number };
+      teams: { home: { id: number; name: string }; away: { id: number; name: string } };
+    };
+    const [todayRows, upcomingRows] = await Promise.all([
+      apiFootball<FixtureRow[]>("/fixtures", { team: homeId, date: todayISO() }).catch(() => []),
+      apiFootball<FixtureRow[]>("/fixtures", { team: homeId, next: 20 }).catch(() => []),
+    ]);
+    const fixture = [...todayRows, ...upcomingRows]
+      .filter((row) => row.teams.home.id === homeId && row.teams.away.id === awayId)
+      .sort((left, right) => new Date(left.fixture.date).getTime() - new Date(right.fixture.date).getTime())[0];
+    if (!fixture) return null;
+    return {
+      fixtureId: fixture.fixture.id,
       homeId: fixture.teams.home.id,
       awayId: fixture.teams.away.id,
       homeName: fixture.teams.home.name,
@@ -331,10 +370,12 @@ async function fetchTeamContext(
             goals: { home: number | null; away: number | null };
           }>
         >("/fixtures", { team: t.id, last: 14 }),
-        apiFootball<Array<{ player: { name: string; reason: string } }>>("/injuries", {
-          team: t.id,
-          season: competition?.season ?? seasonYear,
-        }),
+        competition?.season && competition.season >= 2000 && competition.season <= new Date().getUTCFullYear() + 1
+          ? apiFootball<Array<{ player: { name: string; reason: string } }>>("/injuries", {
+              team: t.id,
+              season: competition.season,
+            })
+          : Promise.resolve([]),
         competition?.leagueId && competition.season
           ? apiFootball<
               Array<{
@@ -771,9 +812,8 @@ async function fetchLiveSnapshot(matchId?: string): Promise<LiveSnapshot | null>
 }
 
 /**
- * Routeur IA hybride — fournisseur principal puis relais sécurisé.
- * Les clés sont lues via getConfig() : env var Cloudflare Worker en prod, table app_config Supabase en fallback.
- * Bascule silencieusement sans que l'utilisateur le sache.
+ * Analyse IA stricte : un seul modèle Anthropic via OpenRouter.
+ * Aucun modèle, fournisseur ou fallback statistique ne remplace l'appel demandé.
  */
 type AIRouterResult = {
   result: AnalysisResult;
@@ -781,105 +821,34 @@ type AIRouterResult = {
   latencyMs: number;
 };
 
-async function callSmartAIRouter(
+async function callAnthropicAnalysis(
   systemPrompt: string,
   userPrompt: string,
-  isPremium: boolean,
 ): Promise<AIRouterResult> {
   const startedAt = Date.now();
-  let attempts = 0;
   const { getConfig } = await import("./config.server");
-  const [geminiKey, openRouterKey] = await Promise.all([
-    getConfig("GEMINI_API_KEY"),
-    getConfig("OPENROUTER_API_KEY"),
-  ]);
-
-  if (openRouterKey) {
-    const { getOpenRouterModels, requestOpenRouterJson } = await import("./ai-gateway.server");
-    const models = getOpenRouterModels();
-    const orderedModels = isPremium
-      ? [models.premium, models.standard, models.fallback]
-      : [models.standard, models.fallback, models.premium];
-    const deadline = Date.now() + 10_500;
-
-    for (const model of [...new Set(orderedModels)]) {
-      const remaining = deadline - Date.now();
-      if (remaining < 700) break;
-      attempts += 1;
-      try {
-        const raw = await requestOpenRouterJson({
-          apiKey: openRouterKey,
-          model,
-          systemPrompt,
-          userPrompt,
-          timeoutMs: Math.min(6_500, remaining - 250),
-        });
-        return {
-          result: resultSchema.parse(normalizeAiCandidate(raw)),
-          status: attempts === 1 ? "ai_enriched" : "ai_fallback",
-          latencyMs: Date.now() - startedAt,
-        };
-      } catch (err) {
-        console.warn("OpenRouter provider unavailable:", err instanceof Error ? err.message : err);
-      }
-    }
+  const openRouterKey = await getConfig("OPENROUTER_API_KEY");
+  if (!openRouterKey) {
+    throw new Error("L'analyse IA est momentanément indisponible. Veuillez réessayer dans un instant.");
   }
 
-  // 1. Fournisseur principal — quota et format JSON strict.
-  if (geminiKey) {
-    try {
-      const { requestGeminiJson } = await import("./ai-gateway.server");
-      const raw = await requestGeminiJson({
-        apiKey: geminiKey,
-        systemPrompt,
-        userPrompt,
-        timeoutMs: Math.min(4_500, Math.max(800, 10_500 - (Date.now() - startedAt))),
-      });
-      return {
-        result: resultSchema.parse(normalizeAiCandidate(raw)),
-        status: "ai_fallback",
-        latencyMs: Date.now() - startedAt,
-      };
-    } catch (err) {
-      console.warn("Provider principal indisponible:", err instanceof Error ? err.message : err);
-    }
-  }
+  const { getOpenRouterAnalysisModel, requestOpenRouterJson } = await import("./ai-gateway.server");
+  const raw = await requestOpenRouterJson({
+    apiKey: openRouterKey,
+    model: getOpenRouterAnalysisModel(),
+    systemPrompt,
+    userPrompt,
+    timeoutMs: 11_500,
+    maxTokens: 1400,
+    providerOnly: ["anthropic"],
+    allowProviderFallbacks: false,
+  });
 
-  // 2. Relais OpenRouter — modèle gratuit de secours.
-  if (openRouterKey) {
-    try {
-      const { requestOpenRouterJson } = await import("./ai-gateway.server");
-      for (const model of ["deepseek/deepseek-r1:free", "meta-llama/llama-3.3-70b-instruct:free"]) {
-        const remaining = 10_500 - (Date.now() - startedAt);
-        if (remaining < 800) break;
-        try {
-          const raw = await requestOpenRouterJson({
-            apiKey: openRouterKey,
-            model,
-            systemPrompt,
-            userPrompt,
-            timeoutMs: Math.min(3_500, Math.max(800, remaining - 200)),
-          });
-          return {
-            result: resultSchema.parse(normalizeAiCandidate(raw)),
-            status: "ai_fallback",
-            latencyMs: Date.now() - startedAt,
-          };
-        } catch (err) {
-          console.warn(
-            "OpenRouter failover unavailable:",
-            err instanceof Error ? err.message : err,
-          );
-        }
-      }
-    } catch (err) {
-      console.warn("OpenRouter failover:", err instanceof Error ? err.message : err);
-    }
-  }
-
-  throw new Error(
-    "L'analyse IA est momentanément indisponible. Veuillez réessayer dans un instant.",
-  );
+  return {
+    result: resultSchema.parse(normalizeAiCandidate(raw)),
+    status: "ai_enriched",
+    latencyMs: Date.now() - startedAt,
+  };
 }
 
 export const runAnalysis = createServerFn({ method: "POST" })
@@ -944,6 +913,15 @@ export const runAnalysis = createServerFn({ method: "POST" })
       );
     }
 
+    // Validate the current fixture before charging for a cached projection.
+    let fixtureIdentity = await fetchFixtureIdentity(data.matchId);
+    const fixtureStatus = fixtureIdentity?.status?.toUpperCase() ?? null;
+    if (fixtureStatus && ["FT", "AET", "PEN"].includes(fixtureStatus)) {
+      throw new Error("Cette rencontre est déjà terminée. Choisissez un match à venir ou en direct.");
+    }
+    if (fixtureStatus && ["CANC", "PST", "ABD", "AWD", "WO"].includes(fixtureStatus)) {
+      throw new Error("Cette rencontre ne peut pas être analysée dans son état actuel.");
+    }
     // 2. Enrichissement parallèle : forme + H2H + blessures + cotes bookmakers.
     const cached = analysisCache.get(cacheKey);
     if (cached && Date.now() - cached.at < cached.ttlMs) {
@@ -961,18 +939,6 @@ export const runAnalysis = createServerFn({ method: "POST" })
 
     // Pour un lien de fiche match, l'API connaît déjà les IDs fiables des deux
     // équipes. Les réutiliser évite les recherches textuelles fragiles (et plus lentes).
-    const fixtureIdentity = await fetchFixtureIdentity(data.matchId);
-    const terminalStatuses = new Set(["FT", "AET", "PEN"]);
-    const unavailableStatuses = new Set(["CANC", "PST", "ABD", "AWD", "WO"]);
-    const fixtureStatus = fixtureIdentity?.status?.toUpperCase() ?? null;
-    if (fixtureStatus && terminalStatuses.has(fixtureStatus)) {
-      throw new Error(
-        "Cette rencontre est déjà terminée. Choisissez un match à venir ou en direct.",
-      );
-    }
-    if (fixtureStatus && unavailableStatuses.has(fixtureStatus)) {
-      throw new Error("Cette rencontre ne peut pas être analysée dans son état actuel.");
-    }
     const competition = fixtureIdentity
       ? { leagueId: fixtureIdentity.leagueId, season: fixtureIdentity.season }
       : undefined;
@@ -989,7 +955,7 @@ export const runAnalysis = createServerFn({ method: "POST" })
       ),
       fetchLiveSnapshot(data.matchId),
     ]);
-    const homeCtx =
+    let homeCtx =
       homeResult.status === "fulfilled"
         ? (homeResult.value ??
           (fixtureIdentity
@@ -998,7 +964,7 @@ export const runAnalysis = createServerFn({ method: "POST" })
         : fixtureIdentity
           ? identityTeamContext(fixtureIdentity.homeId, fixtureIdentity.homeName)
           : null;
-    const awayCtx =
+    let awayCtx =
       awayResult.status === "fulfilled"
         ? (awayResult.value ??
           (fixtureIdentity
@@ -1007,12 +973,43 @@ export const runAnalysis = createServerFn({ method: "POST" })
         : fixtureIdentity
           ? identityTeamContext(fixtureIdentity.awayId, fixtureIdentity.awayName)
           : null;
-    const liveSnapshot = liveResult.status === "fulfilled" ? liveResult.value : null;
+    let liveSnapshot = liveResult.status === "fulfilled" ? liveResult.value : null;
 
     if (!homeCtx || !awayCtx) {
       throw new Error(
         "Le match n’a pas pu être identifié avec suffisamment d’informations vérifiées.",
       );
+    }
+    // Une saisie manuelle doit retrouver le fixture réel avant de conclure que
+    // le contexte est insuffisant. Cela récupère aussi la bonne saison et la
+    // bonne compétition pour les classements et statistiques d'équipe.
+    if (!fixtureIdentity) {
+      fixtureIdentity = await resolveFixtureIdentityForTeams(homeCtx.id, awayCtx.id);
+      if (fixtureIdentity) {
+        const resolvedCompetition = {
+          leagueId: fixtureIdentity.leagueId,
+          season: fixtureIdentity.season,
+        };
+        const [resolvedHome, resolvedAway, resolvedLive] = await Promise.allSettled([
+          fetchTeamContextDeduped(fixtureIdentity.homeName, fixtureIdentity.homeId, resolvedCompetition),
+          fetchTeamContextDeduped(fixtureIdentity.awayName, fixtureIdentity.awayId, resolvedCompetition),
+          fetchLiveSnapshot(String(fixtureIdentity.fixtureId)),
+        ]);
+        if (resolvedHome.status === "fulfilled" && resolvedHome.value) homeCtx = resolvedHome.value;
+        if (resolvedAway.status === "fulfilled" && resolvedAway.value) awayCtx = resolvedAway.value;
+        if (resolvedLive.status === "fulfilled" && resolvedLive.value) liveSnapshot = resolvedLive.value;
+      }
+    }
+    const effectiveMatchId = data.matchId ?? (fixtureIdentity ? String(fixtureIdentity.fixtureId) : undefined);
+    const effectiveFixtureStatus = fixtureIdentity?.status?.toUpperCase() ?? null;
+    if (effectiveFixtureStatus && ["FT", "AET", "PEN"].includes(effectiveFixtureStatus)) {
+      throw new Error("Cette rencontre est déjà terminée. Choisissez un match à venir ou en direct.");
+    }
+    if (
+      effectiveFixtureStatus &&
+      ["CANC", "PST", "ABD", "AWD", "WO"].includes(effectiveFixtureStatus)
+    ) {
+      throw new Error("Cette rencontre n’est pas disponible pour une analyse actuellement.");
     }
     // Une fiche réelle peut être identifiée alors que les sections secondaires
     // sont momentanément indisponibles (quota, timeout ou fournisseur lent).
@@ -1036,12 +1033,12 @@ export const runAnalysis = createServerFn({ method: "POST" })
         ? fetchBookmakerOdds(
             homeCtx.id,
             awayCtx.id,
-            Number.isInteger(Number(data.matchId)) ? Number(data.matchId) : undefined,
+            Number.isInteger(Number(effectiveMatchId)) ? Number(effectiveMatchId) : undefined,
           )
         : Promise.resolve(null),
-      fetchCommunitySnapshot(data.matchId),
+      fetchCommunitySnapshot(effectiveMatchId),
       fetchProviderPrediction(
-        Number.isInteger(Number(data.matchId)) ? Number(data.matchId) : undefined,
+        Number.isInteger(Number(effectiveMatchId)) ? Number(effectiveMatchId) : undefined,
       ),
     ]);
     const providerPrediction =
@@ -1253,14 +1250,14 @@ export const runAnalysis = createServerFn({ method: "POST" })
       `Snapshot structuré complet (source de vérité) :\n${JSON.stringify(snapshotForAI)}\n\n` +
       `Produis l'analyse structurée demandée au format JSON avec les champs: probabilities (home, draw, away), probableScore, markets (array de 4 à 6 objets avec label, pick, probability, confidence, risk, rationale), aiText, keyFactors (array).`;
 
-    // 3. Routeur hybride : l'IA améliore le calcul si elle répond à temps ; le
-    // moteur statistique conserve seul la continuité de service en cas d'échec.
-    let enriched: StatisticalPrediction | null = null;
-    let aiStatus: PredictionAiStatus = "statistical_only";
+    // 3. L'IA est obligatoire pour une analyse facturée : aucun fallback de
+    // modèle, de fournisseur ou de moteur statistique n'est présenté comme IA.
+    let enriched: StatisticalPrediction;
+    let aiStatus: PredictionAiStatus = "ai_enriched";
     let aiLatencyMs: number | null = null;
     try {
       const aiRun = await withTimeout(
-        callSmartAIRouter(systemPrompt, userPrompt, isPremium),
+        callAnthropicAnalysis(systemPrompt, userPrompt),
         12_000,
         "Le délai d'enrichissement IA est dépassé.",
       );
@@ -1269,14 +1266,15 @@ export const runAnalysis = createServerFn({ method: "POST" })
       aiLatencyMs = aiRun.latencyMs;
     } catch (error) {
       console.warn(
-        "AI enrichment unavailable; serving deterministic prediction:",
+        "Anthropic analysis unavailable; no credit will be debited:",
         error instanceof Error ? error.message : error,
       );
+      throw new Error("L'analyse IA est momentanément indisponible. Aucun crédit n’a été débité. Réessayez dans un instant.");
     }
     const blended = blendPredictions(
       basePrediction,
       enriched,
-      aiStatus === "ai_fallback" ? "ai_fallback" : "ai_enriched",
+      "ai_enriched",
     );
     const result = resultSchema.parse({
       ...blended,
@@ -1296,7 +1294,10 @@ export const runAnalysis = createServerFn({ method: "POST" })
           : blended.aiText,
     });
 
-    if (result.markets.every((market) => market.pick === "Aucune recommandation fiable")) {
+    const actionableMarkets = result.markets.filter((market) =>
+      isActionablePrediction(market.pick),
+    );
+    if (actionableMarkets.length < 1) {
       throw new Error(
         "Les informations vérifiées ne permettent pas encore une recommandation fiable. Aucun crédit n’a été débité.",
       );
@@ -1312,7 +1313,7 @@ export const runAnalysis = createServerFn({ method: "POST" })
       aiLatencyMs,
       availableSections,
       unavailableSections,
-      marketCount: result.markets.length,
+      marketCount: actionableMarkets.length,
     });
 
     // 4. Débit + log.
@@ -1320,7 +1321,7 @@ export const runAnalysis = createServerFn({ method: "POST" })
       userId: context.userId,
       home: data.home,
       away: data.away,
-      matchId: data.matchId,
+      matchId: effectiveMatchId,
       requestId: data.requestId,
       result,
       metadata,
@@ -1329,7 +1330,7 @@ export const runAnalysis = createServerFn({ method: "POST" })
     // 5. Cache.
     const cacheTtlMs = analysisLiveSnapshot?.minute
       ? LIVE_CACHE_TTL_MS
-      : data.matchId
+      : effectiveMatchId
         ? FIXTURE_CACHE_TTL_MS
         : MANUAL_CACHE_TTL_MS;
     analysisCache.set(cacheKey, { at: Date.now(), ttlMs: cacheTtlMs, result, metadata });
@@ -1348,7 +1349,7 @@ export const getMyBalance = createServerFn({ method: "GET" })
     }
     const { data } = await context.supabase
       .from("profiles")
-      .select("credits, plan, display_name, avatar_url, premium_until")
+      .select("credits, plan, display_name, avatar_url, premium_until, referral_pro_until")
       .eq("id", context.userId)
       .maybeSingle();
     return (
@@ -1358,6 +1359,7 @@ export const getMyBalance = createServerFn({ method: "GET" })
         display_name: null,
         avatar_url: null,
         premium_until: null,
+        referral_pro_until: null,
       }
     );
   });

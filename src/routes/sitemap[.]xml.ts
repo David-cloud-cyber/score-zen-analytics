@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import type {} from "@tanstack/react-start";
 import { BOOKMAKERS } from "@/data/bookmakers";
 import { SEO_COUNTRIES } from "@/data/country-seo";
+import { FEATURED_COMPETITIONS } from "@/data/competitions";
 
 const BASE_URL = "https://www.livefoot.fun";
 
@@ -17,7 +18,9 @@ function xmlEscape(value: string) {
 function withTimeout<T>(promise: Promise<T>, timeoutMs: number) {
   return Promise.race([
     promise,
-    new Promise<T>((_, reject) => setTimeout(() => reject(new Error("SITEMAP_SOURCE_TIMEOUT")), timeoutMs)),
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error("SITEMAP_SOURCE_TIMEOUT")), timeoutMs),
+    ),
   ]);
 }
 
@@ -108,12 +111,14 @@ export const Route = createFileRoute("/sitemap.xml")({
           { path: "/analyse", changefreq: "weekly", priority: "0.9" },
           { path: "/pronostics-du-jour", changefreq: "daily", priority: "0.9" },
           { path: "/pronostics/historique", changefreq: "daily", priority: "0.75" },
+          { path: "/championnats", changefreq: "daily", priority: "0.85" },
           { path: "/communaute", changefreq: "daily", priority: "0.8" },
           { path: "/mentions-legales", changefreq: "yearly", priority: "0.3" },
           { path: "/a-propos", changefreq: "monthly", priority: "0.4" },
           { path: "/politique-editoriale", changefreq: "monthly", priority: "0.4" },
           { path: "/premium", changefreq: "monthly", priority: "0.7" },
           { path: "/vip", changefreq: "weekly", priority: "0.8" },
+          { path: "/ambassadeurs", changefreq: "weekly", priority: "0.85" },
           {
             path: "/codes-promo",
             lastmod: latestBookmakerUpdate,
@@ -121,7 +126,12 @@ export const Route = createFileRoute("/sitemap.xml")({
             priority: "0.9",
           },
           { path: "/blog", changefreq: "daily", priority: "0.9" },
-          { path: "/blog/football", lastmod: editorialEntries[0]?.updated_at, changefreq: "daily", priority: "0.85" },
+          {
+            path: "/blog/football",
+            lastmod: editorialEntries[0]?.updated_at,
+            changefreq: "daily",
+            priority: "0.85",
+          },
           { path: "/en", changefreq: "weekly", priority: "0.7" },
           { path: "/en/analyse", changefreq: "weekly", priority: "0.7" },
           { path: "/en/premium", changefreq: "monthly", priority: "0.5" },
@@ -138,7 +148,9 @@ export const Route = createFileRoute("/sitemap.xml")({
             lastmod: article.updated_at,
             changefreq: "daily" as const,
             priority: "0.8",
-            image: article.cover_image?.startsWith("/") ? `${BASE_URL}${article.cover_image}` : article.cover_image ?? undefined,
+            image: article.cover_image?.startsWith("/")
+              ? `${BASE_URL}${article.cover_image}`
+              : (article.cover_image ?? undefined),
           })),
           ...BOOKMAKERS.map((b) => ({
             path: `/codes-promo/${b.slug}`,
@@ -163,14 +175,19 @@ export const Route = createFileRoute("/sitemap.xml")({
             })),
           ),
           ...fixtureEntries,
+          ...FEATURED_COMPETITIONS.map((competition) => ({
+            path: `/championnats/${competition.slug}`,
+            changefreq: "daily" as const,
+            priority: "0.75",
+          })),
         ];
 
-        const uniqueEntries = Array.from(new Map(entries.map((entry) => [entry.path, entry])).values()).map(
-          (entry) => ({
-            ...entry,
-            alternates: entry.alternates ?? alternatesFor(entry.path),
-          }),
-        );
+        const uniqueEntries = Array.from(
+          new Map(entries.map((entry) => [entry.path, entry])).values(),
+        ).map((entry) => ({
+          ...entry,
+          alternates: entry.alternates ?? alternatesFor(entry.path),
+        }));
 
         const urls = uniqueEntries.map((e) =>
           [
@@ -183,7 +200,9 @@ export const Route = createFileRoute("/sitemap.xml")({
             e.lastmod ? `    <lastmod>${xmlEscape(e.lastmod)}</lastmod>` : null,
             e.changefreq ? `    <changefreq>${e.changefreq}</changefreq>` : null,
             e.priority ? `    <priority>${e.priority}</priority>` : null,
-            e.image ? `    <image:image><image:loc>${xmlEscape(e.image)}</image:loc></image:image>` : null,
+            e.image
+              ? `    <image:image><image:loc>${xmlEscape(e.image)}</image:loc></image:image>`
+              : null,
             `  </url>`,
           ]
             .filter(Boolean)

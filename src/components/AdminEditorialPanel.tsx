@@ -26,9 +26,19 @@ export function AdminEditorialPanel() {
   const cycle = useMutation({ mutationFn: () => runCycle(), onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["admin", "editorial"] }) });
   const status = useMutation({ mutationFn: (input: { articleId: string; status: "published" | "rejected" }) => updateStatus({ data: input }), onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["admin", "editorial"] }) });
   const commentStatus = useMutation({ mutationFn: (input: { commentId: string; status: "approved" | "hidden" | "spam" }) => moderate({ data: input }), onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["admin", "editorial-comments"] }) });
-  const data = demo ? { articles: [], topics: [], runs: [] } : query.data;
+  const data = demo ? { articles: [], topics: [], runs: [], campaign: null } : query.data;
   return (
     <div className="space-y-4">
+      {data?.campaign ? <AdminCard>
+        <div className="flex flex-wrap items-start gap-3">
+          <div className="grid size-9 shrink-0 place-items-center rounded-xl bg-brand/10 text-brand"><Bot className="size-4" /></div>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2"><p className="text-sm font-black">Campagne automatique active</p><span className="rounded-full bg-brand/10 px-2 py-1 text-[10px] font-black text-brand">{data.campaign.queueTotal}/200 sujets</span></div>
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{data.campaign.name} · maximum {data.campaign.daily_limit} articles par jour et {data.campaign.max_articles} publications sur 30 jours. Les sujets sans sources fiables restent bloqués.</p>
+            <div className="mt-3 flex flex-wrap gap-2 text-[10px] font-bold text-muted-foreground"><span className="rounded-lg bg-surface px-2 py-1">Publiés : {data.campaign.queueStats.published ?? 0}</span><span className="rounded-lg bg-surface px-2 py-1">En attente : {data.campaign.queueStats.queued ?? 0}</span><span className="rounded-lg bg-surface px-2 py-1">À valider : {data.campaign.queueStats.validated ?? 0}</span><span className="rounded-lg bg-surface px-2 py-1">Échecs contrôlés : {data.campaign.queueStats.failed ?? 0}</span></div>
+          </div>
+        </div>
+      </AdminCard> : null}
       <AdminCard>
         <div className="flex flex-wrap items-center gap-3"><Bot className="size-4 text-brand" /><div><p className="text-sm font-black">File éditoriale</p><p className="mt-1 text-xs text-muted-foreground">Sujets détectés, contrôles de qualité et publications du blog.</p></div><button type="button" onClick={() => cycle.mutate()} disabled={cycle.isPending || demo} className="ml-auto inline-flex items-center gap-2 rounded-xl bg-brand px-3 py-2 text-xs font-black text-brand-foreground disabled:cursor-not-allowed disabled:opacity-60"><Play className="size-3.5" />{cycle.isPending ? "Préparation…" : "Lancer une sélection"}</button></div>
         {cycle.isError && <p className="mt-3 text-xs font-bold text-alert">La sélection n’a pas pu être lancée.</p>}

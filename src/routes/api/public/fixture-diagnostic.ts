@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { newIncidentId, recordServerIncident } from "@/lib/incident.server";
+import { allowPublicRequest, readJsonBody } from "@/lib/public-endpoint.server";
 
 type Diagnostic = {
   reason?: string;
@@ -23,7 +24,9 @@ export const Route = createFileRoute("/api/public/fixture-diagnostic")({
     handlers: {
       POST: async ({ request }) => {
         try {
-          const input = (await request.json()) as Diagnostic;
+          if (!allowPublicRequest(request, "fixture-diagnostic")) return new Response(null, { status: 204 });
+          const input = await readJsonBody(request);
+          if (!input) return new Response(null, { status: 204 });
           const record = {
             reason: validText(input.reason, 40),
             errorCode: validText(input.errorCode, 40),

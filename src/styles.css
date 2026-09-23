@@ -526,6 +526,73 @@
     color: #f7f7f7;
   }
 
+  /* Named surfaces avoid relying on arbitrary Tailwind background utilities that may be
+     omitted from a production build. Their text contrast is independent from theme tokens. */
+  .score-shell .daily-predictions-hero,
+  .score-shell .premium-hero {
+    color: #f7f7f7;
+    background:
+      radial-gradient(circle at 85% 10%, rgb(28 211 151 / 18%), transparent 34%),
+      #151817;
+  }
+
+  .score-shell .premium-hero {
+    background:
+      radial-gradient(circle at 85% 0%, rgb(0 196 127 / 22%), transparent 34%),
+      radial-gradient(circle at 0% 100%, rgb(245 159 0 / 18%), transparent 28%),
+      #181818;
+  }
+
+  .score-shell .daily-predictions-hero [class*="text-muted-foreground"],
+  .score-shell .premium-hero [class*="text-muted-foreground"] {
+    color: #bac2bf !important;
+  }
+
+  .score-shell .responsible-gambling-notice {
+    border-color: #f2a0a4;
+    background: #fff1f2;
+    color: #7f1d1d;
+  }
+
+  .score-shell .responsible-gambling-notice .text-alert {
+    color: #b91c1c !important;
+  }
+
+  .score-shell .responsible-gambling-notice p {
+    color: #7f1d1d;
+  }
+
+  .dark .score-shell .responsible-gambling-notice {
+    border-color: #7f1d1d;
+    background: #2a1416;
+    color: #fecaca;
+  }
+
+  .dark .score-shell .responsible-gambling-notice .text-alert,
+  .dark .score-shell .responsible-gambling-notice p {
+    color: #fecaca !important;
+  }
+
+  .score-shell .daily-prediction-locked {
+    border-color: rgb(0 196 127 / 28%);
+    background: #effbf6;
+    color: #071b14;
+  }
+
+  .score-shell .daily-prediction-locked [class*="text-muted-foreground"] {
+    color: #52605b !important;
+  }
+
+  .dark .score-shell .daily-prediction-locked {
+    border-color: rgb(35 216 145 / 30%);
+    background: #10271f;
+    color: #f5f7fa;
+  }
+
+  .dark .score-shell .daily-prediction-locked [class*="text-muted-foreground"] {
+    color: #b7c8c0 !important;
+  }
+
   .score-shell .score-dark-surface [class*="text-background"],
   .score-shell .score-dark-surface [class*="text-foreground"] {
     color: #f7f7f7 !important;

@@ -1,13 +1,25 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { ArrowRight, CalendarCheck, Crown, History, ShieldCheck, Sparkles } from "lucide-react";
+import { useEffect } from "react";
+import {
+  ArrowRight,
+  CalendarCheck,
+  Crown,
+  History,
+  ShieldCheck,
+  Sparkles,
+  UserPlus,
+} from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { DailyPredictionCard } from "@/components/DailyPredictionCard";
 import { StrategicPromoCard } from "@/components/promo/StrategicPromoCard";
+import { ReferralCta } from "@/components/ReferralCta";
 import { getDailyPredictions } from "@/lib/daily-predictions.functions";
 import { buildRouteMeta, breadcrumbSchema } from "@/lib/seo";
 import { useSession } from "@/hooks/use-session";
+import { PwaInstallCard } from "@/components/PwaInstallCard";
+import { track } from "@/lib/analytics";
 
 export const Route = createFileRoute("/pronostics-du-jour")({
   head: () => ({
@@ -15,7 +27,7 @@ export const Route = createFileRoute("/pronostics-du-jour")({
       path: "/pronostics-du-jour",
       title: "Pronostics football du jour : sélections statistiques LiveFoot",
       description:
-        "Découvrez les pronostics football du jour sélectionnés avant les matchs à partir des données disponibles, avec deux sélections gratuites chaque jour.",
+        "Découvrez les pronostics football du jour sélectionnés avant les matchs lorsque les données disponibles sont suffisamment fiables, avec un historique transparent.",
     }),
     scripts: [
       {
@@ -35,22 +47,40 @@ export const Route = createFileRoute("/pronostics-du-jour")({
 
 function DailyPredictionsPage() {
   const initial = Route.useLoaderData();
-  const { user } = useSession();
+  const { user, session, loading } = useSession();
   const load = useServerFn(getDailyPredictions);
   const query = useQuery({
     queryKey: ["daily-predictions", user?.id ?? "visitor"],
-    queryFn: () => load(),
-    initialData: initial,
-    staleTime: 5 * 60_000,
-    refetchOnMount: Boolean(user),
+    queryFn: () =>
+      session?.access_token ? load({ data: { accessToken: session.access_token } }) : load(),
+    // SSR deliberately has no browser token. Never seed an authenticated
+    // query with that visitor response, otherwise React Query can retain the
+    // locked cards for its whole stale window after session restoration.
+    initialData: user ? undefined : initial,
+    placeholderData: user ? undefined : initial,
+    staleTime: user ? 0 : 5 * 60_000,
+    enabled: !loading,
+    refetchOnMount: !loading && Boolean(user),
+    retry: 1,
   });
-  const data = query.data;
+  const { refetch: refetchDailyPredictions } = query;
+  useEffect(() => {
+    if (session?.access_token) void refetchDailyPredictions();
+  }, [refetchDailyPredictions, session?.access_token]);
+
+  const restoringAuthenticatedAccess =
+    Boolean(user && session?.access_token) &&
+    (query.isLoading || query.isFetching) &&
+    (!query.data || query.data.access === "visitor");
+  const data = query.data ?? initial;
   const unlocked = data.items.filter((item) => !item.locked).length;
+  const isVisitor = data.access === "visitor";
+  const isFree = data.access === "free";
 
   return (
     <AppShell>
       <div className="mx-auto w-full max-w-6xl space-y-4 px-4 py-4 sm:px-6 sm:py-6 lg:px-0 lg:py-8">
-        <header className="score-dark-surface overflow-hidden rounded-2xl border border-brand/25 bg-[radial-gradient(circle_at_85%_10%,rgba(28,211,151,0.18),transparent_34%),#151817] p-4 text-[#f7f7f7] sm:rounded-3xl sm:p-6">
+        <header className="daily-predictions-hero score-dark-surface overflow-hidden rounded-2xl border border-brand/25 p-4 text-[#f7f7f7] sm:rounded-3xl sm:p-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div className="max-w-3xl">
               <span className="inline-flex items-center gap-1.5 rounded-full bg-brand/15 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-brand">
@@ -61,7 +91,8 @@ function DailyPredictionsPage() {
               </h1>
               <p className="mt-1.5 max-w-2xl text-xs leading-relaxed text-[#bac2bf] sm:text-sm">
                 Des sélections publiées avant le coup d’envoi uniquement lorsque les données
-                disponibles convergent. Deux pronostics sont accessibles gratuitement chaque jour.
+                disponibles convergent. Trois pronostics du jour sont accessibles avec un compte
+                gratuit, puis Premium donne accès à toutes les sélections publiées.
               </p>
             </div>
             <Link
@@ -73,19 +104,64 @@ function DailyPredictionsPage() {
           </div>
         </header>
 
-        {!data.isPremium && data.items.length > 0 && (
+        <PwaInstallCard location="daily_predictions" />
+
+        {restoringAuthenticatedAccess ? (
+          <section className="rounded-2xl border border-border/70 bg-card p-4" aria-live="polite">
+            <div className="h-3 w-28 animate-pulse rounded-full bg-surface" />
+            <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              {[0, 1, 2].map((index) => (
+                <div key={index} className="h-56 animate-pulse rounded-2xl bg-surface" />
+              ))}
+            </div>
+            <p className="mt-3 text-center text-xs text-muted-foreground">
+              Vérification de vos accès…
+            </p>
+          </section>
+        ) : (
+          <>
+
+        {isVisitor && data.items.length > 0 && (
+          <div className="flex flex-col gap-3 rounded-2xl border border-brand/25 bg-brand/[0.05] p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-black">
+                Créez un compte pour lire les {data.items.length} pronostic
+                {data.items.length > 1 ? "s" : ""} disponible{data.items.length > 1 ? "s" : ""}
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                L’inscription donne accès aux trois sélections publiées et à votre espace personnel.
+              </p>
+            </div>
+            <Link
+              to="/auth"
+              search={{
+                mode: "signup",
+                redirect: "/pronostics-du-jour",
+                source: "daily_predictions",
+              }}
+              onClick={() => track("cta_click", { location: "daily_predictions_signup" })}
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-brand px-4 text-xs font-black text-[#06130e]"
+            >
+              <UserPlus className="size-4" /> Créer mon compte
+            </Link>
+          </div>
+        )}
+
+        {isFree && data.items.length > 0 && (
           <div className="flex flex-col gap-3 rounded-2xl border border-brand/25 bg-brand/[0.05] p-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-sm font-black">
                 {unlocked} pronostics gratuits disponibles aujourd’hui
               </p>
               <p className="mt-1 text-xs text-muted-foreground">
-                Premium débloque toutes les sélections du jour et l’historique personnel complet.
+                Premium donne accès à toutes les sélections publiées chaque jour et à l’historique
+                personnel complet.
               </p>
             </div>
             <Link
               to="/premium"
               search={{ plan: undefined }}
+              onClick={() => track("premium_cta_click", { location: "daily_predictions" })}
               className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-brand px-4 text-xs font-black text-[#06130e]"
             >
               <Crown className="size-4" /> Voir Premium
@@ -108,7 +184,11 @@ function DailyPredictionsPage() {
             </div>
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
               {data.items.map((item) => (
-                <DailyPredictionCard key={item.id} item={item} />
+                <DailyPredictionCard
+                  key={item.id}
+                  item={item}
+                  lockedAction={isVisitor ? "signup" : "premium"}
+                />
               ))}
             </div>
           </section>
@@ -171,12 +251,15 @@ function DailyPredictionsPage() {
         </details>
 
         <StrategicPromoCard location="daily_predictions" />
+        <ReferralCta location="daily_predictions" showGuest showProgress />
 
         <footer className="rounded-2xl border border-border/70 bg-card p-4 text-xs leading-relaxed text-muted-foreground">
           Les probabilités sont des estimations, jamais des garanties. Les résultats passés ne
           préjugent pas des résultats futurs. Jouez de façon responsable et uniquement si vous avez
           l’âge légal.
         </footer>
+          </>
+        )}
       </div>
     </AppShell>
   );

@@ -1,5 +1,13 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowRight, Clock3, Crown, LockKeyhole, ShieldCheck, Sparkles } from "lucide-react";
+import {
+  ArrowRight,
+  Clock3,
+  Crown,
+  LockKeyhole,
+  ShieldCheck,
+  Sparkles,
+  UserPlus,
+} from "lucide-react";
 import type { DailyPredictionItem } from "@/lib/daily-predictions.types";
 import { cn } from "@/lib/utils";
 
@@ -25,9 +33,11 @@ function statusLabel(status: DailyPredictionItem["status"]) {
 export function DailyPredictionCard({
   item,
   compact = false,
+  lockedAction = "premium",
 }: {
   item: DailyPredictionItem;
   compact?: boolean;
+  lockedAction?: "signup" | "premium";
 }) {
   const kickoff = new Date(item.kickoff).toLocaleTimeString("fr-FR", {
     hour: "2-digit",
@@ -76,25 +86,43 @@ export function DailyPredictionCard({
       </div>
 
       {item.locked ? (
-        <div className="mt-4 rounded-xl border border-brand/20 bg-brand/[0.04] p-3 text-center">
+        <div className="daily-prediction-locked mt-4 rounded-xl border p-3 text-center">
           <div className="pointer-events-none select-none blur-[6px]" aria-hidden>
             <p className="text-[10px] font-bold uppercase text-muted-foreground">
-              Sélection Premium
+              Pronostic du jour
             </p>
             <p className="mt-1 text-base font-black">Pronostic complet du match</p>
             <div className="mx-auto mt-2 h-2 w-32 rounded-full bg-brand/40" />
           </div>
           <div className="mt-[-48px] flex min-h-14 flex-col items-center justify-center">
             <LockKeyhole className="size-4 text-brand" />
-            <p className="mt-1 text-xs font-black">Sélection réservée aux membres Premium</p>
+            <p className="mt-1 text-xs font-black">
+              {lockedAction === "signup"
+                ? "Créez un compte pour lire ce pronostic"
+                : "Sélection réservée aux membres Premium"}
+            </p>
           </div>
-          <Link
-            to="/premium"
-            search={{ plan: undefined }}
-            className="mt-3 inline-flex h-9 items-center justify-center gap-1.5 rounded-xl bg-brand px-4 text-[11px] font-black text-[#06130e] transition-transform hover:-translate-y-0.5"
-          >
-            <Crown className="size-3.5" /> Tout débloquer
-          </Link>
+          {lockedAction === "signup" ? (
+            <Link
+              to="/auth"
+              search={{
+                mode: "signup",
+                redirect: "/pronostics-du-jour",
+                source: "daily_predictions",
+              }}
+              className="mt-3 inline-flex h-9 items-center justify-center gap-1.5 rounded-xl bg-brand px-4 text-[11px] font-black text-[#06130e] transition-transform hover:-translate-y-0.5"
+            >
+              <UserPlus className="size-3.5" /> Créer mon compte
+            </Link>
+          ) : (
+            <Link
+              to="/premium"
+              search={{ plan: undefined }}
+              className="mt-3 inline-flex h-9 items-center justify-center gap-1.5 rounded-xl bg-brand px-4 text-[11px] font-black text-[#06130e] transition-transform hover:-translate-y-0.5"
+            >
+              <Crown className="size-3.5" /> Voir Premium
+            </Link>
+          )}
         </div>
       ) : (
         <div className="mt-4 rounded-xl bg-surface p-3">
@@ -117,7 +145,10 @@ export function DailyPredictionCard({
           )}
           <div className="mt-2 flex items-center justify-between gap-2 border-t border-border/60 pt-2">
             <span className="inline-flex items-center gap-1 text-[10px] font-bold text-muted-foreground">
-              <ShieldCheck className="size-3.5 text-brand" /> Confiance {item.confidence}%
+              <ShieldCheck className="size-3.5 text-brand" />
+              {item.confidence === null
+                ? "Confiance indisponible"
+                : `Confiance ${item.confidence}%`}
             </span>
             {item.finalScore && (
               <span className="text-[10px] font-black">Score : {item.finalScore}</span>

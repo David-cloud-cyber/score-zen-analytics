@@ -36,6 +36,14 @@ const samples = (isHome, goals) =>
     result: goalsFor > goalsAgainst ? "W" : goalsFor === goalsAgainst ? "D" : "L",
     sameCompetition: true,
   }));
+const seasonSplit = (played, goalsFor, goalsAgainst, pointsPerMatch) => ({
+  played,
+  goalsFor,
+  goalsAgainst,
+  pointsPerMatch,
+  cleanSheetRate: 0.35,
+  failedToScoreRate: 0.18,
+});
 const real = buildStatisticalPrediction({
   home: {
     ...identityTeam(10, "Atlas FC"),
@@ -50,6 +58,11 @@ const real = buildStatisticalPrediction({
     rank: 2,
     points: 48,
     goalsDiff: 21,
+    season: {
+      overall: seasonSplit(24, 1.85, 0.92, 2.05),
+      home: seasonSplit(12, 2.05, 0.75, 2.25),
+      away: seasonSplit(12, 1.65, 1.08, 1.85),
+    },
     dataQuality: "complete",
   },
   away: {
@@ -65,6 +78,11 @@ const real = buildStatisticalPrediction({
     rank: 12,
     points: 24,
     goalsDiff: -8,
+    season: {
+      overall: seasonSplit(24, 1.0, 1.58, 1.0),
+      home: seasonSplit(12, 1.18, 1.4, 1.18),
+      away: seasonSplit(12, 0.82, 1.75, 0.82),
+    },
     dataQuality: "complete",
   },
   h2h: [
@@ -112,3 +130,11 @@ assert.equal(
 );
 
 console.log("prediction-engine: ok");
+
+const oddsOnly = buildStatisticalPrediction({
+  home: identityTeam(1, "Domicile"), away: identityTeam(2, "Extérieur"),
+  h2h: [], odds: { home: 1.72, draw: 3.6, away: 5.1, sources: 5 }, live: null,
+});
+assert.ok(oddsOnly.markets.slice(2).every(market => market.pick === "Aucune recommandation fiable"), "1X2 prices alone cannot justify goal markets");
+const abstainingBlend = blendPredictions(empty, contradictoryAi);
+assert.deepEqual(abstainingBlend.markets, empty.markets, "AI cannot raise confidence on an abstained market");

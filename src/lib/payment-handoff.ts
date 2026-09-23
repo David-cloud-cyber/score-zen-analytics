@@ -3,7 +3,7 @@ const PAYMENT_HANDOFF_TTL_MS = 30 * 60 * 1000;
 
 export type PaymentHandoff = {
   externalId: string;
-  transId: string;
+  transId: string | null;
   createdAt: number;
 };
 
@@ -27,7 +27,7 @@ export function readPaymentHandoff(externalId: string): PaymentHandoff | null {
     const value = JSON.parse(raw) as Partial<PaymentHandoff>;
     if (
       value.externalId !== externalId ||
-      typeof value.transId !== "string" ||
+      (value.transId !== null && typeof value.transId !== "string") ||
       typeof value.createdAt !== "number" ||
       Date.now() - value.createdAt > PAYMENT_HANDOFF_TTL_MS
     ) {

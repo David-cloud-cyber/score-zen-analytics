@@ -3,7 +3,63 @@ import { getRuntimeEnv } from "@/lib/config.server";
 
 const db = supabaseAdmin as any;
 
+const PAYMENT_ANNOUNCEMENT_ID = "payment-provider-saspay-20260902";
+const PAYMENT_ANNOUNCEMENT_CAMPAIGN = "paiements-saspay-20260902";
+
+/**
+ * Delivers the provider migration notice once to every existing account.
+ * Internal notifications are available to every account; browser push is
+ * only sent to subscriptions that the user explicitly authorized.
+ */
+async function ensurePaymentProviderAnnouncement() {
+  try {
+    const [{ data: profiles }, { data: existing }] = await Promise.all([
+      db.from("profiles").select("id").limit(10_000),
+      db.from("user_notifications").select("user_id").eq("entity_id", PAYMENT_ANNOUNCEMENT_ID).limit(10_000),
+    ]);
+    const existingUsers = new Set((existing ?? []).map((row: { user_id: string }) => row.user_id));
+    const rows = (profiles ?? [])
+      .filter((profile: { id: string }) => !existingUsers.has(profile.id))
+      .map((profile: { id: string }) => ({
+        user_id: profile.id,
+        type: "system",
+        title: "Paiements SasPay disponibles",
+        message: "Les paiements Premium et les recharges sont maintenant disponibles via SasPay.",
+        link: "/premium",
+        entity_id: PAYMENT_ANNOUNCEMENT_ID,
+      }));
+    if (rows.length) await db.from("user_notifications").insert(rows);
+
+    const { data: campaign } = await db
+      .from("marketing_push_campaigns")
+      .select("id")
+      .eq("name", PAYMENT_ANNOUNCEMENT_CAMPAIGN)
+      .limit(1)
+      .maybeSingle();
+
+    if (!campaign) {
+      const startsAt = new Date();
+      const endsAt = new Date(startsAt.getTime() + 24 * 60 * 60_000);
+      await db.from("marketing_push_campaigns").insert({
+        name: PAYMENT_ANNOUNCEMENT_CAMPAIGN,
+        title: "Paiements SasPay disponibles",
+        message: "Premium et recharges sont disponibles. Ouvrez LiveFoot pour continuer.",
+        link: "/premium",
+        audience: "all",
+        status: "active",
+        daily_limit: 1,
+        starts_at: startsAt.toISOString(),
+        ends_at: endsAt.toISOString(),
+      });
+    }
+  } catch (error) {
+    // A missing optional notification table must never block payment jobs.
+    console.error("Payment announcement setup failed", error instanceof Error ? error.message : "unknown");
+  }
+}
+
 export async function dispatchMarketingPushCampaigns() {
+  await ensurePaymentProviderAnnouncement();
   const publicKey = getRuntimeEnv("WEB_PUSH_VAPID_PUBLIC_KEY");
   const privateKey = getRuntimeEnv("WEB_PUSH_VAPID_PRIVATE_KEY");
   if (!publicKey || !privateKey) return { sent: 0, skipped: "not_configured" };

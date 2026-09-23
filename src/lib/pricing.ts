@@ -51,7 +51,7 @@ export const PREMIUM_PLANS: PremiumPlan[] = [
   {
     id: "premium_monthly",
     name: "Premium Mensuel",
-    priceXaf: 4900,
+    priceXaf: 5900,
     interval: "month",
     monthlyCredits: 100,
     description: "100 crédits/mois remis à niveau à chaque renouvellement.",
@@ -59,7 +59,7 @@ export const PREMIUM_PLANS: PremiumPlan[] = [
   {
     id: "premium_yearly",
     name: "Premium Annuel",
-    priceXaf: 49000,
+    priceXaf: 59000,
     interval: "year",
     monthlyCredits: 100,
     badge: "2 mois offerts",

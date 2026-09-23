@@ -61,7 +61,7 @@ const metadata = quality.predictionMetadataFor({
   unavailableSections: ["news"],
   marketCount: 5,
 });
-assert.equal(metadata.engineVersion, "v2.2.0");
+assert.equal(metadata.engineVersion, "v2.3.0");
 assert.deepEqual(metadata.availableSections, ["forme", "cotes"]);
 assert.equal(metadata.marketCount, 5);
 

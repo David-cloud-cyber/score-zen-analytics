@@ -722,7 +722,12 @@ export function buildStatisticalPrediction(context: PredictionContext): Statisti
       qualityScore,
       divergence: agreement.divergence,
     });
-    if (!evidenceIsActionable) {
+    // 1X2 odds do not identify a goal distribution. Do not recommend BTTS,
+    // totals or team goals from fallback scoring rates alone.
+    const enoughMarketEvidence = index < 2
+      ? evidenceIsActionable
+      : hasIndependentEvidence || hasSeasonEvidence;
+    if (!enoughMarketEvidence) {
       return {
         ...item,
         pick: "Aucune recommandation fiable",
@@ -733,7 +738,7 @@ export function buildStatisticalPrediction(context: PredictionContext): Statisti
           "La forme récente et les signaux externes disponibles ne suffisent pas encore pour produire un choix fiable.",
       };
     }
-    if (recommended || (!primary && (item.probability ?? 0) >= 55)) return item;
+    if (recommended) return item;
     return {
       ...item,
       pick: "Aucune issue suffisamment forte",
@@ -825,9 +830,23 @@ export function blendPredictions(
       .trim();
   const pickKey = marketKey;
   const enrichedMarkets = base.markets.slice(0, 6).map((baseline) => {
-    const baselineKey = marketKey(baseline.label);
-    const market =
-      enriched.markets.find((candidate) => marketKey(candidate.label) === baselineKey) ?? baseline;
+    const matchingAiMarket = enriched.markets.find((candidate) => marketKey(candidate.label) === marketKey(baseline.label));
+    // Si le moteur statistique s'est abstenu mais que la réponse IA validée
+    // contient un marché exploitable, conserver ce marché au lieu de laisser
+    // l'abstention statistique masquer toute l'analyse.
+    if (baseline.pick.startsWith("Aucune")) {
+      return matchingAiMarket && isUsableAiPick(matchingAiMarket.pick)
+        ? {
+            ...baseline,
+            pick: matchingAiMarket.pick,
+            probability: matchingAiMarket.probability,
+            confidence: clamp(matchingAiMarket.confidence, 45, 85),
+            risk: riskFor(clamp(matchingAiMarket.confidence, 45, 85)),
+            rationale: matchingAiMarket.rationale,
+          }
+        : baseline;
+    }
+    const market = matchingAiMarket ?? baseline;
     const confidence = clamp(
       round(baseline.confidence * (1 - aiWeight) + market.confidence * aiWeight),
       45,
@@ -843,15 +862,27 @@ export function blendPredictions(
           : baseline.rationale || "Projection calculée à partir des données disponibles.",
     };
   });
+  const usableBlendedMarkets = enrichedMarkets.filter((market) => isUsableAiPick(market.pick));
+  const usableAiMarkets = enriched.markets.filter((market) => isUsableAiPick(market.pick)).slice(0, 6);
+
   return {
     probabilities,
     // Le score et les choix restent issus du moteur déterministe : l'IA
     // enrichit l'explication et ajuste modérément les probabilités, sans
     // pouvoir substituer un marché contradictoire ou un score halluciné.
     probableScore: base.probableScore,
-    markets: enrichedMarkets.length >= 4 ? enrichedMarkets : base.markets,
+    markets:
+      usableBlendedMarkets.length > 0
+        ? enrichedMarkets
+        : usableAiMarkets.length > 0
+          ? usableAiMarkets
+          : base.markets,
     aiText: enriched.aiText?.trim() || base.aiText,
     keyFactors: base.keyFactors,
     dataQuality: base.dataQuality,
   };
+}
+
+function isUsableAiPick(value: string) {
+  return Boolean(value?.trim()) && !/aucun|indisponible|insuffisant|à surveiller|a surveiller|pas de recommandation|sans recommandation|contradictoire|invent[eé]|hallucin/i.test(value);
 }

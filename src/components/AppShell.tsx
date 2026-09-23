@@ -13,6 +13,7 @@ import {
   Star,
   Target,
   Ticket,
+  Trophy,
   User,
   Users,
   LifeBuoy,
@@ -26,11 +27,13 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { NotificationPopover } from "@/components/NotificationPopover";
 import { useSession } from "@/hooks/use-session";
 import { ReferralPopup } from "@/components/ReferralPopup";
+import { ReferralCta } from "@/components/ReferralCta";
 import { useReferralPopup } from "@/hooks/use-referral-popup";
 import { getMyBalance } from "@/lib/analyses.functions";
 import { PremiumStatusBadge } from "@/components/PremiumStatusBadge";
 import { PremiumPrompt } from "@/components/PremiumPrompt";
 import { PremiumCta } from "@/components/PremiumCta";
+import { ProductHuntBadge } from "@/components/ProductHuntBadge";
 import { DEMO_PROFILE, isLocalDemo } from "@/lib/local-demo";
 import { isPremiumActive } from "@/lib/premium-status";
 import {
@@ -77,16 +80,40 @@ const DAILY_PREDICTIONS_NAV = {
   match: (p: string) => p.startsWith("/pronostics"),
 } as const;
 
+const CHAMPIONSHIPS_NAV = {
+  to: "/championnats",
+  label: "Championnats",
+  icon: Trophy,
+  match: (p: string) => p === "/championnats" || p.startsWith("/championnats/"),
+} as const;
+
+const FOOTBALL_DATA_NAV = {
+  to: "/equipes",
+  label: "Équipes et joueurs",
+  icon: Users,
+  match: (p: string) =>
+    p === "/equipes" ||
+    p.startsWith("/equipes/") ||
+    p === "/joueurs" ||
+    p.startsWith("/joueurs/") ||
+    p === "/entraineurs" ||
+    p.startsWith("/entraineurs/"),
+} as const;
+
 const subscribeToHydration = () => () => {};
 
 function useHydrated() {
-  return useSyncExternalStore(subscribeToHydration, () => true, () => false);
+  return useSyncExternalStore(
+    subscribeToHydration,
+    () => true,
+    () => false,
+  );
 }
 
 const SIDEBAR_GROUPS = [
   {
     label: "LiveFoot",
-    items: [NAV[0], NAV[1], DAILY_PREDICTIONS_NAV],
+    items: [NAV[0], CHAMPIONSHIPS_NAV, FOOTBALL_DATA_NAV, NAV[1], DAILY_PREDICTIONS_NAV],
   },
   {
     label: "Mon espace",
@@ -123,6 +150,12 @@ const SIDEBAR_GROUPS = [
         label: "Premium gratuit",
         icon: Crown,
         match: (p: string) => p.startsWith("/vip"),
+      },
+      {
+        to: "/ambassadeurs",
+        label: "Ambassadeurs",
+        icon: Users,
+        match: (p: string) => p.startsWith("/ambassadeurs"),
       },
     ],
   },
@@ -230,6 +263,16 @@ export function AppShell({
               className="flex-1 pb-28 lg:mx-auto lg:w-full lg:max-w-[980px] lg:pb-12 lg:pt-2"
             >
               {children}
+              {!hideHeader &&
+                !pathname.startsWith("/live/") &&
+                !pathname.startsWith("/match/") &&
+                !pathname.startsWith("/analyse") &&
+                !pathname.startsWith("/auth") &&
+                !pathname.startsWith("/support") &&
+                !pathname.startsWith("/profil") &&
+                !pathname.startsWith("/favoris") &&
+                !pathname.startsWith("/admin") &&
+                !pathname.startsWith("/premium/tableau-de-bord") && <ProductHuntBadge />}
             </main>
             <MobileBottomNav pathname={pathname} />
           </div>
@@ -360,36 +403,44 @@ function DesktopSidebar({
           </div>
         ))}
 
-        {collapsed ? (
-          <Link
-            to="/premium/tableau-de-bord"
-            search={{}}
-            aria-label="Ouvrir le Premium Intelligence Hub"
-            title="Premium Intelligence Hub"
-            className="mx-auto grid size-10 place-items-center rounded-xl border border-brand/25 bg-brand/10 text-brand transition-colors hover:bg-brand/20"
-          >
-            <Sparkles className="size-4" />
-          </Link>
-        ) : (
-          <div className="rounded-xl border border-brand/25 bg-brand/10 p-3.5">
-            <div className="mb-1.5 inline-flex items-center gap-1 rounded-full bg-brand/15 px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-brand">
-              <Sparkles className="size-2.5" /> Intelligence Hub
-            </div>
-            <div className="sidebar-hub-title text-[13px] font-bold leading-tight text-[#fdfdfd]">
-              Radar, alertes et scorecard
-            </div>
-            <p className="sidebar-hub-meta mt-1 text-[11px] leading-snug text-[#aaaaaa]">
-              Centralisez vos signaux Premium.
-            </p>
-            <Link
-              to="/premium/tableau-de-bord"
-              search={{}}
-              className="mt-3 flex items-center justify-center gap-1 rounded-lg bg-brand py-2 text-[11px] font-black text-brand-foreground transition-transform hover:scale-[1.02]"
-            >
-              Ouvrir le Hub <ArrowRight className="size-3" />
-            </Link>
-          </div>
-        )}
+        <div className={cn("space-y-3", collapsed && "flex flex-col items-center")}>
+          {collapsed ? (
+            <>
+              <Link
+                to="/premium/tableau-de-bord"
+                search={{}}
+                aria-label="Ouvrir le Premium Intelligence Hub"
+                title="Premium Intelligence Hub"
+                className="grid size-10 place-items-center rounded-xl border border-brand/25 bg-brand/10 text-brand transition-colors hover:bg-brand/20"
+              >
+                <Sparkles className="size-4" />
+              </Link>
+              <ReferralCta location="sidebar" variant="icon" />
+            </>
+          ) : (
+            <>
+              <div className="rounded-xl border border-brand/25 bg-brand/10 p-3.5">
+                <div className="mb-1.5 inline-flex items-center gap-1 rounded-full bg-brand/15 px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-brand">
+                  <Sparkles className="size-2.5" /> Intelligence Hub
+                </div>
+                <div className="sidebar-hub-title text-[13px] font-bold leading-tight text-[#fdfdfd]">
+                  Radar, alertes et scorecard
+                </div>
+                <p className="sidebar-hub-meta mt-1 text-[11px] leading-snug text-[#aaaaaa]">
+                  Centralisez vos signaux Premium.
+                </p>
+                <Link
+                  to="/premium/tableau-de-bord"
+                  search={{}}
+                  className="mt-3 flex items-center justify-center gap-1 rounded-lg bg-brand py-2 text-[11px] font-black text-brand-foreground transition-transform hover:scale-[1.02]"
+                >
+                  Ouvrir le Hub <ArrowRight className="size-3" />
+                </Link>
+              </div>
+              <ReferralCta location="sidebar" />
+            </>
+          )}
+        </div>
       </nav>
 
       <div className="space-y-3 border-t border-[#252525] p-3">
@@ -500,8 +551,9 @@ function MobileDrawer({ pathname, onClose }: { pathname: string; onClose: () => 
             </div>
           ))}
         </nav>
-        <div className="border-t border-[#252525] p-4 text-xs text-[#888888]">
-          Scores en direct · Analyses football
+        <div className="space-y-3 border-t border-[#252525] p-4">
+          <ReferralCta location="mobile_menu" />
+          <div className="text-xs text-[#888888]">Scores en direct · Analyses football</div>
         </div>
       </aside>
     </div>

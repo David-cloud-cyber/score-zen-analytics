@@ -87,9 +87,9 @@ export function blogIndexHead(
 ) {
   return blogCollectionHead({
     path: "/blog",
-    title: "Blog football : actualités, analyses et données vérifiées",
+    title: "Blog football : actualités, résultats et analyses",
     description:
-      "Actualités football confirmées, analyses statistiques, forme des équipes et guides utiles pour suivre les compétitions en France et en Afrique francophone.",
+      "Actualités football confirmées, résultats, analyses statistiques, forme des équipes et guides utiles pour suivre les compétitions en France et en Afrique francophone.",
     articles,
     ...options,
     breadcrumb: [

@@ -1,6 +1,9 @@
 import { getConfig, getRuntimeEnv } from "./config.server";
 
-/** Modèles internes : leurs noms ne sont jamais renvoyés à l'utilisateur. */
+/** Modèle unique utilisé par le bouton Analyse. Il reste côté serveur. */
+export const AI_ANALYSIS_MODEL = "anthropic/claude-haiku-4.5" as const;
+
+/** Modèles éditoriaux historiques : le bouton Analyse n'utilise pas ce routeur. */
 export const AI_MODELS = {
   standard: "google/gemini-2.5-flash-lite",
   premium: "deepseek/deepseek-v3.2",
@@ -36,11 +39,13 @@ async function fetchJsonWithTimeout(
   url: string,
   init: RequestInit,
   timeoutMs: number,
-): Promise<Response> {
+): Promise<{ ok: boolean; status: number; body: string }> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    return await fetch(url, { ...init, signal: controller.signal });
+    const response = await fetch(url, { ...init, signal: controller.signal });
+    // The deadline includes downloading the body, not only response headers.
+    return { ok: response.ok, status: response.status, body: await response.text() };
   } finally {
     clearTimeout(timer);
   }
@@ -53,6 +58,8 @@ export async function requestOpenRouterJson(params: {
   userPrompt: string;
   timeoutMs: number;
   maxTokens?: number;
+  providerOnly?: string[];
+  allowProviderFallbacks?: boolean;
 }): Promise<unknown> {
   const response = await fetchJsonWithTimeout(
     "https://openrouter.ai/api/v1/chat/completions",
@@ -73,18 +80,25 @@ export async function requestOpenRouterJson(params: {
         ],
         temperature: 0.15,
         max_tokens: params.maxTokens ?? 1600,
-        ...(params.model.startsWith("deepseek/") ? { reasoning: { enabled: true } } : {}),
+        ...(params.providerOnly || params.allowProviderFallbacks === false
+          ? {
+              provider: {
+                ...(params.providerOnly ? { only: params.providerOnly } : {}),
+                ...(params.allowProviderFallbacks === false ? { allow_fallbacks: false } : {}),
+              },
+            }
+          : {}),
+        ...(params.model.startsWith("deepseek/") ? { reasoning: { effort: "low" } } : {}),
       }),
     },
     params.timeoutMs,
   );
 
   if (!response.ok) {
-    const body = await response.text().catch(() => "");
-    throw new Error(`OpenRouter ${response.status}: ${body.slice(0, 180)}`);
+    throw new Error(`OpenRouter ${response.status}`);
   }
 
-  const payload = (await response.json()) as OpenRouterResponse;
+  const payload = JSON.parse(response.body) as OpenRouterResponse;
   const content = contentToText(payload.choices?.[0]?.message?.content);
   if (!content) throw new Error("OpenRouter a retourné une réponse vide.");
   return parseJsonText(content);
@@ -111,11 +125,10 @@ export async function requestGeminiJson(params: {
   );
 
   if (!response.ok) {
-    const body = await response.text().catch(() => "");
-    throw new Error(`Gemini ${response.status}: ${body.slice(0, 180)}`);
+    throw new Error(`Gemini ${response.status}`);
   }
 
-  const payload = (await response.json()) as {
+  const payload = JSON.parse(response.body) as {
     candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
   };
   const content = payload.candidates?.[0]?.content?.parts?.map((part) => part.text ?? "").join("\n");
@@ -129,6 +142,11 @@ export function getOpenRouterModels() {
     premium: getRuntimeEnv("OPENROUTER_PREMIUM_MODEL") || AI_MODELS.premium,
     fallback: getRuntimeEnv("OPENROUTER_FALLBACK_MODEL") || AI_MODELS.fallback,
   };
+}
+
+/** Configuration stricte du modèle d'analyse : jamais de modèle ou provider de secours. */
+export function getOpenRouterAnalysisModel() {
+  return AI_ANALYSIS_MODEL;
 }
 
 export function getOpenRouterKey() {

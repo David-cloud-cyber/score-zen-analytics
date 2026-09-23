@@ -40,9 +40,25 @@ export const Route = createFileRoute("/auth")({
 });
 
 const PENDING_REF_KEY = "lfai_pending_ref";
+const PRODUCTION_APP_ORIGIN = "https://www.livefoot.fun";
 
 function safeRedirect(value: string | undefined) {
   return value && value.startsWith("/") && !value.startsWith("//") ? value : "/";
+}
+
+/**
+ * OAuth doit toujours revenir sur l'origine canonique en production.
+ * Le domaine apex est redirigé par le Worker, mais Supabase vérifie l'URL
+ * avant cette redirection : générer directement l'URL www évite le callback
+ * bloqué sur supabase.co lorsque l'utilisateur démarre depuis l'apex.
+ */
+function getAuthCallbackUrl() {
+  const hostname = window.location.hostname.toLowerCase();
+  const origin =
+    hostname === "livefoot.fun" || hostname === "www.livefoot.fun"
+      ? PRODUCTION_APP_ORIGIN
+      : window.location.origin;
+  return new URL(`${origin}/auth/callback`);
 }
 
 function AuthPage() {
@@ -90,7 +106,8 @@ function AuthPage() {
       sessionStorage.removeItem(PENDING_REF_KEY);
       const result = await applyReferralFn({ data: { referralCode: code } });
       if (result.ok) {
-        toast.success("🎉 Code de parrainage appliqué ! Votre parrain reçoit +5 crédits.");
+        if (result.rewardsGranted > 0) track("referral_milestone_reached", { location: "auth", rewards: result.rewardsGranted });
+        toast.success(result.qualified ? "🎉 Invitation confirmée : votre parrain reçoit 5 crédits." : "Invitation enregistrée. Elle sera validée après confirmation de votre compte.");
       }
     } catch {
       // Silencieux — ne pas bloquer la navigation
@@ -107,11 +124,17 @@ function AuthPage() {
         if (error) throw error;
         toast.success("Bienvenue ! Connexion réussie.");
       } else {
+        const pendingCode = (() => {
+          try { return ref ?? sessionStorage.getItem(PENDING_REF_KEY); } catch { return ref; }
+        })();
+        const emailRedirect = getAuthCallbackUrl();
+        emailRedirect.searchParams.set("redirect", dest);
+        if (pendingCode) emailRedirect.searchParams.set("ref", pendingCode.toUpperCase());
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
-            emailRedirectTo: `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(dest)}`,
+            emailRedirectTo: emailRedirect.toString(),
             data: { name: displayName || email.split("@")[0] },
           },
         });
@@ -139,9 +162,13 @@ function AuthPage() {
     try {
       const callbackUrl =
         typeof window !== "undefined"
-          ? `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(
-              safeRedirect(redirect),
-            )}`
+          ? (() => {
+              const callback = getAuthCallbackUrl();
+              callback.searchParams.set("redirect", safeRedirect(redirect));
+              const code = ref ?? sessionStorage.getItem(PENDING_REF_KEY);
+              if (code) callback.searchParams.set("ref", code.toUpperCase());
+              return callback.toString();
+            })()
           : "https://www.livefoot.fun/auth/callback";
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
@@ -187,7 +214,7 @@ function AuthPage() {
           <div className="mb-4 flex items-center gap-2 rounded-2xl bg-brand/10 px-4 py-3 ring-1 ring-brand/20">
             <Sparkles className="size-4 shrink-0 text-brand" />
             <p className="text-xs font-bold text-brand">
-              Invitation activée — votre parrain recevra +5 crédits dès votre inscription !
+              Invitation activée — votre parrain reçoit 5 crédits après confirmation du compte.
             </p>
           </div>
         )}

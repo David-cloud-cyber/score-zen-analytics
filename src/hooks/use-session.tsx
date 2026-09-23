@@ -1,11 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
-import {
-  readCookieSnapshot,
-  writeCookie,
-  clearCookie,
-} from "@/integrations/supabase/session-storage";
+import { clearLegacyAuthCookie } from "@/integrations/supabase/session-storage";
 import { clearLocalDemo, DEMO_SESSION, isLocalDemo } from "@/lib/local-demo";
 import { recordUserPresence } from "@/lib/presence.functions";
 import { useServerFn } from "@tanstack/react-start";
@@ -38,11 +34,20 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       : window.matchMedia("(max-width: 1023px)").matches
         ? "tablet"
         : "desktop";
+    const locale = Intl.DateTimeFormat().resolvedOptions().locale || navigator.language || null;
+    const localeCountry = locale?.match(/[-_]([A-Za-z]{2})$/)?.[1]?.toUpperCase() ?? null;
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || null;
 
     const sendPresence = () => {
       if (disposed || document.hidden) return;
       void recordPresence({
-        data: { route: window.location.pathname, deviceFamily },
+        data: {
+          route: window.location.pathname,
+          deviceFamily,
+          countryCode: localeCountry,
+          locale,
+          timezone,
+        },
       }).catch(() => {
         // Presence is best effort and must never interrupt navigation or auth.
       });
@@ -75,11 +80,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       };
     }
 
-    // ── Initialisation de la session ─────────────────────────────────────────
-    // 1. getSession() lit depuis hybridStorage (localStorage + cookie backup).
-    //    Supabase v2 auto-refresh le token si expiré ET qu'un refresh_token existe.
-    // 2. Si getSession() renvoie null, tente une récupération via le cookie seul
-    //    (cas : localStorage vidé mais cookie encore valide).
+    // Supabase gère la session et son rafraîchissement depuis son stockage
+    // navigateur. Les anciennes copies de tokens en cookie sont supprimées.
+    clearLegacyAuthCookie();
+
     async function initSession() {
       const { data } = await supabase.auth.getSession();
 
@@ -89,25 +93,6 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         setSession(data.session);
         setLoading(false);
         return;
-      }
-
-      // Tentative de récupération depuis le cookie (localStorage vide/nettoyé)
-      const snap = readCookieSnapshot();
-      if (snap?.rt) {
-        try {
-          const { data: recovered } = await supabase.auth.setSession({
-            access_token: snap.at,
-            refresh_token: snap.rt,
-          });
-          if (mounted && recovered.session) {
-            setSession(recovered.session);
-            setLoading(false);
-            return;
-          }
-        } catch {
-          // Cookie expiré ou invalide → pas de session
-          clearCookie();
-        }
       }
 
       if (mounted) setLoading(false);
@@ -121,16 +106,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       setSession(s);
       setLoading(false);
 
-      // Synchroniser le cookie à chaque événement d'auth
-      if ((event === "SIGNED_IN" || event === "TOKEN_REFRESHED") && s) {
-        writeCookie({
-          at: s.access_token,
-          rt: s.refresh_token,
-          exp: s.expires_at ?? 0,
-        });
-      }
       if (event === "SIGNED_OUT") {
-        clearCookie();
+        clearLegacyAuthCookie();
       }
     });
 
@@ -145,22 +122,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       if (data.session) {
         setSession(data.session);
       } else {
-        // Tentative de récupération cookie si la session localStorage a disparu
-        const snap = readCookieSnapshot();
-        if (snap?.rt) {
-          try {
-            const { data: recovered } = await supabase.auth.setSession({
-              access_token: snap.at,
-              refresh_token: snap.rt,
-            });
-            if (mounted && recovered.session) setSession(recovered.session);
-          } catch {
-            clearCookie();
-            setSession(null);
-          }
-        } else {
-          setSession(null);
-        }
+        setSession(null);
       }
     }
 
@@ -181,7 +143,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       return;
     }
     await supabase.auth.signOut();
-    clearCookie();
+    clearLegacyAuthCookie();
   };
 
   return (

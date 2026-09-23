@@ -14,10 +14,12 @@
     "audit:buttons": "node scripts/audit-button-labels.mjs",
     "audit:contrast": "node scripts/audit-contrast.mjs",
     "audit:telegram": "node scripts/audit-telegram.mjs",
+    "audit:editorial-campaign": "node --experimental-strip-types scripts/audit-editorial-campaign.mjs",
     "test:match-ranking": "node --experimental-strip-types scripts/test-match-ranking.mjs",
     "test:prediction-quality": "node --experimental-strip-types scripts/test-prediction-quality.mjs",
     "test:prediction-engine": "node --experimental-strip-types scripts/test-prediction-engine.mjs",
     "test:prediction-ai-normalize": "node --experimental-strip-types scripts/test-prediction-ai-normalize.mjs",
+    "test:relayit-signature": "node --experimental-strip-types scripts/test-relayit-signature.mjs",
     "format": "prettier --write ."
   },
   "dependencies": {

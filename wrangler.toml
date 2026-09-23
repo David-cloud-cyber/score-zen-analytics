@@ -9,13 +9,22 @@ SUPABASE_PUBLISHABLE_KEY = "sb_publishable_yxv1dFxXbVRB4V58m1833w_MW11Uigv"
 VITE_SUPABASE_URL = "https://oirdlreedxhldmwadwom.supabase.co"
 VITE_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_yxv1dFxXbVRB4V58m1833w_MW11Uigv"
 PUBLIC_APP_URL = "https://www.livefoot.fun"
+PAYMENT_PROVIDER = "relayit"
+SASPAY_CURRENCY = "XAF"
+RELAYIT_CURRENCY = "XAF"
+CHARIOW_PRODUCT_PREMIUM_MONTHLY = "prd_pwc5ux6p"
+CHARIOW_PRODUCT_PREMIUM_YEARLY = "prd_e0sx0whq"
+CHARIOW_PRODUCT_PACK_STARTER = "prd_nly4e74m"
+CHARIOW_PRODUCT_PACK_PLUS = "prd_8warjiee"
+CHARIOW_PRODUCT_PACK_PRO = "prd_xra0s5mr"
+CHARIOW_PRODUCT_PACK_MAX = "prd_7doq9g4e"
+CHARIOW_STORE_URL = "https://nmkjfkri.mychariow.com"
 
 [secrets]
 required = [
   "SUPABASE_SERVICE_ROLE_KEY",
-  "FAPSHI_API_USER",
-  "FAPSHI_API_KEY",
-  "FAPSHI_WEBHOOK_SECRET",
+  "SASPAY_API_KEY",
+  "SASPAY_WEBHOOK_SECRET",
   "OPENROUTER_API_KEY",
   "APIFOOTBALL_KEY",
   "WEB_PUSH_VAPID_PUBLIC_KEY",
@@ -39,6 +48,9 @@ crons = ["0 * * * *"]
 
 # Secrets (set via: wrangler secret put SECRET_NAME)
 # APIFOOTBALL_KEY  ← wrangler secret put APIFOOTBALL_KEY
+# Relayit production checkout and signed webhook:
+# RELAYIT_API_KEY
+# RELAYIT_WEBHOOK_SECRET
 
 # Production secrets are managed in Cloudflare Workers settings.
 [[routes]]

@@ -94,8 +94,12 @@ export const getAdminSupportThread = createServerFn({ method: "GET" })
     const client = await db();
     const { data: ticket } = await client.from("support_tickets").select("*").eq("id", data.ticketId).maybeSingle();
     if (!ticket) throw new Error("Demande introuvable.");
+    const [{ data: authData }, { data: profile }] = await Promise.all([
+      client.auth.admin.getUserById(ticket.user_id),
+      client.from("profiles").select("display_name").eq("id", ticket.user_id).maybeSingle(),
+    ]);
     const { data: messages } = await client.from("support_messages").select("id, ticket_id, author_id, author_role, message, created_at").eq("ticket_id", data.ticketId).order("created_at", { ascending: true }).limit(200);
-    return { ticket, messages: messages ?? [] };
+    return { ticket, user: { email: authData?.user?.email ?? null, displayName: profile?.display_name ?? authData?.user?.user_metadata?.display_name ?? null }, messages: messages ?? [] };
   });
 
 export const adminReplySupport = createServerFn({ method: "POST" })

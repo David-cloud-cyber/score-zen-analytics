@@ -15,6 +15,7 @@ export function PremiumStatusBadge({
 
   const days = premiumDaysRemaining(profile?.premium_until);
   const expiry = formatPremiumExpiry(profile?.premium_until);
+  const proActive = Boolean(profile?.referral_pro_until && new Date(profile.referral_pro_until).getTime() > Date.now());
 
   return (
     <a
@@ -27,7 +28,7 @@ export function PremiumStatusBadge({
       )}
     >
       {compact ? <Crown className="size-3" aria-hidden /> : <ShieldCheck className="size-3.5" aria-hidden />}
-      <span>Premium actif</span>
+      <span>{proActive ? "Premium Pro" : "Premium actif"}</span>
       {!compact && days !== null && <span className="text-brand/70">· {days} j</span>}
     </a>
   );

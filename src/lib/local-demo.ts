@@ -282,6 +282,7 @@ export const DEMO_PROFILE = {
   display_name: "Dodo Bien",
   avatar_url: null,
   premium_until: "2027-08-09T23:59:59.000Z",
+  referral_pro_until: null,
 };
 
 export const DEMO_HISTORY = [
@@ -315,10 +316,16 @@ export const DEMO_REFERRAL = {
   code: "LIVE2026",
   referralLink: "http://localhost:5002/auth?ref=LIVE2026&demo=1",
   referralCount: 7,
+  qualifiedCount: 7,
+  pendingCount: 1,
   creditsEarned: 35,
+  nextMilestone: 25,
+  remainingToNext: 18,
+  milestonesEarned: 0,
+  activeProUntil: null,
   referrals: [
-    { displayName: "Alex M.", joinedAt: isoAt(-2, 14) },
-    { displayName: "Sarah K.", joinedAt: isoAt(-6, 10) },
+    { displayName: "Alex M.", status: "qualified" as const, joinedAt: isoAt(-2, 14) },
+    { displayName: "Sarah K.", status: "qualified" as const, joinedAt: isoAt(-6, 10) },
   ],
 };
 

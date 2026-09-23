@@ -1,5 +1,5 @@
-// Note: ce fichier est généré par Lovable mais modifié pour le stockage hybride
-// (localStorage + cookie backup) afin d'éviter les déconnexions silencieuses.
+// Note: ce fichier est généré par Lovable mais utilise un stockage navigateur
+// contrôlé pour éviter de dupliquer les tokens dans un cookie JavaScript.
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 import { hybridStorage } from './session-storage';
@@ -50,9 +50,8 @@ function createSupabaseClient() {
       fetch: createSupabaseFetch(SUPABASE_PUBLISHABLE_KEY),
     },
     auth: {
-      // Stockage hybride : localStorage (principal) + cookie (backup 7 jours).
-      // Le cookie garantit la survie de la session même après un hard-refresh
-      // ou si le token JWT a expiré pendant que l'onglet était fermé.
+      // Le SDK conserve la session dans le stockage navigateur et renouvelle
+      // les tokens sans les recopier dans un cookie accessible aux scripts.
       storage: typeof window !== 'undefined' ? hybridStorage : undefined,
       persistSession: true,
       autoRefreshToken: true,

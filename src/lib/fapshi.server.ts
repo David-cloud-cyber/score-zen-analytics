@@ -2,6 +2,7 @@
 // Sandbox : https://sandbox.fapshi.com — Live : https://live.fapshi.com
 
 import { getRuntimeEnv } from "./config.server";
+import { getAllowedCheckoutUrl } from "./checkout-url.server";
 
 export type FapshiStatus = "CREATED" | "PENDING" | "SUCCESSFUL" | "FAILED" | "EXPIRED";
 
@@ -75,7 +76,7 @@ async function call<T>(path: string, init?: { method?: string; body?: unknown })
   }
 }
 
-export function initiatePay(params: {
+export async function initiatePay(params: {
   amount: number;
   email?: string;
   redirectUrl?: string;
@@ -83,10 +84,13 @@ export function initiatePay(params: {
   externalId?: string;
   message?: string;
 }) {
-  return call<{ message: string; link: string; transId: string; dateInitiated: string }>(
+  const response = await call<{ message: string; link: string; transId: string; dateInitiated: string }>(
     "/initiate-pay",
     { method: "POST", body: params },
   );
+  const link = getAllowedCheckoutUrl(response.link, ["live.fapshi.com", "sandbox.fapshi.com"]);
+  if (!link) throw new Error("La page de paiement n'a pas pu être ouverte.");
+  return { ...response, link };
 }
 
 export function directPay(params: {

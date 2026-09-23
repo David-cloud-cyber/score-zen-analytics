@@ -26,6 +26,9 @@ function apply(mode: "light" | "dark") {
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
+  // Sombre par défaut sur tous les appareils. Une préférence déjà enregistrée
+  // (clair, sombre ou automatique) reste prioritaire pour ne pas surprendre
+  // les utilisateurs qui ont fait un choix explicite.
   const [theme, setThemeState] = useState<Theme>("dark");
   const [resolved, setResolved] = useState<"light" | "dark">("dark");
 
@@ -69,5 +72,5 @@ export function useTheme(): ThemeCtx {
 
 // Injected before hydration to avoid flash of wrong theme.
 export const THEME_INIT_SCRIPT = `
-(function(){try{var s=localStorage.getItem('scorezen-theme')||localStorage.getItem('livefoot-theme');var t=(s==='light'||s==='dark'||s==='auto')?s:'dark';var r=t==='auto'?(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'):t;if(r==='dark')document.documentElement.classList.add('dark');document.documentElement.style.colorScheme=r;}catch(e){}})();
+(function(){try{var s=localStorage.getItem('scorezen-theme')||localStorage.getItem('livefoot-theme');var t=(s==='light'||s==='dark'||s==='auto')?s:'dark';var r=t==='auto'?(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'):t;if(r==='dark')document.documentElement.classList.add('dark');document.documentElement.style.colorScheme=r;}catch(e){document.documentElement.classList.add('dark');document.documentElement.style.colorScheme='dark';}})();
 `.trim();

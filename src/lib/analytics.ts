@@ -36,8 +36,28 @@ export type AnalyticsEvent =
   | "topup_checkout_redirected"
   | "promo_code_copy"
   | "promo_affiliate_click"
+  | "referral_cta_click"
+  | "referral_cta_view"
+  | "referral_link_copy"
+  | "referral_share_click"
+  | "referral_invitation_confirmed"
+  | "referral_milestone_reached"
+  | "referral_milestone_progress_view"
+  | "affiliate_page_view"
+  | "affiliate_cta_click"
+  | "affiliate_commission_view"
+  | "affiliate_payout_profile_saved"
+  | "affiliate_payout_requested"
+  | "pwa_install_prompt_viewed"
+  | "pwa_install_clicked"
+  | "pwa_installed"
+  | "pwa_install_bonus_granted"
   | "telegram_cta_view"
-  | "telegram_cta_click";
+  | "telegram_cta_click"
+  | "product_hunt_badge_view"
+  | "product_hunt_badge_click"
+  | "championship_directory_view"
+  | "championship_search";
 
 export type FixtureDiagnostic = {
   reason: "today_unavailable" | "live_unavailable" | "render_failure";
@@ -105,8 +125,9 @@ function sendFirstPartyEvent(event: AnalyticsEvent, props: Props) {
   if (!sessionId || typeof window === "undefined") return;
   const context = conversionContext();
   const metadata = Object.fromEntries(
-    Object.entries(props).filter(([, value]) =>
-      typeof value === "string" || typeof value === "number" || typeof value === "boolean",
+    Object.entries(props).filter(
+      ([, value]) =>
+        typeof value === "string" || typeof value === "number" || typeof value === "boolean",
     ),
   );
   const body = JSON.stringify({ event, sessionId, ...context, metadata });
@@ -131,13 +152,11 @@ export function track(event: AnalyticsEvent, props: Props = {}) {
 
   const w = window as unknown as {
     dataLayer?: unknown[];
-    gtag?: (...args: unknown[]) => void;
     plausible?: (name: string, opts?: { props: Props }) => void;
   };
 
   w.dataLayer = w.dataLayer || [];
   w.dataLayer.push(payload);
-  w.gtag?.("event", event, props);
   w.plausible?.(event, { props });
 
   const metaEvent =

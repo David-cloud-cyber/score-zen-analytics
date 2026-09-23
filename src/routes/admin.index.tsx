@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { AdminCard, AdminLoading, AdminSection } from "@/components/AdminShell";
 import { AdminPresence } from "@/components/AdminPresence";
+import { AdminAudience } from "@/components/AdminAudience";
 import { getAdminOverview, type AdminOverview } from "@/lib/admin.functions";
 import { isLocalDemo } from "@/lib/local-demo";
 
@@ -43,7 +44,8 @@ const DEMO: AdminOverview = {
       cache: { available: true, stale: false, storedAt: Date.now() - 12000 },
     },
     ai: true,
-    fapshi: true,
+    saspay: true,
+    relayit: false,
     cloudflare: true,
   },
   pending: { payments: 4, criticalActions: 2, suspendedUsers: 7 },
@@ -105,6 +107,7 @@ function AdminOverviewPage() {
       description="Un aperçu opérationnel du SaaS, de la performance commerciale et de la santé technique."
     >
       <AdminPresence />
+      <AdminAudience />
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {metrics.map(({ label, value, hint, Icon, color }) => (
           <AdminCard key={label}>
@@ -138,7 +141,8 @@ function AdminOverviewPage() {
                 data.health.apiFootball.cache.stale ? "Cache ancien" : "Cache à jour",
               ],
               ["Intelligence IA", data.health.ai, "OpenRouter configuré"],
-              ["Paiements Fapshi", data.health.fapshi, "Webhook configuré"],
+              ["Paiements SasPay", data.health.saspay, "Notifications configurées"],
+              ["Paiements Relayit", data.health.relayit, "Clé et webhook configurés"],
               ["Cloudflare", data.health.cloudflare, "Worker actif"],
             ].map(([label, ok, hint]) => (
               <div

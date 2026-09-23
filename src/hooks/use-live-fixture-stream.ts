@@ -19,7 +19,10 @@ type Result = {
   retry: () => void;
 };
 
-const HTTP_FALLBACK_MS = 15_000;
+// HTTP is only a degraded path; the shared WebSocket remains the 10-second
+// live path. Slowing this fallback prevents a disconnected tab from creating
+// a second refresh loop while the coordinator is already serving the stream.
+const HTTP_FALLBACK_MS = 30_000;
 const RECONNECT_MS = 5_000;
 
 function websocketUrl() {
@@ -238,7 +241,7 @@ export function useLiveMatchStream({ enabled, fixtureId, onUpdate }: LiveMatchSt
     const startFallback = () => {
       if (disposed || document.visibilityState !== "visible" || fallbackTimer !== undefined) return;
       void refreshOverHttp();
-      fallbackTimer = window.setInterval(() => void refreshOverHttp(), 10_000);
+      fallbackTimer = window.setInterval(() => void refreshOverHttp(), 30_000);
     };
 
     const connect = () => {
