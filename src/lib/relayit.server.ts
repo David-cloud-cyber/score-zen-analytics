@@ -52,23 +52,33 @@ async function relayitRequest<T>(path: string, init: RequestInit = {}) {
   const apiKey = await getRelayitApiKey();
   if (!apiKey) throw new Error("Relayit n'est pas encore configuré.");
 
-  const response = await fetch(`${RELAYIT_API_BASE}${path}`, {
-    ...init,
-    signal: AbortSignal.timeout(10000),
-    headers: {
-      Accept: "application/json",
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-      ...(init.headers ?? {}),
-    },
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${RELAYIT_API_BASE}${path}`, {
+      ...init,
+      signal: AbortSignal.timeout(10000),
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+        ...(init.headers ?? {}),
+      },
+    });
+  } catch (error) {
+    console.error("Relayit request unavailable", {
+      path,
+      category: error instanceof Error && error.name === "TimeoutError" ? "timeout" : "network",
+    });
+    throw new Error("Le paiement n'est pas disponible pour le moment.");
+  }
   const body = await response.json().catch(() => null);
   const data = payloadFromBody(body);
   if (!response.ok || !data) {
-    const message = body && typeof body === "object" && typeof (body as Record<string, unknown>).message === "string"
-      ? String((body as Record<string, unknown>).message).slice(0, 180)
+    const error = body && typeof body === "object" ? (body as Record<string, unknown>).error : null;
+    const code = error && typeof error === "object" && typeof (error as Record<string, unknown>).code === "string"
+      ? String((error as Record<string, unknown>).code).slice(0, 80)
       : undefined;
-    console.error("Relayit request failed", { path, status: response.status, message });
+    console.error("Relayit request failed", { path, status: response.status, code });
     throw new Error("Le paiement n'est pas disponible pour le moment.");
   }
   return data as T;
@@ -82,44 +92,54 @@ export async function initiateRelayitCheckout(params: {
   description: string;
   returnUrl: string;
 }) {
-  // Relayit hosts the payment form, so the payer chooses/enters their payment
-  // method there. Avoid blocking checkout on the optional catalog endpoints.
-  const checkoutPayload = {
+  // A checkout-session requires country, network and Mobile Money phone before
+  // creation. A one-use payment link lets Relayit collect those on its hosted
+  // page, so the CTA can redirect without a local payment form.
+  const paymentLinkPayload = {
+    name: params.description.slice(0, 120),
+    amount_type: "FIXED",
     amount: Math.round(params.amountXaf),
     currency: relayitCurrency(),
-    customer_email: params.email,
-    customer_name: params.customerName.slice(0, 120),
     description: params.description.slice(0, 180),
     return_url: params.returnUrl,
+    usage_limit: 1,
+    expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
     metadata: {
       external_id: params.externalId,
       source: "livefoot",
     },
   };
 
-  const data = await relayitRequest<Record<string, unknown>>("/checkout-sessions", {
+  const data = await relayitRequest<Record<string, unknown>>("/payment-links", {
     method: "POST",
     headers: {
-      // Relayit guarantees that retrying this request does not create a second payment.
+      // Retrying the same request must return the original link.
       "Idempotency-Key": params.externalId,
     },
-    body: JSON.stringify(checkoutPayload),
+    body: JSON.stringify(paymentLinkPayload),
   });
 
-  const payment = data.payment && typeof data.payment === "object" ? data.payment as Record<string, unknown> : undefined;
+  const link = data.link && typeof data.link === "object" ? data.link as Record<string, unknown> : undefined;
   const checkoutUrl = getAllowedCheckoutUrl(
-    clean(data.checkout_url ?? data.checkoutUrl ?? data.url ?? payment?.checkout_url ?? payment?.checkoutUrl, 2048),
+    clean(link?.url ?? data.url ?? data.checkout_url, 2048),
     ["relayit.fun"],
   );
-  const id = clean(data.id ?? data.session_id ?? data.payment_id ?? data.transaction_id ?? payment?.id, 120) ?? null;
-  const status = clean(data.status ?? payment?.status, 40) ?? "PENDING";
-  if (!checkoutUrl) throw new Error("La page de paiement n'a pas pu être ouverte.");
+  if (!checkoutUrl) {
+    console.error("Relayit payment link response missing allowed URL");
+    throw new Error("La page de paiement n'a pas pu être ouverte.");
+  }
+  const returnedAmount = numeric(data.amount ?? link?.amount);
+  if (returnedAmount !== null && returnedAmount !== Math.round(params.amountXaf)) {
+    console.error("Relayit payment link amount mismatch");
+    throw new Error("La page de paiement n'a pas pu être ouverte.");
+  }
 
   return {
-    id,
+    // The payment-link ID is not the transaction ID sent by the webhook.
+    id: null,
     checkoutUrl,
-    status,
-    amountXaf: numeric(data.amount ?? payment?.amount),
+    status: "PENDING",
+    amountXaf: returnedAmount,
   } satisfies RelayitCheckoutResult;
 }
 
