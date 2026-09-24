@@ -14,6 +14,18 @@ function AdminApiPage() {
   const query = useQuery({ queryKey: ["admin", "api"], queryFn: () => getHealth(), enabled: !demo, refetchInterval: 30_000 });
   const data = demo ? { apiFootball: { configured: true, quota: { dayRemaining: 6412, dayLimit: 7500, minuteRemaining: 278, minuteLimit: 300 }, cache: { stale: false, storedAt: Date.now() - 12000 } }, aiConfigured: true, saspayConfigured: true, relayitConfigured: false, relayitCredentialStatus: "missing", paymentProvider: "saspay", cloudflareConfigured: true, checkedAt: new Date().toISOString() } : query.data;
   if (!demo && query.isLoading) return <AdminLoading />;
+  if (!demo && (query.isError || !data)) {
+    return <AdminSection eyebrow="Observabilité" title="Matchs & API" description="Le diagnostic des services est temporairement indisponible.">
+      <AdminCard>
+        <TriangleAlert className="size-5 text-alert" aria-hidden />
+        <p className="mt-3 text-sm font-black text-foreground">Vérification impossible</p>
+        <p className="mt-1 text-xs text-muted-foreground">L’état des services n’a pas pu être confirmé. Aucun service n’est déclaré en panne sans vérification.</p>
+        <button type="button" onClick={() => void query.refetch()} disabled={query.isFetching} className="mt-4 inline-flex min-h-10 items-center gap-2 rounded-xl border border-border bg-surface px-4 text-xs font-bold text-foreground hover:border-brand/50 disabled:opacity-50">
+          <RefreshCw className={`size-4 ${query.isFetching ? "animate-spin" : ""}`} aria-hidden /> Réessayer
+        </button>
+      </AdminCard>
+    </AdminSection>;
+  }
   const cache = data?.apiFootball.cache;
   const cacheState = !cache ? "Aucun snapshot" : cache.stale ? "Snapshot à vérifier" : "Snapshot disponible";
   const services = [

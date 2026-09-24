@@ -22,7 +22,12 @@ import {
   type SharedFixtureMode,
   type SharedSnapshotEnvelope,
 } from "./live-football.shared";
-import { readQuotaHeader, reserveProbeDelay } from "./football-quota";
+import {
+  dailyQuotaReserve as calculateDailyQuotaReserve,
+  quotaPacedRefreshMs,
+  readQuotaHeader,
+  reserveProbeDelay,
+} from "./football-quota";
 import type { FixturesPayload } from "./football-types";
 
 type CoordinatorEnv = {
@@ -71,8 +76,11 @@ const LOW_MINUTE_QUOTA_THRESHOLD = 10;
 const CRITICAL_MINUTE_QUOTA_THRESHOLD = 2;
 
 function dailyQuotaReserve(dayLimit?: number): number {
-  if (!dayLimit || dayLimit <= 0) return 0;
-  return Math.max(MIN_DAILY_QUOTA_RESERVE, Math.ceil(dayLimit * DAILY_QUOTA_RESERVE_RATIO));
+  return calculateDailyQuotaReserve(
+    dayLimit,
+    DAILY_QUOTA_RESERVE_RATIO,
+    MIN_DAILY_QUOTA_RESERVE,
+  );
 }
 
 const ALLOWED_UPSTREAM_PATHS = new Set([
@@ -360,14 +368,15 @@ export class LiveFootballCoordinator extends DurableObject<CoordinatorEnv> {
   private async liveRefreshDelay(): Promise<number> {
     const quota = await this.readQuotaState();
     const now = Date.now();
+    const pacedDelay = quotaPacedRefreshMs(LIVE_REFRESH_MS, quota.dayLimit);
     if (quota.blockedUntil > now)
-      return Math.max(LIVE_DEGRADED_REFRESH_MS, quota.blockedUntil - now);
+      return Math.max(pacedDelay, LIVE_DEGRADED_REFRESH_MS, quota.blockedUntil - now);
     if (
       quota.dayRemaining !== undefined &&
       quota.dayLimit !== undefined &&
       quota.dayRemaining <= dailyQuotaReserve(quota.dayLimit)
     )
-      return Math.max(5_000, reserveProbeDelay(
+      return Math.max(pacedDelay, reserveProbeDelay(
         now,
         quota.updatedAt,
         quota.dayRemaining,
@@ -377,7 +386,7 @@ export class LiveFootballCoordinator extends DurableObject<CoordinatorEnv> {
       quota.minuteRemaining !== undefined &&
       quota.minuteRemaining <= CRITICAL_MINUTE_QUOTA_THRESHOLD
     ) {
-      return LIVE_DEGRADED_REFRESH_MS;
+      return Math.max(pacedDelay, LIVE_DEGRADED_REFRESH_MS);
     }
     if (
       (quota.dayRemaining !== undefined &&
@@ -385,8 +394,8 @@ export class LiveFootballCoordinator extends DurableObject<CoordinatorEnv> {
         quota.dayRemaining <= Math.max(10, quota.dayLimit * DAILY_QUOTA_CAUTION_RATIO)) ||
       (quota.minuteRemaining !== undefined && quota.minuteRemaining <= LOW_MINUTE_QUOTA_THRESHOLD)
     )
-      return LIVE_CAUTION_REFRESH_MS;
-    return LIVE_REFRESH_MS;
+      return Math.max(pacedDelay, LIVE_CAUTION_REFRESH_MS);
+    return pacedDelay;
   }
 
   private broadcast(snapshot: FixturesPayload) {
@@ -584,11 +593,12 @@ export class LiveFootballCoordinator extends DurableObject<CoordinatorEnv> {
     const profile = this.upstreamProfile(path, params);
     const now = Date.now();
     const envelope = await this.readUpstreamEnvelope(key);
-    if (envelope && envelope.freshUntil > now) {
+    const quota = await this.readQuotaState();
+    const freshMs = quotaPacedRefreshMs(profile.freshMs, quota.dayLimit);
+    if (envelope && Math.max(envelope.freshUntil, envelope.storedAt + freshMs) > now) {
       return { data: envelope.data, storedAt: envelope.storedAt, stale: false };
     }
 
-    const quota = await this.readQuotaState();
     if (quota.blockedUntil > now) {
       if (envelope && envelope.staleUntil > now)
         return { data: envelope.data, storedAt: envelope.storedAt, stale: true };
@@ -623,8 +633,8 @@ export class LiveFootballCoordinator extends DurableObject<CoordinatorEnv> {
       await this.writeUpstreamEnvelope(key, {
         data,
         storedAt,
-        freshUntil: storedAt + profile.freshMs,
-        staleUntil: storedAt + profile.staleMs,
+        freshUntil: storedAt + freshMs,
+        staleUntil: storedAt + Math.max(profile.staleMs, freshMs * 2),
       });
       return { data, storedAt, stale: false };
     } catch (error) {
@@ -671,14 +681,20 @@ export class LiveFootballCoordinator extends DurableObject<CoordinatorEnv> {
   ): Promise<RefreshResult> {
     const now = Date.now();
     const envelope = await this.readEnvelope(key);
-    if (!forceRefresh && envelope && envelope.freshUntil > now) {
+    const quota = await this.readQuotaState();
+    const baseRefreshMs = mode === "live" ? LIVE_REFRESH_MS : DAY_REFRESH_MS;
+    const refreshMs = quotaPacedRefreshMs(baseRefreshMs, quota.dayLimit);
+    if (
+      envelope &&
+      Math.max(envelope.freshUntil, envelope.storedAt + refreshMs) > now &&
+      (!forceRefresh || refreshMs > baseRefreshMs)
+    ) {
       return {
         snapshot: snapshotWithState(envelope, "fresh"),
-        nextDelayMs: mode === "live" ? await this.liveRefreshDelay() : DAY_REFRESH_MS,
+        nextDelayMs: mode === "live" ? await this.liveRefreshDelay() : refreshMs,
       };
     }
 
-    const quota = await this.readQuotaState();
     const inReserve =
       quota.dayRemaining !== undefined &&
       quota.dayLimit !== undefined &&
@@ -745,7 +761,7 @@ export class LiveFootballCoordinator extends DurableObject<CoordinatorEnv> {
       if (raw.length === 0 && mode === "day" && envelope && envelope.staleUntil > Date.now()) {
         return {
           snapshot: snapshotWithState(envelope, "stale", "empty"),
-          nextDelayMs: DAY_REFRESH_MS,
+          nextDelayMs: refreshMs,
         };
       }
       const storedAt = Date.now();
@@ -753,8 +769,11 @@ export class LiveFootballCoordinator extends DurableObject<CoordinatorEnv> {
       const next: SharedSnapshotEnvelope = {
         snapshot,
         storedAt,
-        freshUntil: storedAt + (mode === "live" ? LIVE_REFRESH_MS : DAY_REFRESH_MS),
-        staleUntil: storedAt + (mode === "live" ? SNAPSHOT_STALE_MS : DAY_STALE_MS),
+        freshUntil: storedAt + refreshMs,
+        staleUntil: storedAt + Math.max(
+          mode === "live" ? SNAPSHOT_STALE_MS : DAY_STALE_MS,
+          refreshMs * 2,
+        ),
         mode,
         requestKey: key,
       };
@@ -765,7 +784,9 @@ export class LiveFootballCoordinator extends DurableObject<CoordinatorEnv> {
       return {
         snapshot,
         nextDelayMs:
-          mode === "live" && hasLiveMatch ? await this.liveRefreshDelay() : QUIET_REFRESH_MS,
+          mode === "live" && hasLiveMatch
+            ? await this.liveRefreshDelay()
+            : Math.max(QUIET_REFRESH_MS, refreshMs),
       };
     } catch (error) {
       const status = error instanceof CoordinatorUpstreamError ? error.status : 0;

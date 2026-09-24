@@ -9,6 +9,19 @@ export function readQuotaHeader(headers: Headers, names: readonly string[]): num
   return undefined;
 }
 
+/** Keep a proportional reserve without blocking an entire small plan. */
+export function dailyQuotaReserve(dayLimit: number | undefined, ratio: number, minimum: number): number {
+  if (!dayLimit || dayLimit <= 0) return 0;
+  const proportional = Math.max(1, Math.ceil(dayLimit * ratio));
+  return Math.min(dayLimit - 1, dayLimit >= 1_000 ? Math.max(minimum, proportional) : proportional);
+}
+
+/** A smaller provider plan must refresh less often than the 7,500/day plan. */
+export function quotaPacedRefreshMs(baseMs: number, dayLimit: number | undefined): number {
+  if (!dayLimit || dayLimit <= 0) return baseMs;
+  return Math.max(baseMs, Math.min(3 * 60 * 60_000, Math.ceil(baseMs * 7_500 / dayLimit)));
+}
+
 /** Wait for the UTC reset at zero, or sample sparingly inside the reserve. */
 export function reserveProbeDelay(
   now: number,
