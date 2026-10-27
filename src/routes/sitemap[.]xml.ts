@@ -70,32 +70,35 @@ export const Route = createFileRoute("/sitemap.xml")({
         } catch {
           // Un sitemap technique valide reste disponible même sans la base éditoriale.
         }
-        const publishedCategories = new Set(
-          editorialEntries.filter((entry) => entry.category).map((entry) => entry.category),
-        );
+        const articlesByCategory = new Map<string, number>();
+        for (const entry of editorialEntries) {
+          if (entry.category) {
+            articlesByCategory.set(entry.category, (articlesByCategory.get(entry.category) ?? 0) + 1);
+          }
+        }
+        // Les catégories avec un seul article sont volontairement noindexées
+        // par leur route et ne doivent pas être proposées dans le sitemap.
+        const indexableCategories = [...articlesByCategory]
+          .filter(([, count]) => count >= 2)
+          .map(([category]) => category);
         let fixtureEntries: SitemapEntry[] = [];
         try {
-          const { getFixtures } = await import("@/lib/football.functions");
-          const today = new Date().toISOString().slice(0, 10);
-          // Le sitemap ne doit jamais attendre un fournisseur sportif lent.
-          // Les fiches réelles restent découvertes par leurs liens et par le
-          // prochain rafraîchissement du sitemap.
-          const payload = await withTimeout(getFixtures({ data: { date: today } }), 2500);
-          if (payload.state !== "unavailable") {
-            fixtureEntries = payload.matches
-              .filter(
-                (match) => match.id > 0 && match.home.name && match.away.name && match.league.name,
-              )
-              .map((match) => ({
-                path: `/live/${match.id}`,
-                lastmod: payload.fetchedAt ?? undefined,
-                changefreq:
-                  match.status === "live" || match.status === "ht"
-                    ? ("hourly" as const)
-                    : ("daily" as const),
-                priority: match.status === "live" || match.status === "ht" ? "0.9" : "0.6",
-              }));
-          }
+          const { getCachedFixtureSitemapMatches } = await import("@/lib/football.functions");
+          // La génération lit uniquement le dernier snapshot réellement reçu :
+          // un crawl de sitemap ne déclenche jamais de requête sportive payante.
+          const payload = await withTimeout(getCachedFixtureSitemapMatches(), 1500);
+          fixtureEntries = payload.matches
+            .filter(
+              (match) => match.id > 0 && match.home && match.away && match.competition,
+            )
+            .map((match) => ({
+              path: `/live/${match.id}`,
+              changefreq:
+                match.status === "live" || match.status === "ht"
+                  ? ("hourly" as const)
+                  : ("daily" as const),
+              priority: match.status === "live" || match.status === "ht" ? "0.9" : "0.6",
+            }));
         } catch {
           // Le sitemap reste disponible même si le fournisseur sportif est temporairement indisponible.
         }
@@ -138,7 +141,7 @@ export const Route = createFileRoute("/sitemap.xml")({
           { path: "/en/blog", changefreq: "weekly", priority: "0.6" },
           { path: "/en/promo-codes", changefreq: "weekly", priority: "0.7" },
           { path: "/en/community", changefreq: "daily", priority: "0.6" },
-          ...Array.from(publishedCategories).map((category) => ({
+          ...indexableCategories.map((category) => ({
             path: `/blog/categorie/${category}`,
             changefreq: "daily" as const,
             priority: "0.7",

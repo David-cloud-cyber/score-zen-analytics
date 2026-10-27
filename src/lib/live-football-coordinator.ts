@@ -154,6 +154,65 @@ export class LiveFootballCoordinator extends DurableObject<CoordinatorEnv> {
         storedAt: envelope.storedAt,
       } : null);
     }
+    if (url.pathname === "/internal/sitemap-fixtures") {
+      const now = Date.now();
+      const matches = new Map<number, SharedSnapshotEnvelope["snapshot"]["matches"][number]>();
+      const liveEnvelope = await this.readEnvelope(LIVE_KEY);
+      if (liveEnvelope && now - liveEnvelope.storedAt <= 3 * 24 * 60 * 60_000) {
+        for (const match of liveEnvelope.snapshot.matches) matches.set(match.id, match);
+      }
+      // Match pages resolve their summary from today or the adjacent day's
+      // shared snapshot. Avoid listing older URLs whose summaries may expire.
+      for (let offset = 0; offset <= 1; offset += 1) {
+        const date = new Date(now - offset * 24 * 60 * 60_000).toISOString().slice(0, 10);
+        const envelope = await this.readEnvelope(daySnapshotKey(date));
+        if (!envelope || now - envelope.storedAt > 3 * 24 * 60 * 60_000) continue;
+        for (const match of envelope.snapshot.matches) {
+          if (match.id > 0 && match.home.name && match.away.name && match.league.name) {
+            matches.set(match.id, match);
+          }
+        }
+      }
+      return jsonDataResponse({
+        matches: [...matches.values()].map((match) => ({
+          id: match.id,
+          kickoff: match.kickoff,
+          status: match.status,
+          home: match.home.name,
+          away: match.away.name,
+          competition: match.league.name,
+        })),
+      });
+    }
+    if (url.pathname === "/internal/fixture-summary") {
+      const fixtureId = Number(url.searchParams.get("id"));
+      if (!Number.isInteger(fixtureId) || fixtureId <= 0) {
+        return jsonDataResponse({ error: "invalid_fixture_id" }, 400);
+      }
+
+      const now = Date.now();
+      const candidates: Array<SharedSnapshotEnvelope | null> = [
+        await this.readEnvelope(LIVE_KEY),
+      ];
+      for (let offset = 0; offset <= 1; offset += 1) {
+        const date = new Date(now - offset * 24 * 60 * 60_000).toISOString().slice(0, 10);
+        candidates.push(await this.readEnvelope(daySnapshotKey(date)));
+      }
+
+      for (const envelope of candidates) {
+        if (!envelope || now - envelope.storedAt > 3 * 24 * 60 * 60_000) continue;
+        const match = envelope.snapshot.matches.find((item) => item.id === fixtureId);
+        if (!match || !match.home.name || !match.away.name || !match.league.name) continue;
+        return jsonDataResponse({
+          match,
+          fetchedAt: envelope.snapshot.fetchedAt ?? new Date(envelope.storedAt).toISOString(),
+          stale: envelope.freshUntil <= now,
+          state: envelope.freshUntil <= now ? "stale" : "fresh",
+          source: envelope.snapshot.source,
+        });
+      }
+      return jsonDataResponse({ match: null }, 404);
+    }
 
     if (url.pathname === "/api/live-stream") {
       if (!isWebSocket) return new Response("Expected WebSocket", { status: 426 });

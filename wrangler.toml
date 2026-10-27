@@ -9,7 +9,7 @@ SUPABASE_PUBLISHABLE_KEY = "sb_publishable_yxv1dFxXbVRB4V58m1833w_MW11Uigv"
 VITE_SUPABASE_URL = "https://oirdlreedxhldmwadwom.supabase.co"
 VITE_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_yxv1dFxXbVRB4V58m1833w_MW11Uigv"
 PUBLIC_APP_URL = "https://www.livefoot.fun"
-PAYMENT_PROVIDER = "relayit"
+PAYMENT_PROVIDER = "saspay"
 SASPAY_CURRENCY = "XAF"
 RELAYIT_CURRENCY = "XAF"
 CHARIOW_PRODUCT_PREMIUM_MONTHLY = "prd_pwc5ux6p"
@@ -48,7 +48,8 @@ crons = ["0 * * * *"]
 
 # Secrets (set via: wrangler secret put SECRET_NAME)
 # APIFOOTBALL_KEY  ← wrangler secret put APIFOOTBALL_KEY
-# Relayit production checkout and signed webhook:
+# Relayit secrets are retained only for reconciliation of historical records.
+# SasPay is the active provider; keep SASPAY_API_KEY and SASPAY_WEBHOOK_SECRET configured.
 # RELAYIT_API_KEY
 # RELAYIT_WEBHOOK_SECRET
 

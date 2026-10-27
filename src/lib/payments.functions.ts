@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import { getRuntimeEnv } from "./config.server";
+import { ACTIVE_PAYMENT_PROVIDER } from "./payment-provider";
 
 const packCheckoutInput = z.object({
   packId: z.string().min(1).max(40),
@@ -26,8 +27,10 @@ function createExternalId(prefix: "sub" | "pk") {
   return `${prefix}_${crypto.randomUUID().replaceAll("-", "")}`;
 }
 
-function preferredPaymentProvider(): "relayit" | "saspay" {
-  return getRuntimeEnv("PAYMENT_PROVIDER")?.trim().toLowerCase() === "relayit" ? "relayit" : "saspay";
+function preferredPaymentProvider(): typeof ACTIVE_PAYMENT_PROVIDER {
+  // Keep checkout selection server-owned. A stale dashboard variable must not
+  // route new customers to the disabled/unverified Relayit integration.
+  return ACTIVE_PAYMENT_PROVIDER;
 }
 
 export const getActivePaymentProvider = createServerFn({ method: "GET" }).handler(() => ({
@@ -82,26 +85,6 @@ async function startPreferredCheckout(params: {
   if (!customer.email) throw publicPaymentError();
 
   try {
-    const provider = preferredPaymentProvider();
-    if (provider === "relayit") {
-      const { initiateRelayitCheckout } = await import("./relayit.server");
-      const checkout = await initiateRelayitCheckout({
-        amountXaf: params.amount,
-        email: customer.email,
-        customerName: `${customer.firstName} ${customer.lastName}`.trim(),
-        externalId: params.externalId,
-        description: params.message,
-        returnUrl: `${appOrigin()}/profil?payment=${encodeURIComponent(params.externalId)}`,
-      });
-      return {
-        provider,
-        mode: "hosted" as const,
-        link: checkout.checkoutUrl,
-        transId: checkout.id,
-        customerEmail: customer.email,
-      };
-    }
-
     const { initiateSasPayCheckout } = await import("./saspay.server");
     const checkout = await initiateSasPayCheckout({
       amountXaf: params.amount,
@@ -113,14 +96,14 @@ async function startPreferredCheckout(params: {
       returnUrl: `${appOrigin()}/profil?payment=${encodeURIComponent(params.externalId)}`,
     });
     return {
-      provider,
+      provider: ACTIVE_PAYMENT_PROVIDER,
       mode: "hosted" as const,
       link: checkout.checkoutUrl,
       transId: checkout.id,
       customerEmail: customer.email,
     };
   } catch (error) {
-    console.error(`${preferredPaymentProvider()} checkout failed`, error instanceof Error ? error.message : "unknown");
+    console.error("SasPay checkout failed", error instanceof Error ? error.message : "unknown");
     throw publicPaymentError();
   }
 }

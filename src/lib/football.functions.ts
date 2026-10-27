@@ -281,6 +281,98 @@ export async function readSharedFixtureSnapshot(
   }
 }
 
+/** Read-only sitemap feed from cached real snapshots; never triggers API-Football calls. */
+export async function getCachedFixtureSitemapMatches(): Promise<{
+  matches: Array<{
+    id: number;
+    kickoff: string;
+    status: RemoteMatchSummary["status"];
+    home: string;
+    away: string;
+    competition: string;
+  }>;
+}> {
+  const coordinator = getRuntimeBinding<DurableObjectNamespaceBinding>("LIVE_FOOTBALL_COORDINATOR");
+  if (!coordinator) return { matches: [] };
+
+  try {
+    const response = await coordinator
+      .getByName(LIVE_COORDINATOR_NAME)
+      .fetch(new Request("https://livefoot.internal/internal/sitemap-fixtures"));
+    if (!response.ok) return { matches: [] };
+    const payload = (await response.json()) as { matches?: unknown };
+    if (!Array.isArray(payload.matches)) return { matches: [] };
+    const matches = payload.matches.filter((match): match is {
+      id: number;
+      kickoff: string;
+      status: RemoteMatchSummary["status"];
+      home: string;
+      away: string;
+      competition: string;
+    } => Boolean(
+      match &&
+      typeof match === "object" &&
+      Number.isInteger((match as { id?: unknown }).id) &&
+      typeof (match as { kickoff?: unknown }).kickoff === "string" &&
+      typeof (match as { home?: unknown }).home === "string" &&
+      typeof (match as { away?: unknown }).away === "string" &&
+      typeof (match as { competition?: unknown }).competition === "string",
+    ));
+    return { matches };
+  } catch {
+    return { matches: [] };
+  }
+}
+
+/** Resolve a real match page from the same shared snapshots used by the sitemap. */
+async function getCachedFixtureSummary(id: number): Promise<RemoteMatchDetail | null> {
+  const coordinator = getRuntimeBinding<DurableObjectNamespaceBinding>("LIVE_FOOTBALL_COORDINATOR");
+  if (!coordinator) return null;
+
+  try {
+    const url = new URL("https://livefoot.internal/internal/fixture-summary");
+    url.searchParams.set("id", String(id));
+    const response = await coordinator
+      .getByName(LIVE_COORDINATOR_NAME)
+      .fetch(new Request(url, { method: "GET" }));
+    if (!response.ok) return null;
+    const payload = (await response.json()) as {
+      match?: RemoteMatchSummary | null;
+      fetchedAt?: string;
+      stale?: boolean;
+      state?: FixturesPayload["state"];
+      source?: FixturesPayload["source"];
+    };
+    const match = payload.match;
+    if (
+      !match ||
+      match.id !== id ||
+      !match.home?.name ||
+      !match.away?.name ||
+      !match.league?.name ||
+      !match.kickoff
+    ) return null;
+
+    return detailFromSummary(match, {
+      fetchedAt: payload.fetchedAt ?? new Date().toISOString(),
+      stale: Boolean(payload.stale),
+      state: payload.state ?? "stale",
+      source: payload.source ?? "cache",
+      unavailableSections: [
+        "événements",
+        "statistiques",
+        "compositions",
+        "confrontations",
+        "cotes",
+        "prédictions",
+        "absences",
+      ],
+    });
+  } catch {
+    return null;
+  }
+}
+
 export const getFixtures = createServerFn({ method: "GET" })
   .inputValidator((input) =>
     z
@@ -703,6 +795,12 @@ export async function loadFixtureSummary(id: number): Promise<RemoteMatchDetail>
       });
     }
   }
+
+  // The sitemap is built from these shared snapshots too. Resolve by fixture
+  // ID before touching the paid upstream API, so an indexed URL never depends
+  // on a date-bound cache key being the same as the crawler's route request.
+  const cachedSummary = await getCachedFixtureSummary(id);
+  if (cachedSummary) return cachedSummary;
 
   let fixture: ApiFixture | undefined;
   let primaryError: unknown;

@@ -10,6 +10,7 @@ import {
   todayISO,
 } from "@/lib/apifootball.server";
 import { getConfig, getRuntimeEnv } from "@/lib/config.server";
+import { ACTIVE_PAYMENT_PROVIDER } from "./payment-provider";
 import { isActionablePrediction, scoreMatchProbabilities } from "./prediction-evaluation";
 
 type AdminRole = "admin" | "owner";
@@ -1615,7 +1616,7 @@ export const getAdminApiHealth = createServerFn({ method: "GET" })
       saspayConfigured: Boolean(saspay),
       relayitConfigured: Boolean(relayit && relayitWebhook),
       relayitCredentialStatus,
-      paymentProvider: getRuntimeEnv("PAYMENT_PROVIDER")?.trim().toLowerCase() === "relayit" ? "relayit" : "saspay",
+      paymentProvider: ACTIVE_PAYMENT_PROVIDER,
       cloudflareConfigured: Boolean(getRuntimeEnv("PUBLIC_APP_URL")),
       checkedAt: new Date().toISOString(),
     };

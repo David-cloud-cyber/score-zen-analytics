@@ -72,6 +72,13 @@ const sectionsQuery = (id: number, demoMode = false) =>
     retry: 0,
   });
 
+function isSearchCrawler() {
+  if (typeof navigator === "undefined") return false;
+  return /googlebot|bingbot|duckduckbot|baiduspider|yandexbot|applebot|perplexitybot|gptbot|claudebot/i.test(
+    navigator.userAgent,
+  );
+}
+
 export const Route = createFileRoute("/live/$id")({
   head: ({ params, loaderData }) => {
     const match = loaderData as RemoteMatchDetail | undefined;
@@ -218,6 +225,7 @@ function LiveMatchPage() {
   const { id } = useParams({ from: "/live/$id" });
   const fixtureId = Number(id);
   const demoMode = isLocalDemo();
+  const searchCrawler = isSearchCrawler();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("overview");
   const initialSummary = Route.useLoaderData();
@@ -228,7 +236,8 @@ function LiveMatchPage() {
   });
   const summary = summaryQuery.data;
   useLiveMatchStream({
-    enabled: !demoMode && Boolean(summary) && summary?.status !== "finished",
+    enabled:
+      !demoMode && !searchCrawler && Boolean(summary) && summary?.status !== "finished",
     fixtureId,
     onUpdate: (nextSummary, fetchedAt) => {
       if (!nextSummary) {
@@ -254,7 +263,9 @@ function LiveMatchPage() {
   });
   const sections = useQuery({
     ...sectionsQuery(fixtureId, demoMode),
-    enabled: Boolean(summary),
+    // Search engine rendering needs only the real match summary and event
+    // schema. Avoid fetching seven paid secondary endpoints for crawler visits.
+    enabled: Boolean(summary) && typeof window !== "undefined" && !searchCrawler,
     // Score ticks arrive independently; detailed sections refresh at a sane
     // cadence so one open match cannot trigger seven calls every ten seconds.
     refetchInterval:

@@ -4,6 +4,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { getRuntimeEnv } from "@/lib/config.server";
 import { getSasPayApiKey, initiateSasPayCheckout } from "@/lib/saspay.server";
+import { ACTIVE_PAYMENT_PROVIDER } from "@/lib/payment-provider";
 
 const CAMPAIGN_SLUG = "decouverte-500-xaf";
 
@@ -45,15 +46,11 @@ function mapCampaign(row: any): PromoCampaign {
   };
 }
 
-function preferredPaymentProvider(): "relayit" | "saspay" {
-  return getRuntimeEnv("PAYMENT_PROVIDER")?.trim().toLowerCase() === "relayit" ? "relayit" : "saspay";
+function preferredPaymentProvider(): typeof ACTIVE_PAYMENT_PROVIDER {
+  return ACTIVE_PAYMENT_PROVIDER;
 }
 
 async function isPreferredProviderConfigured() {
-  if (preferredPaymentProvider() === "relayit") {
-    const { isRelayitConfigured } = await import("@/lib/relayit.server");
-    return isRelayitConfigured();
-  }
   return Boolean(await getSasPayApiKey());
 }
 
@@ -208,26 +205,14 @@ export const createPromoCheckout = createServerFn({ method: "POST" })
       const name = typeof context.claims?.user_metadata === "object" && context.claims.user_metadata
         ? String((context.claims.user_metadata as Record<string, unknown>).full_name ?? (context.claims.user_metadata as Record<string, unknown>).name ?? "LiveFoot IA")
         : "LiveFoot IA";
-      const result = preferredPaymentProvider() === "relayit"
-        ? await (async () => {
-            const { initiateRelayitCheckout } = await import("@/lib/relayit.server");
-            return initiateRelayitCheckout({
-              amountXaf: campaign.priceXaf,
-              email,
-              customerName: name,
-              externalId,
-              description: `Offre découverte ${campaign.credits} crédits Livefoot IA`,
-              returnUrl: `${appOrigin()}/profil?payment=${encodeURIComponent(externalId)}`,
-            });
-          })()
-        : await initiateSasPayCheckout({
-            amountXaf: campaign.priceXaf,
-            email,
-            customerName: name,
-            externalId,
-            description: `Offre découverte ${campaign.credits} crédits Livefoot IA`,
-            returnUrl: `${appOrigin()}/profil?payment=${encodeURIComponent(externalId)}`,
-          });
+      const result = await initiateSasPayCheckout({
+        amountXaf: campaign.priceXaf,
+        email,
+        customerName: name,
+        externalId,
+        description: `Offre découverte ${campaign.credits} crédits Livefoot IA`,
+        returnUrl: `${appOrigin()}/profil?payment=${encodeURIComponent(externalId)}`,
+      });
       const { error: attachError } = await (supabaseAdmin as any).from("payments").update({ provider_sale_id: result.id, link: result.checkoutUrl, checkout_link: result.checkoutUrl }).eq("id", payment.id);
       if (attachError) throw new Error("Impossible de finaliser la préparation du paiement.");
       return { link: result.checkoutUrl, transId: result.id, externalId, status: "PENDING", amountXaf: campaign.priceXaf, credits: campaign.credits };
